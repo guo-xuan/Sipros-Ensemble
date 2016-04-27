@@ -1,0 +1,1000 @@
+  139  echo $cov
+  140  size=200000
+  141  length=300
+  142  dc -e "$size $cov"
+  143  x='dc -e "$size $cov"'
+  144  echo $x
+  145  x=`dc -e "$size $cov"`
+  146  echo $x
+  147  set reads = `dc -e "$size $cov * $length 2 * / p"`
+  148  echo $reads
+  149  dc -e "10 p"
+  150  dc -e "100 10 * p"
+  151  dc -e "100 10 * 300 2 * / p"
+  152  dc -e "100 10 * 100 2 * / p"
+  153  echo $ac
+  154  ac=NC_008400
+  155  echo $ac
+  156  echo $ac x $cov = $reads
+  157  reads = 10000
+  158  reads=10000
+  159  echo $ac x $cov = $reads
+  160  echo $ac x $cov = $reads reads '->'
+  161  cd /home/xgo/ORNL/OverlapConstruction/AllToAllAlignment/Scripts/
+  162  ./splitReads.py 
+  163  xxx="ex.tar.gz.xx"
+  164  echo ${xxx##*.}
+  165  echo ${xxx%.*}
+  166  xxx="/home/xgo/ex.tar.gz.xx"
+  167  echo ${xxx##*.}
+  168  echo ${xxx%.*}
+  169  echo ${xxx##*/}
+  170  cd /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/
+  171  awk 'BEGIN{x=0}{if(substr($0,1,1)==">")x++;}END{print x}' E-Exact.fdbcf33c.fna 
+  172  awk 'BEGIN{x=0}{if(substr($0,1,1)==">")x++;}END{print NR}' E-Exact.fdbcf33c.fna 
+  173  awk 'BEGIN{x=0}{if(substr($0,1,1)==">")x++;}END{print NR/4}' E-Exact.fdbcf33c.fna 
+  174  echo $xxx
+  175  echo '$xxx'
+  176  cd ~
+  177  ssh xgo@viper.ornl.gov
+  178  ssh xgo@titan.ccs.ornl.gov
+  179  ssh xgo@titan.ccs.ornl.gov
+  180  ssh xgo@titan.ccs.ornl.gov
+  181  ssh xgo@titan.ccs.ornl.gov
+  182  ssh xgo@titan.ccs.ornl.gov
+  183  ssh xgo@viper.ornl.gov
+  184  ssh xgo@viper.ornl.gov
+  185  ssh xgo@viper.ornl.gov
+  186  cd ~/workspace/HeterogeneityRemoval/
+  187  diff ecoli1.fasta out.txt 
+  188  diff ecoli1.fasta out.txt > diff.log
+  189  diff ecoli1.fasta out.txt > diff1.log
+  190  diff ecoli1.fasta out.txt > diff1.log
+  191  diff ecoli1.fasta out.txt > diff2.log
+  192  diff ecoli1.fasta ecoli1.fasta.test > diff3.log
+  193  diff ecoli1.fasta out.txt > diff4.log
+  194  diff /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/ecoli1.fasta /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/ecoli1_3mr80pr.fasta > /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/diff_3mr80pr.log
+  195  diff /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/ecoli1.fasta /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/ecoli1_3mr80pr_corrected01.fasta > /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/diff_3mr80pr_corrected01.log
+  196  diff /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/ecoli1.fasta /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/fasta > /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/diff_3mr80pr_tadpole.log
+  197  diff /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/ecoli1.fasta /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/fasta > /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/diff_3mr80pr_tadpole.log
+  198  diff /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/ecoli1.fasta /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/fasta > /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/diff_3mr80pr_tadpole_02.log
+  199  diff /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/ecoli1.fasta /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/fasta > /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/diff_3mr80pr_tadpole_03.log
+  200  /home/xgo/workspace/AllToAllAlignment/Release/AllToAllAlignment -s /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/E-Exact.fdbcf33c.fna -q /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/E-Exact.fdbcf33c.fna -k 40 -mr 5 -idr 5 -z 10000 -t 3 -o /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/E-Exact.fdbcf33c
+  201  /home/xgo/workspace/AllToAllAlignment/Release/AllToAllAlignment -s /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/E-Exact.fdbcf33c.fasta -q /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/E-Exact.fdbcf33c.fasta -k 40 -mr 5 -idr 5 -z 10000 -t 3 -o /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/E-Exact.fdbcf33c
+  202  /home/xgo/workspace/AllToAllAlignment/Release/AllToAllAlignment -s /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/E-Exact.fdbcf33c.fasta -q /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/E-Exact.fdbcf33c.fasta -k 40 -mr 5 -idr 5 -z 10000 -t 3 -o /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/E-Exact.fdbcf33c
+  203  /home/xgo/workspace/AllToAllAlignment/Release/AllToAllAlignment -s /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/E-Exact.fdbcf33c.fasta -q /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/E-Exact.fdbcf33c.fasta -k 40 -mr 5 -idr 5 -z 10000 -t 3 -o /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/E-Exact.fdbcf33c
+  204  /home/xgo/workspace/AllToAllAlignment/Release/AllToAllAlignment -s /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/E-Exact.fdbcf33c.fasta -q /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/E-Exact.fdbcf33c.fasta -k 40 -mr 5 -idr 5 -z 10000 -t 3 -o /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/E-Exact.fdbcf33c
+  205  /home/xgo/workspace/AllToAllAlignment/Release/AllToAllAlignment -s /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/E-Exact.fdbcf33c.fasta -q /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/E-Exact.fdbcf33c.fasta -k 40 -mr 5 -idr 5 -z 10000 -t 3 -o /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/E-Exact.fdbcf33c
+  206  /home/xgo/workspace/AllToAllAlignment/Release/AllToAllAlignment -s /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/E-Exact.fdbcf33c.fasta -q /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/E-Exact.fdbcf33c.fasta -k 40 -mr 5 -idr 5 -z 10000 -t 3 -o /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/E-Exact.fdbcf33c
+  207  diff /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/E-Exact.fdbcf33c.fasta /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/E-Exact.fdbcf33c_Original.fasta > /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/diff_Original.log
+  208  /home/xgo/workspace/AllToAllAlignment/Release/AllToAllAlignment -s /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/E-Exact.fdbcf33c.fasta -q /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/E-Exact.fdbcf33c.fasta -k 30 -mr 5 -idr 5 -z 10000 -t 3 -o /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/E-Exact.fdbcf33c
+  209  diff /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/E-Exact.fdbcf33c.fasta /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/E-Exact.fdbcf33c_Original.fasta > /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/diff_Original.log
+  210  /home/xgo/workspace/AllToAllAlignment/Release/AllToAllAlignment -s /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/E-Exact.fdbcf33c.fasta -q /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/E-Exact.fdbcf33c.fasta -k 30 -mr 5 -idr 0 -z 10000 -t 3 -o /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/E-Exact.fdbcf33c
+  211  diff /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/E-Exact.fdbcf33c.fasta /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/E-Exact.fdbcf33c_Original.fasta > /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Exact/diff_Original.log
+  212  diff /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1.fasta /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr.fasta > /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/diff_3idr10pr.log
+  213  /home/xgo/workspace/AllToAllAlignment/Release/AllToAllAlignment -s /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr.fasta -q /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr.fasta -k 30 -mr 5 -idr 5 -t 3 -z 10000 -o /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr
+  214  diff /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1.fasta /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr_corrected01.fasta > /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/diff_3idr10pr_corrected01.log
+  215  /home/xgo/workspace/AllToAllAlignment/Release/AllToAllAlignment -s /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr.fasta -q /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr.fasta -k 25 -mr 5 -idr 10 -t 3 -z 10000 -o /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr
+  216  diff /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1.fasta /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr_corrected02.fasta > /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/diff_3idr10pr_corrected02.log
+  217  /home/xgo/workspace/AllToAllAlignment/Release/AllToAllAlignment -s /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1.fasta -q /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1.fasta -k 25 -mr 5 -idr 10 -t 3 -z 10000 -l 25 -o /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1
+  218  /home/xgo/workspace/AllToAllAlignment/Release/AllToAllAlignment -s /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr.fasta -q /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr.fasta -k 25 -mr 5 -idr 10 -t 3 -z 10000 -o /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr -l 25
+  219  diff /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1.fasta /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr_corrected03.fasta > /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/diff_3idr10pr_corrected03.log
+  220  diff /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1.fasta /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr_corrected04.fasta > /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/diff_3idr10pr_corrected04.log
+  221  diff /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1.fasta /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr_corrected05.fasta > /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/diff_3idr10pr_corrected05.log
+  222  diff /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1.fasta /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr_corrected06.fasta > /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/diff_3idr10pr_corrected06.log
+  223  diff /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1.fasta /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr_corrected07.fasta > /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/diff_3idr10pr_corrected07.log
+  224  diff /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1.fasta /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr_corrected08.fasta > /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/diff_3idr10pr_corrected08.log
+  225  diff /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1.fasta /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr_corrected09.fasta > /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/diff_3idr10pr_corrected09.log
+  226  diff /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1.fasta /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr_corrected10.fasta > /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/diff_3idr10pr_corrected10.log
+  227  diff /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1.fasta /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr.fasta > diff_3idr10pr.log
+  228  mv diff_3idr10pr.log /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/
+  229  /home/xgo/workspace/AllToAllAlignment/Release/AllToAllAlignment -s /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr.fasta -q /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr.fasta -k 25 -mr 5 -idr 10 -t 3 -z 10000 -o /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr -l 25
+  230  diff /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1.fasta /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr_corrected01.fasta > /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/diff_3idr10pr_corrected01.log
+  231  /home/xgo/workspace/AllToAllAlignment/Release/AllToAllAlignment -s /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr.fasta -q /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr.fasta -k 25 -mr 5 -idr 10 -t 3 -z 10000 -o /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr_new -l 25
+  232  diff /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1.fasta /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr_corrected02.fasta > /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/diff_3idr10pr_corrected02.log
+  233  diff /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1.fasta /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr_corrected03.fasta > /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/diff_3idr10pr_corrected03.log
+  234  diff /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1.fasta /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr_corrected04.fasta > /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/diff_3idr10pr_corrected04.log
+  235  diff /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1.fasta /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr_corrected05.fasta > /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/diff_3idr10pr_corrected05.log
+  236  /home/xgo/workspace/AllToAllAlignment/Release/AllToAllAlignment -s /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr.fasta -q /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr.fasta -k 25 -mr 5 -idr 10 -t 3 -z 10000 -o /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr_new_new -l 25
+  237  diff /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1.fasta /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr_corrected06.fasta > /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/diff_3idr10pr_corrected06.log
+  238  /home/xgo/workspace/AllToAllAlignment/Release/AllToAllAlignment -s /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr.fasta -q /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr.fasta -k 25 -mr 5 -idr 10 -t 3 -z 10000 -o /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr_new_new_new -l 25
+  239  /home/xgo/workspace/AllToAllAlignment/Release/AllToAllAlignment -s /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr.fasta -q /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr.fasta -k 25 -mr 5 -idr 10 -t 3 -z 10000 -o /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr_new_new_new -l 25
+  240  /home/xgo/workspace/AllToAllAlignment/Release/AllToAllAlignment -s /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr.fasta -q /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr.fasta -k 25 -mr 5 -idr 10 -t 3 -z 10000 -o /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr_new_new_new -l 25
+  241  /home/xgo/workspace/AllToAllAlignment/Release/AllToAllAlignment -s /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr.fasta -q /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr.fasta -k 25 -mr 5 -idr 10 -t 3 -z 10000 -o /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr_new_new_new -l 25
+  242  /home/xgo/workspace/AllToAllAlignment/Release/AllToAllAlignment -s /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr.fasta -q /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr.fasta -k 25 -mr 5 -idr 10 -t 3 -z 10000 -o /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr_new_new_new -l 25
+  243  diff /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1.fasta /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr_corrected07.fasta > /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/diff_3idr10pr_corrected07.log
+  244  /home/xgo/workspace/AllToAllAlignment/Release/AllToAllAlignment -s /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr.fasta -q /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr.fasta -k 25 -mr 5 -idr 10 -t 3 -z 10000 -o /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr_new_new_new -l 25
+  245  diff /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1.fasta /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr_corrected08.fasta > /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/diff_3idr10pr_corrected08.log
+  246  /home/xgo/workspace/AllToAllAlignment/Release/AllToAllAlignment -s /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr.fasta -q /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr.fasta -k 25 -mr 5 -idr 10 -t 3 -z 10000 -o /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr_new_new_new -l 25
+  247  /home/xgo/workspace/AllToAllAlignment/Release/AllToAllAlignment -s /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr.fasta -q /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr.fasta -k 25 -mr 5 -idr 10 -t 3 -z 10000 -o /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr_new_new_new_new -l 25
+  248  /home/xgo/workspace/AllToAllAlignment/Release/AllToAllAlignment -s /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr.fasta -q /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr.fasta -k 25 -mr 5 -idr 10 -t 3 -z 10000 -o /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr_new_new_new_new -l 25
+  249  diff /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1.fasta /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr_corrected09.fasta > /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/diff_3idr10pr_corrected09.log
+  250  diff /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1.fasta /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr_corrected10.fasta > /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/diff_3idr10pr_corrected10.log
+  251  /home/xgo/workspace/AllToAllAlignment/Release/AllToAllAlignment -s /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr.fasta -q /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr.fasta -k 25 -mr 5 -idr 10 -t 3 -z 10000 -o /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr_new_new_new_new_new -l 25
+  252  diff /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1.fasta /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/ecoli1_3idr10pr_corrected11.fasta > /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/diff_3idr10pr_corrected11.log
+  253  cd /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/
+  254  ls
+  255  awk -f tadpole_reformat.awk < temp 
+  256  awk -f tadpole_reformat.awk < temp 
+  257  awk -f tadpole_reformat.awk < temp 
+  258  awk -f tadpole_reformat.awk < temp 
+  259  awk -f tadpole_reformat.awk < temp 
+  260  awk -f tadpole_reformat.awk < temp 
+  261  awk -f tadpole_reformat.awk < temp 
+  262  awk -f tadpole_reformat.awk < temp 
+  263  awk -f tadpole_reformat.awk < ecoli1_3mr80pr_tadpole.fasta 
+  264  sort -k 1 -n out > out.log
+  265  awk -f tadpole_reformat.awk < out.log 
+  266  awk -f tadpole_reformat_2.awk < out.log 
+  267  awk -f tadpole_reformat.awk < ecoli1_3mr80pr_tadpole.fasta 
+  268  sort -k 1 -n out > out.log
+  269  awk -f tadpole_reformat_2.awk < out.log 
+  270  awk -f tadpole_reformat.awk < ecoli1_3mr80pr_tadpole.fasta 
+  271  sort -k 1 -n out > out.log
+  272  awk -f tadpole_reformat_2.awk < out.log 
+  273  awk -f tadpole_reformat.awk < ecoli1_3mr80pr_tadpole.fasta 
+  274  sort -k 1 -n out > out.log
+  275  awk -f tadpole_reformat_2.awk < out.log 
+  276  awk -f tadpole_reformat.awk < ecoli1_3mr80pr_tadpole.fasta 
+  277  sort -k 1 -n out > out.log
+  278  awk -f tadpole_reformat_2.awk < out.log 
+  279  kshell
+  280  kbinit
+  281  ssh node078
+  282  ssh xgo@viper.ornl.gov
+  283  ssh xgo@titan.ccs.ornl.gov
+  284  ssh xgo@viper.ornl.gov
+  285  ssh xgo@viper.ornl.gov
+  286  history | grep "XBXC"
+  287  cd /home/xgo/ORNL/OverlapConstruction/AllToAllAlignment/Data/JJ/
+  288  history | grep "XBXC"
+  289  ./PairwiseAliger -s unique_EC_1000.fasta -q XBXC_contigs.fasta -k 60 -mr 5 -idr 5 -t 3 -z 10000 -o XBXC_contigs.fasta_detailed_1
+  290  cp ~/workspace/git/AllToAllAlignment/AllToAllAlignment/Release/AllToAllAlignment ./AAAligner
+  291  ./AAAligner -s unique_EC_1000.fasta -q XBXC_contigs.fasta -k 60 -mr 5 -idr 5 -t 3 -z 10000 -o XBXC_contigs.fasta_detailed_2 -a g -v -f 2048
+  292  cp ~/workspace/git/AllToAllAlignment/AllToAllAlignment/Release/AllToAllAlignment ./AAAligner
+  293  ./AAAligner -s unique_EC_1000.fasta -q XBXC_contigs.fasta -k 60 -mr 5 -idr 5 -t 3 -z 10000 -o XBXC_contigs.fasta_detailed_2 -a g -v -f 2048
+  294  cd src/\
+  295  ssh xgo@viper.ornl.gov
+  296  ssh xgo@viper.ornl.gov
+  297  ssh xgo@viper.ornl.gov
+  298  ssh xgo@viper.ornl.gov
+  299  cat ~/.ssh/config 
+  300  ssh xgo@viper.ornl.gov
+  301  ssh xgo@viper.ornl.gov
+  302  cat ~/.ssh/config 
+  303  kinit
+  304  cd Tools/
+  305  ll
+  306  ls
+  307  cd krb5/
+  308  ls
+  309  cd bin/
+  310  ls
+  311  ./kinit
+  312  ./kinit
+  313  ./pkinit 
+  314  ./kshell 
+  315  ./bin/kinit xgo@ORS.HPC.MIL
+  316  strace ./bin/kinit xgo@ORS.HPC.MIL
+  317  cd ~
+  318  ssh xgo@titan.ccs.ornl.gov
+  319  ssh xgo@titan.ccs.ornl.gov
+  320  which krb5
+  321  kinit
+  322  kshell
+  323  cd ~
+  324  ssh xgo@titan.ornl.gov
+  325  ssh xgo@titan.ccs.ornl.gov
+  326  ./pkinit 
+  327  ./kinit xgo@ORS.HPC.MIL
+  328  ./kinit xgo@HPCMP.HPC.MIL
+  329  ssh xgo@copper.ors.hpc.mil
+  330  ./kshell 
+  331  ./pkinit
+  332  cd ..
+  333  ll
+  334  ls
+  335  vi etc/krb5.conf 
+  336  strace ./bin/kinit 
+  337  ./bin/kinit ./etc/krb5.conf 
+  338  ./kinit xgo@HPCMP.HPC.MIL
+  339  ./bin/kinit xgo@HPCMP.HPC.MIL
+  340  ./bin/kinit xgo@HPCMP.HPC.MIL
+  341  ./bin/kshell 
+  342  ssh cori
+  343  cat ~/.ssh/config 
+  344  cd sftp://xgo@viper.ornl.gov/chongle/Xuan/ErrorCorrection/Data/
+  345  top
+  346  ssh genepool
+  347  vi ~/.ssh/config 
+  348  ssh genepool
+  349  ssh cori
+  350  vi ~/.ssh/config 
+  351  ssh cori
+  352  ssh xgo@viper.ornl.gov
+  353  ssh xgo@viper.ornl.gov
+  354  ssh xgo@viper.ornl.gov
+  355  ssh xgo@viper.ornl.gov
+  356  ssh xgo@viper.ornl.gov
+  357  ssh xgo@viper.ornl.gov
+  358  ssh xgo@viper.ornl.gov
+  359  diff ~/workspace/AllToAllAlignment/src/AlignmentRecord.cpp ~/workspace/AllToAllAlignmentSpecial/src/AlignmentRecord.cpp 
+  360  diff /home/xgo/Temp/xxx1205.aln /home/xgo/Temp/xxx1205_o.aln 
+  361  diff ~/workspace/AllToAllAlignmentSpecial/src/AlignmentRecord.cpp ~/workspace/git/AllToAllAlignment/AllToAllAlignment/src/AlignmentRecord.cpp 
+  362  diff ~/workspace/AllToAllAlignmentSpecial/src/AlignmentRecord.h ~/workspace/git/AllToAllAlignment/AllToAllAlignment/src/AlignmentRecord.h 
+  363  diff /home/xgo/Temp/xxx1205_p.aln /home/xgo/Temp/xxx1205_o.aln 
+  364  diff /home/xgo/Temp/xxx1205_q.aln /home/xgo/Temp/xxx1205_o.aln 
+  365  diff /home/xgo/Temp/xxx1205_r.aln /home/xgo/Temp/xxx1205_o.aln 
+  366  diff /home/xgo/ORNL/OverlapConstruction/AllToAllAlignment/Data/JJ/XBXC_contigs.fasta_detailed.aln /home/xgo/Temp/XBXC_contigs.fasta_detailed.aln
+  367  diff /home/xgo/ORNL/OverlapConstruction/AllToAllAlignment/Data/JJ/XBXC_contigs.fasta_detailed.aln /home/xgo/Temp/XBXC_contigs.fasta_detailed.aln > /home/xgo/Temp/log
+  368  grep -v -w "R" /home/xgo/Temp/log 
+  369  grep -v -w "R" /home/xgo/Temp/log > /home/xgo/Temp/loglog
+  370  cd /home/xgo/ORNL/OverlapConstruction/AllToAllAlignment/Data/JJ/src/AlignmentRecord.cpp
+  371  /home/xgo/ORNL/OverlapConstruction/AllToAllAlignment/Data/JJ/src/AlignmentRecord.h
+  372  /home/xgo/ORNL/OverlapConstruction/AllToAllAlignment/Data/JJ/src/BandAligner.cpp
+  373  /home/xgo/ORNL/OverlapConstruction/AllToAllAlignment/Data/JJ/src/BandAligner.h
+  374  /home/xgo/ORNL/OverlapConstruction/AllToAllAlignment/Data/JJ/src/Config.cpp
+  375  /home/xgo/ORNL/OverlapConstruction/AllToAllAlignment/Data/JJ/src/Config.h
+  376  /home/xgo/ORNL/OverlapConstruction/AllToAllAlignment/Data/JJ/src/HashTableLongKey.cpp
+  377  /home/xgo/ORNL/OverlapConstruction/AllToAllAlignment/Data/JJ/src/HashTableLongKey.h
+  378  /home/xgo/ORNL/OverlapConstruction/AllToAllAlignment/Data/JJ/src/HashTableMethod.cpp
+  379  /home/xgo/ORNL/OverlapConstruction/AllToAllAlignment/Data/JJ/src/HashTableMethod.h
+  380  /home/xgo/ORNL/OverlapConstruction/AllToAllAlignment/Data/JJ/src/HashTableShortKey.cpp
+  381  /home/xgo/ORNL/OverlapConstruction/AllToAllAlignment/Data/JJ/src/HashTableShortKey.h
+  382  /home/xgo/ORNL/OverlapConstruction/AllToAllAlignment/Data/JJ/src/main.cpp
+  383  /home/xgo/ORNL/OverlapConstruction/AllToAllAlignment/Data/JJ/src/QueryDataset.cpp
+  384  /home/xgo/ORNL/OverlapConstruction/AllToAllAlignment/Data/JJ/src/QueryDataset.h
+  385  /home/xgo/ORNL/OverlapConstruction/AllToAllAlignment/Data/JJ/src/QueryRead.cpp
+  386  /home/xgo/ORNL/OverlapConstruction/AllToAllAlignment/Data/JJ/src/QueryRead.h
+  387  /home/xgo/ORNL/OverlapConstruction/AllToAllAlignment/Data/JJ/src/SubjectDataset.cpp
+  388  /home/xgo/ORNL/OverlapConstruction/AllToAllAlignment/Data/JJ/src/SubjectDataset.h
+  389  /home/xgo/ORNL/OverlapConstruction/AllToAllAlignment/Data/JJ/src/SubjectRead.cpp
+  390  /home/xgo/ORNL/OverlapConstruction/AllToAllAlignment/Data/JJ/src/SubjectRead.h
+  391  /home/xgo/ORNL/OverlapConstruction/AllToAllAlignment/Data/JJ/src/SubjectReadAligner.cpp
+  392  /home/xgo/ORNL/OverlapConstruction/AllToAllAlignment/Data/JJ/src/SubjectReadAligner.h
+  393  cd /home/xgo/ORNL/OverlapConstruction/AllToAllAlignment/Data/JJ/src/
+  394  g++ -fopenmp -o "AAAligner" main.cpp AlignmentRecord.cpp  SubjectReadAligner.cpp HashTableLongKey.cpp QueryRead.cpp BandAligner.cpp SubjectRead.cpp SubjectDataset.cpp Config.cpp QueryDataset.cpp HashTableMethod.cpp HashTableShortKey.cpp
+  395  mv AAAligner ../
+  396  cd ..
+  397  ll
+  398  ls -l
+  399  ./AAAligner -s unique_EC_1000.fasta -q XBXC_contigs.fasta -k 60 -mr 5 -idr 5 -t 3 -z 100000 -v -a g -f 2048
+  400  ./AAAligner -s unique_EC_1000.fasta -q XBXC_contigs.fasta -k 60 -mr 5 -idr 5 -t 3 -z 100000 -v -a g -f 2048 -o XBXC_contigs.fasta_detailed_2
+  401  ./AllToAllAlignment -s unique_EC_1000.fasta -q XBXC_contigs.fasta -k 60 -mr 5 -idr 5 -t 3 -z 10000 -v -a g -f 2048 -o XBXC_contigs.fasta_detailed_2
+  402  history | grep "XBXC"
+  403  ./PairwiseAliger -s unique_EC_1000.fasta -q XBXC_contigs.fasta -k 60 -mr 5 -idr 5 -t 3 -z 10000 -o XBXC_contigs.fasta_detailed_3
+  404  cp ~/workspace/AllToAllAlignmentSpecial/Release/AllToAllAlignmentSpecial ./PairwiseAliger1
+  405  ./PairwiseAliger1 -s unique_EC_1000.fasta -q XBXC_contigs.fasta -k 60 -mr 5 -idr 5 -t 3 -z 10000 -o XBXC_contigs.fasta_detailed_3
+  406  cp ~/workspace/AllToAllAlignmentSpecial/Release/AllToAllAlignmentSpecial ./PairwiseAliger2
+  407  ./PairwiseAliger2 -s unique_EC_1000.fasta -q XBXC_contigs.fasta -k 60 -mr 5 -idr 5 -t 3 -z 10000 -o XBXC_contigs.fasta_detailed_4
+  408  cp ~/workspace/AllToAllAlignmentSpecial/Release/AllToAllAlignmentSpecial ./PairwiseAliger3
+  409  ./PairwiseAliger3 -s unique_EC_1000.fasta -q XBXC_contigs.fasta -k 60 -mr 5 -idr 5 -t 3 -z 10000 -o XBXC_contigs.fasta_detailed_5
+  410  cp ~/workspace/git/AllToAllAlignment/AllToAllAlignment/Release/AllToAllAlignment ./
+  411  ./AllToAllAlignment -s unique_EC_1000.fasta -q XBXC_contigs.fasta -k 60 -mr 5 -idr 5 -t 3 -z 10000 -o XBXC_contigs.fasta_detailed_6 -a g -v -f 2048
+  412  ./AllToAllAlignment -s unique_EC_1000.fasta -q XBXC_contigs.fasta -k 60 -mr 5 -idr 5 -t 3 -z 10000 -o XBXC_contigs.fasta_detailed_7 -v -f 2048
+  413  cp ~/workspace/git/AllToAllAlignment/AllToAllAlignment/Release/AllToAllAlignment ./
+  414  ./AllToAllAlignment -s unique_EC_1000.fasta -q XBXC_contigs.fasta -k 60 -mr 5 -idr 5 -t 3 -z 10000 -o XBXC_contigs.fasta_detailed_8 -a g -v -f 2048
+  415  cp ~/workspace/git/AllToAllAlignment/AllToAllAlignment/Release/AllToAllAlignment ./
+  416  ./AllToAllAlignment -s unique_EC_1000.fasta -q XBXC_contigs.fasta -k 60 -mr 5 -idr 5 -t 3 -z 10000 -o XBXC_contigs.fasta_detailed_9 -a g -v -f 2048
+  417  cp ~/workspace/AllToAllAlignmentSpecial/Release/AllToAllAlignmentSpecial ./PairwiseAliger4
+  418  ./PairwiseAliger4 -s unique_EC_1000.fasta -q XBXC_contigs.fasta -k 60 -mr 5 -idr 5 -t 3 -z 10000 -o XBXC_contigs.fasta_detailed_10
+  419  cd /home/xgo/ORNL/OverlapConstruction/Data/E.coli/
+  420  cat Escherichia\ coli\ O157\:H7\ str.\ Sakai\ chromosome.fasta ./Escherichia\ coli\ str.\ K-12\ substr.\ MG1655.fasta > genome.fasta
+  421  ll
+  422  cd ~/Temp
+  423  cat > test.py
+  424  xx=`python test.py`
+  425  rm test.py 
+  426  cat > test.py
+  427  xx=`python test.py`
+  428  echo xx
+  429  echo $xx
+  430  echo $?
+  431  python test.py
+  432  echo $?
+  433  vi test.py 
+  434  python test.py
+  435  echo $?
+  436  vi test.py 
+  437  python test.py
+  438  echo $?
+  439  vi test.py 
+  440  python test.py
+  441  echo $?
+  442  vi test.py 
+  443  xx=`python test.py`
+  444  echo $xx
+  445  vi test.py 
+  446  xx=`python test.py`
+  447  echo $xx
+  448  xx=`python test.py | tail -0`
+  449  python test.py
+  450  xx=`python test.py | tail -0`
+  451  xx=`python test.py | tail -n 1`
+  452  echo $xx
+  453  python test.py | tee | xx=`tail -n 1`
+  454  echo $xx
+  455  python test.py | tee > (xx=`tail -n 1`)
+  456  python test.py | tee > xx=`tail -n 1`
+  457  echo $xx
+  458  python test.py | tee xx=`tail -n 1`
+  459  python test.py | tee >(xx=`tail -n 1`)
+  460  echo $xx
+  461  vi test.py
+  462  python test.py | tee >(xx=`tail -n 1`) | echo $xx
+  463  python test.py | tee >(xx=`tail -n 1`)
+  464  echo $xx
+  465  vi tttt.sh
+  466  ./tttt.sh
+  467  chmod +x tttt.sh 
+  468  ./tttt.sh
+  469  vi tttt.sh 
+  470  ./tttt.sh
+  471  vi tttt.sh 
+  472  ./tttt.sh
+  473  vi tttt.sh 
+  474  ./tttt.sh
+  475  cat tttt.sh 
+  476  ssh xgo@viper.ornl.gov
+  477  clear
+  478  ssh xgo@viper.ornl.gov
+  479  cd ..
+  480  cd Downloads/
+  481  ll
+  482  ls -l
+  483  cd Too
+  484  cd ../Tools/
+  485  ls -l
+  486  chmod +x Cytoscape_3_3_0_unix.sh 
+  487  ./Cytoscape_3_3_0_unix.sh 
+  488  java -version
+  489  ll -a ~
+  490  ll -a ~/
+  491  ls -l -a ~/
+  492  cat ~/.profile 
+  493  vi ~/.profile 
+  494  vi ~/.bashrc 
+  495  source ~/.bashrc 
+  496  ./Cytoscape_3_3_0_unix.sh 
+  497  git fetch && git checkout v1.4.1
+  498  head -n 4 /home/xgo/Temp/temp/temp/E.coli.MG1655_20x.Sakai_10x.1_EC_reformat_dedup.fasta > /home/xgo/Temp/temp/temp/temp.fasta
+  499  ssh xgo@viper.ornl.gov
+  500  ssh xgo@viper.ornl.gov
+  501  ls /usr/local/
+  502  ssh genepool
+  503  ssh genepoolpcl
+  504  /usr/local/krb5/bin/kinit xgo@ORS.HPC.MIL
+  505  top
+  506  ./krb5/bin/kinit xgo@ORS.HPC.MIL
+  507  telnet kdc1.ors.hpc.mil 88
+  508  ./krb5/bin/kinit xgo@ORS.HPC.MIL
+  509  telnet kdc2.ors.hpc.mil 88
+  510  telnet kdc2.ors.hpc.mil 80
+  511  ./krb5/bin/kinit xgo@ORS.HPC.MIL
+  512  ./krb5/bin/kshell 
+  513  cd /home/xgo/ORNL/OverlapConstruction/Kmetis/metis-5.1.0/
+  514  make
+  515  make config
+  516  make install
+  517  sudo make install
+  518  gpmetis
+  519  which gpmetis
+  520  gpmetis /home/xgo/ORNL/OverlapConstruction/Kmetis/metis-5.1.0/graphs/copter2.graph 10
+  521  cd ~
+  522  which mpicc
+  523  ompi_info
+  524  $PATH
+  525  echo $PATH
+  526  /home/xgo/eclipse/parallel-mars/eclipse/eclipse 
+  527  gdb
+  528  gdb-mi
+  529  lspci | grep -i wireless
+  530  lspci | grep -i intel
+  531  lspci | less
+  532  ifconfig -a
+  533  scanpci -v
+  534  lsmod
+  535  ./krb5/bin/kinit xgo@ORS.HPC.MIL
+  536  ./krb5/bin/kinit xgo@HPCMP.HPC.MIL
+  537  ./krb5/bin/kinit xgo@ORS.HPC.MIL
+  538  ./krb5/bin/kinit xgo
+  539  ./krb5/bin/pkinit 
+  540  ./krb5/bin/kshell 
+  541  ./krb5/bin/pkinit 
+  542  /usr/local/krb5/bin/kinit xgo@ORS.HPC.MIL
+  543  ./krb5/bin/kshell 
+  544  ssh cori
+  545  ssh xgo@viper.ornl.gov
+  546  cd ~
+  547  ll
+  548  vi .bashrc 
+  549  vi .profile 
+  550  cat .profile 
+  551  vi .bashrc 
+  552  source .bashrc 
+  553  ll ~/.bash_history 
+  554  cat ~/.bash_history 
+  555  omega
+  556  /home/cjg/bin/omega_v1.3_flow_fixed
+  557  vi ./.bashrc 
+  558  source .bashrc 
+  559  vi .bashrc 
+  560  source .bashrc 
+  561  ssh xgo@viper.ornl.gov
+  562  ssh xgo@titan.ccs.ornl.gov
+  563  cd Downloads/FileZilla3/bin/
+  564  ll
+  565  'll
+  566  ll
+  567  ./filezilla 
+  568  LD_LIBRARY_PATH=/usr/local/lib64/:$LD_LIBRARY_PATH
+  569  export LD_LIBRARY_PATH
+  570  ./filezilla 
+  571  export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/x86_64-linux-gnu/ 
+  572  ./filezilla 
+  573  which gcc
+  574  ./filezilla 
+  575  ll
+  576  cd ..
+  577  ll
+  578  cd FileZilla3/
+  579  ll
+  580  cd B
+  581  cd bin/
+  582  ./filezilla 
+  583  /home/xgo/local/bin/mpiCC
+  584  which g++
+  585  gcc
+  586  which gcc
+  587  ll /usr/bin/gcc
+  588  cd /usr/bin/
+  589  cat > test
+  590  cd /home/xgo/local/bin/
+  591  ln -s /usr/bin/gcc-4.8 ./g++
+  592  ls
+  593  vi ~/.bashrc 
+  594  echo $PATH
+  595  source ~/.bashrc 
+  596  echo $PATH
+  597  vi ~/.bashrc 
+  598  export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games
+  599  vi ~/.bashrc 
+  600  source ~/.bashrc 
+  601  echo ~/.bashrc 
+  602  echo $PATH
+  603  vi ~/.bashrc 
+  604  cat ~/.bashrc 
+  605  cd ~/Tools/openmpi-1.6.5/
+  606  ./configure --prefix="/home/xgo/local/openmpi"
+  607  more config.log 
+  608  cat ~/.bashrc 
+  609  ll
+  610  make all install
+  611  ./configure --prefix=/home/xgo/local/openmpi/
+  612  which g++
+  613  ./configure --prefix=/home/xgo/local/openmpi/
+  614  cd ../gcc-5.3.0/
+  615  ll
+  616  ./configure --prefix=/home/xgo/local/
+  617  which g++
+  618  which gcc
+  619  g++
+  620  sudo apt-get install g++
+  621  g++
+  622  sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+  623  sudo apt-get update
+  624  sudo apt-get install g++-4.9
+  625  g++
+  626  which g++
+  627  g++ -version
+  628  g++ -v
+  629  cd /home/xgo/workspace/git/AllToAllAlignment/AllToAllAlignment/src/
+  630  g++ -fopenmp -o xxx main.cpp AlignmentRecord.cpp BandAligner.cpp Config.cpp HashTableLongKey.cpp HashTableMethod.cpp HashTableShortKey.cpp QueryDataset.cpp QueryRead.cpp SubjectDataset.cpp SubjectRead.cpp SubjectReadAligner.cpp 
+  631  ll xxx 
+  632  ./xxx 
+  633  which "g++"
+  634  cd ~
+  635  mpiCC
+  636  mpiCC -v
+  637  which mpiCC
+  638  mpic++
+  639  vi ~/.bashrc 
+  640  cd /usr/local
+  641  cp ~/Tools/HPCMP_RELEASE_20150704_client-2.6.32-504.23.4.el6.x86_64-Linux-64.tar.gz .
+  642  sudo cp ~/Tools/HPCMP_RELEASE_20150704_client-2.6.32-504.23.4.el6.x86_64-Linux-64.tar.gz .
+  643  sudo cp ~/Tools/user-openssh-6.9p1a-x86_64-unknown-linux-gnu.tgz .
+  644  tar xzvf HPCMP_RELEASE_20150704_client-2.6.32-504.23.4.el6.x86_64-Linux-64.tar.gz 
+  645  sudo tar xzvf HPCMP_RELEASE_20150704_client-2.6.32-504.23.4.el6.x86_64-Linux-64.tar.gz 
+  646  sudo tar xzvf user-openssh-6.9p1a-x86_64-unknown-linux-gnu.tgz 
+  647  rm HPCMP_RELEASE_20150704_client-2.6.32-504.23.4.el6.x86_64-Linux-64.tar.gz 
+  648  sudo rm HPCMP_RELEASE_20150704_client-2.6.32-504.23.4.el6.x86_64-Linux-64.tar.gz 
+  649  sudo rm user-openssh-6.9p1a-x86_64-unknown-linux-gnu.tgz 
+  650  /usr/local/krb5/bin/kshell
+  651  /usr/local/krb5/bin/kinit xgo@ORS.HPC.MIL
+  652  /usr/local/krb5/bin/kKinit
+  653  /usr/local/krb5/bin/pkinit
+  654  sudo /usr/local/krb5/bin/kinit xgo@ORS.HPC.MIL
+  655  sudo /usr/local/krb5/bin/kshell 
+  656  /usr/local/krb5/bin/kinit xgo@ORS.HPC.MIL
+  657  KRB5_TRACE=/dev/stdout /usr/local/krb5/bin/kinit xgo@ORS.HPC.MIL
+  658  /usr/local/krb5/bin/kinit -
+  659  /usr/local/krb5/bin/kinit xgo@ORS.HPC.MIL -V
+  660  /usr/local/krb5/bin/kinit xgo@ORS.HPC.MIL
+  661  ps ax | grep kinit
+  662  lsof
+  663  lsof -i :25
+  664  lsof -i -P | grep kinit
+  665  which kinit
+  666  ll
+  667  cd krb5/
+  668  ll
+  669  cd etc/
+  670  ll
+  671  more krb5.conf 
+  672  vi krb5.conf 
+  673  sudo vi krb5.conf 
+  674  lsof -i -P | grep kinit
+  675  cd /home/xgo/Temp/test/
+  676  diff 001_01.sf 001_01_test.sf 
+  677  ~/workspace/git/Hero/HeterogeneityRemoval/Release/HeterogeneityRemoval -s /home/xgo/Temp/test/noEC_.01.fasta -w /home/xgo/Temp/test -t 4 -z 200 -o /home/xgo/Temp/test/ --prefix 001_01 -mc -2 -me 0.6
+  678  gprof
+  679  gprof /home/xgo/workspace/git/Hero/HeterogeneityRemoval/Release/HeterogeneityRemoval gmon.out >! gprof.log
+  680  gprof /home/xgo/workspace/git/Hero/HeterogeneityRemoval/Release/HeterogeneityRemoval gmon.out > gprof.log
+  681  ~/workspace/git/Hero/HeterogeneityRemoval/Release/HeterogeneityRemoval -s /home/xgo/Temp/test/noEC_.01.fasta -w /home/xgo/Temp/test -t 1 -z 200 -o /home/xgo/Temp/test/ --prefix 001_01 -mc -2 -me 0.6
+  682  gprof /home/xgo/workspace/git/Hero/HeterogeneityRemoval/Release/HeterogeneityRemoval gmon.out > gprof.log
+  683  diff 001_01.sf 001_01_test.sf 
+  684  diff 001_01.sf noEC_.01.fasta 
+  685  cd /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/
+  686  ll
+  687  diff all.aln all_original.aln > temp
+  688  diff all.aln all_original.aln > temps
+  689  ll
+  690  more temps`
+  691  more temps
+  692  ls
+  693  ls -h
+  694  man ls
+  695  find . -name .fasta
+  696  find . -name ".fasta"
+  697  find ./ -name ".fasta"
+  698  find `pwd` -name ".fasta"
+  699  find `pwd` -name "fasta"
+  700  ll
+  701  ls -d
+  702  ls -d -1
+  703  ls -d -1 $PWD/*.*
+  704  ls -d -1 $PWD/*.fasta
+  705  ls -d -1 $PWD/part*.fasta
+  706  ls -d -1 $PWD/*part*.fasta
+  707  ls -d -1 $PWD/*part*.fasta > sub.txt
+  708  cat sub.txt 
+  709  ssh-keygen -t rsa -b 2048
+  710  ll
+  711  cd Programs/
+  712  cd globusconnectpersonal-2.2.1/
+  713  sh globusconnect &
+  714  cd ~/Downloads/
+  715  tar xzf globusconnectpersonal-latest.tgz
+  716  ll
+  717  cd cd globusconnect-n.m
+  718  cd globusconnect-n.m
+  719  tar xzf globusconnectpersonal-latest.tgz
+  720  cd globusconnectpersonal-2.2.1/
+  721  ./globusconnect
+  722  apt-get install tcllib
+  723  sudo apt-get install tcllib
+  724  ./globusconnect
+  725  cd /media/xgo/MOON/
+  726  head -300 ALL.wgs.integrated_sv_map_v2.20130502.svs.genotypes.vcf > ~/Temp/svs
+  727  ssh xgo@viper.ornl.gov
+  728  cd /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/new.01_01.fna 
+  729  cd /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/
+  730  diff new.01.fna new.01_01.fna 
+  731  diff new.01.fna new.01_02.fna 
+  732  diff ecoli1.fasta new.fna > temp
+  733  diff ecoli1.fasta new.fna > temp.log
+  734  diff new.fna new.sf > temp01.log
+  735  diff ecoli1.fasta new.sf > temp02.log
+  736  diff ecoli1.fasta new.fna > temp.log
+  737  diff new.fna new.sf > temp01.log
+  738  diff ecoli1.fasta new.fna > temp01
+  739  diff ecoli1.fasta new.sf > temp02
+  740  top
+  741  clear
+  742  firefox
+  743  ll
+  744  cd .mozilla/
+  745  cd firefox/
+  746  ll
+  747  cd nvvdfbgy.default/
+  748  ll
+  749  mv lock xxxx
+  750  ll
+  751  mv xxxx lock
+  752  ll
+  753  mv lock ~/Temp
+  754  mv ~/Temp/lock ./
+  755  cd /home/xgo/ORNL/1000genome/
+  756  head -n 100 ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf > chr22.head.100.vcf
+  757  head -n 1000 ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf > chr22.head.1000.vcf
+  758  diff /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/newtemp.fna /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/newtemp01.fna > /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/temp04
+  759  diff /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/newtemp.info /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/newtemp01.info > /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/E.coli.Qiuming/temp05
+  760  cd ~/ORNL/Navy/
+  761  ll
+  762  cd pymzml-0.7.6/
+  763  sudo python setup.py install
+  764  cd ..
+  765  ll
+  766  cd proteome_spectra/
+  767  ll
+  768  cd ProteinWizard/
+  769  ./msconvert 
+  770  ./msconvert /home/xgo/ORNL/Navy/proteome_spectra/010-WIFF-Format-Conversion-Example/20110729-VC-M9-Cleared-02-B-2DLC-step-002.wiff --mzML --32 --zlib --filter "peakPicking true 1-" -o . -i .
+  771  ssh xgo@viper.ornl.gov
+  772  pidof firefox
+  773  ll
+  774  ssh cori
+  775  scp xgo@cori.nersc.gov:/global/dna/shared/data/functests/assembly/Meta/Bench.20150730/results/* /home/xgo/Temp/
+  776  scp cori:/global/dna/shared/data/functests/assembly/Meta/Bench.20150730/results/* /home/xgo/Temp/
+  777  scp cori:/global/dna/shared/data/functests/assembly/Meta/Bench.20150730/results/omega2-low.biofuel.250.bbqc.fastq/* /home/xgo/Temp/
+  778  scp /home/xgo/Temp/low_biofuel_250_contigs.fasta xgo@viper.ornl.gov:/chongle/Xuan/ErrorCorrection/Data/Biofuel/EcFilterCrOcOg/
+  779  cd workspace/
+  780  cd git/
+  781  ll
+  782  cd NgsPreProcess/
+  783  ll
+  784  cd NgsPreProcess/
+  785  ll
+  786  cd src/
+  787  ll
+  788  scp xgo@viper.ornl.gov:/chongle/Xuan/ErrorCorrection/Data/PanamaSoil/plot30/RealMismatch RealMismatch.py 
+  789  scp xgo@viper.ornl.gov:/chongle/Xuan/ErrorCorrection/Data/PanamaSoil/plot30/RealMismatch/ RealMismatch.py 
+  790  scp RealMismatch.py xgo@viper.ornl.gov:/chongle/Xuan/ErrorCorrection/Data/PanamaSoil/plot30/RealMismatch/
+  791  more RealMismatch.py 
+  792  ll
+  793  scp Histogram.py  xgo@viper.ornl.gov:/chongle/Xuan/ErrorCorrection/Data/PanamaSoil/plot30/RealMismatch/
+  794  more Histogram.py 
+  795  cd /home/xgo/ORNL/OverlapConstruction/Data/Merging/
+  796  bbmap_latest/bbmerge.sh 
+  797  ./bbmap_latest/bbmerge.sh in=/home/xgo/ORNL/OverlapConstruction/Data/Merging/mergingRenamed.fasta out=/home/xgo/ORNL/OverlapConstruction/Data/Merging/bbmerge/merged.fasta outu=/home/xgo/ORNL/OverlapConstruction/Data/Merging/bbmerge/unmerged.fasta
+  798  ssh pcl
+  799  ssh pclgenepool
+  800  ssh genepool
+  801  vi ~/.ssh/config 
+  802  ssh genepoolpcl
+  803  ssh-keygen -R genepool.nersc.gov
+  804  ssh genepoolpcl
+  805  ssh cori
+  806  /usr/local/krb5/bin/kinit xgo@ORS.HPC.MIL
+  807  ssh xgo@titan.ccs.ornl.gov
+  808  cd .mozilla/firefox/
+  809  ll
+  810  cd nvvdfbgy.default/
+  811  ll
+  812  kill -s 3338
+  813  kill 3338
+  814  mv lock ~/Temp
+  815  mv .parentlock ~/Temp
+  816  cd ~
+  817  ssh xgo@viper.ornl.gov
+  818  cd /home/xgo/Tools/MetaSim/
+  819  ./MetaSim_unix_0_9_5.sh 
+  820  java -version
+  821  echo $JAVA_HOME
+  822  echo $JAVA
+  823  sudo apt-add-repository ppa:webupd8team/java
+  824  sudo apt-get update
+  825  sudo apt-get install oracle-java8-installer
+  826  java -version
+  827  ./MetaSim_unix_0_9_5.sh 
+  828  cd !
+  829  cd ~
+  830  ssh xgo@viper.ornl.gov
+  831  ssh xgo@viper.ornl.gov
+  832  ssh xgo@viper.ornl.gov
+  833  ssh xgo@viper.ornl.gov
+  834  mount
+  835  top
+  836  cd ~/Temp
+  837  head -n 10000 part_08.fna > pair.fna
+  838  head -n 5000 part_08.info > pair.info
+  839  xxx.sh
+  840  ./xxx.sh
+  841  chmod u+x xxx.sh 
+  842  ./xxx.sh 
+  843  ./xxx.sh -p guo -i ~/Temp/pair.fna -o ~/Temp/yyy/
+  844  more xyz.fna 
+  845  tail -n 4 xyz.fna 
+  846  more split_23.fna 
+  847  more xyz.fna 
+  848  sudo apt-get install unrar
+  849  cd DCHE/
+  850  unrar e DCHE.rar 
+  851  cd ../DAM/
+  852  unrar e DAM_1.2.rar 
+  853  cd ../DCHE/
+  854  java -jar DCHE.jar 
+  855  cd ../DAM/
+  856  java -jar DAM_1.2.jar 
+  857  ssh xgo@viper.ornl.gov
+  858  cd /home/xgo/ORNL/Sipros/Codes/scripts/
+  859  ssh genepoolpcl
+  860  cd /home/xgo/ORNL/OverlapConstruction/Data/Merging/
+  861  chmod u+x bbmap/bbmerge.sh 
+  862  bbmap/bbmerge.sh 
+  863  bbmap/bbmerge.sh in=/home/xgo/ORNL/OverlapConstruction/Data/Merging/mergingRenamed.fasta out=/home/xgo/ORNL/OverlapConstruction/Data/Merging/bbmerge/merged.fasta outu=/home/xgo/ORNL/OverlapConstruction/Data/Merging/bbmerge/unmerged.fasta extend2=20 iterations=10
+  864  chmod u+x -R bbmap/*
+  865  wc -l hero_merged.fna 
+  866  wc -l hero_unmerged.fna 
+  867  cd /home/xgo/ORNL/Sipros/Codes/Sipros-ProRata_V3.0_Linux/src/
+  868  g++ -fopenmp -o "Sipros3_original" main.cpp directoryStructure.cpp isotopologue.cpp ms2scan.cpp ms2scanvector.cpp peptide.cpp proNovoConfig.cpp proteindatabase.cpp ptm.cpp tokenvector.cpp 
+  869  cd ../bin/
+  870  ./Sipros3_original 
+  871  ./Sipros3_original -w /home/xgo/ORNL/Navy/proteome_spectra/010-WIFF-Format-Conversion-Example/20110615-VC-Cleared-03-A-2DLC/ -c /home/xgo/ORNL/Sipros/ZM4/SiprosConfigEcoliTry_linux.cfg 
+  872  ../scripts/sipros_peptides_filtering.py -c ~/ORNL/Sipros/ZM4/SiprosConfigEcoliTry_linux.cfg -w /home/xgo/ORNL/Navy/proteome_spectra/010-WIFF-Format-Conversion-Example/20110615-VC-Cleared-03-A-2DLC/
+  873  ../scripts/sipros_peptides_assembling.py -c ~/ORNL/Sipros/ZM4/SiprosConfigEcoliTry_linux.cfg -w /home/xgo/ORNL/Navy/proteome_spectra/010-WIFF-Format-Conversion-Example/20110615-VC-Cleared-03-A-2DLC/
+  874  ../scripts/sipros_peptides_filtering.py -c ~/ORNL/Sipros/ZM4/SiprosConfigEcoliTry_linux.cfg -w /home/xgo/ORNL/Navy/proteome_spectra/010-WIFF-Format-Conversion-Example/20110615-VC-Cleared-03-A-2DLC/
+  875  ../scripts/sipros_peptides_assembling.py -c ~/ORNL/Sipros/ZM4/SiprosConfigEcoliTry_linux.cfg -w /home/xgo/ORNL/Navy/proteome_spectra/010-WIFF-Format-Conversion-Example/20110615-VC-Cleared-03-A-2DLC/
+  876  kshell
+  877  /usr/local/krb5/bin/kshell 
+  878  cd "/media/xgo/Seagate Backup Plus Drive/Assembly/Data/Mock/Mock_250bp/"
+  879  head -n 40000 mock.fastq > mock_10000.fastq 
+  880  head -n 800000 mock.fastq > mock_800000.fastq 
+  881  head -n 8000000 mock.fastq > mock_8000000.fastq 
+  882  cd /home/xgo/ORNL/Navy/proteome_spectra/010-WIFF-Format-Conversion-Example/20110615-VC-Cleared-03-A-2DLC/
+  883  tar -cvf 20110615-VC-Cleared-03-A-2DLC-SiprosResults.tar ./20110615-VC-Cleared-03-A-2DLC-step-0.*
+  884  cat ~/.ssh/config 
+  885  R
+  886  cd ~
+  887  sudo apt-get update
+  888  sudo apt-get install r-base
+  889  r -version
+  890  R -version
+  891  sudo su
+  892  R
+  893  apt-get update
+  894  sudo apt-get update
+  895  sudo apt-get upgrade
+  896  top
+  897  vi /etc/apt/sources.list
+  898  sudo vi /etc/apt/sources.list
+  899  sudo echo "deb https://cran.cnr.berkeley.edu/bin/linux/ubuntu trusty/" >> /etc
+  900  sudo su
+  901  R
+  902  cd /home/xgo/Temp/nonpareil-master/
+  903  make
+  904  chmod u+x nonpareil
+  905  ./nonpareil 
+  906  ./nonpareil -s test/test.fasta -b xxx
+  907  R
+  908  cd ..
+  909  cd /home/xgo/ORNL/OverlapConstruction/ErrorCorrection/Biofuel/
+  910  R
+  911  ssh xgo@viper.ornl.gov
+  912  ssh cori
+  913  vi ~/.ssh/
+  914  vi ~/.ssh/config 
+  915  ssh genepool
+  916  ssh cori
+  917  cd ~/Temp/cami/
+  918  tail -n 2 *
+  919  ssh cori
+  920  ssh genepoolpan
+  921  cat ~/.ssh/config 
+  922  sh genepoolpcl
+  923  ssh genepoolpcl
+  924  ssh cori
+  925  ll
+  926  cd ORNL/
+  927  ll
+  928  cd Sipros/
+  929  ll
+  930  cd Codes/
+  931  ll
+  932  cd MPI/
+  933  ll
+  934  cd ..
+  935  rm Titan/
+  936  ll Titan/
+  937  more Titan/qsub_PTM_1_4threads.sh 
+  938  $PGM -g $DATADIR/split_cfg/ -w $DATADIR/All_FT2_Ru
+  939  n2/ -o $DATADIR/output/ -s
+  940  ll
+  941  cd scripts/
+  942  ll
+  943  cd split_db/
+  944  ll
+  945  scp
+  946  ll
+  947  more configure_subdb.py 
+  948  getopt, sys
+  949  from urllib import urlencode
+  950  import cookielib, urllib2, os, re, copy, string, operator
+  951  def NewSearchName(currentLine, fileId) :
+  952  ULL")) :
+  953          sSearchName = "subdb"+str(fileId)
+  954      else :
+  955          sSearchName = sSearchName + "_subdb"+str(fileId)
+  956      return "Search_Name = "+sSearchName
+  957  def NewDB(currentLine, fileId) :
+  958      allInfo = currentLine.split("=")
+  959      filePath = allInfo[1]
+  960      filePath = filePath.strip()
+  961      (pathRoot, pathExt) = os.path.splitext(filePath)
+  962      return  "FASTA_Database = "+pathRoot+"_subfile"+str(fileId)+".fasta"
+  963  OriginalConfigureFileName = sys.argv[1]
+  964  OriginalConfigureFile = open(OriginalConfigureFileName)
+  965  outputpath            = sys.argv[2]
+  966  filenum               = int (sys.argv[3])
+  967  ConfigureSubFiles = []
+  968  for i in range (filenum) :
+  969          #os.popen("mkdir "+outputpath+str(i))
+  970          (OriginalConfigureFileNameRoot, OriginalConfigureFileNameExt) = os.path.
+  971  splitext(OriginalConfigureFileName)
+  972          curruentConfigureSubFile = open(outputpath+os.sep+os.path.basename(Origi
+  973  nalConfigureFileNameRoot)+"_subdb"+str(i)+".cfg", "w")
+  974          ConfigureSubFiles.append(curruentConfigureSubFile)
+  975  OriginalConfigureContent = OriginalConfigureFile.readlines()
+  976  for i in range (filenum) :
+  977      for eachLine in OriginalConfigureContent :
+  978          currentLine = eachLine.strip()
+  979          if currentLine.startswith("Search_Name") :
+  980              newLine = NewSearchName(currentLine, i)
+  981              ConfigureSubFiles[i].write(newLine+"\n")
+  982          elif currentLine.startswith("FASTA_Database") :
+  983              newLine = NewDB(currentLine, i)
+  984              ConfigureSubFiles[i].write(newLine+"\n")
+  985          else :
+  986              ConfigureSubFiles[i].write(currentLine+"\n")
+  987  # close files
+  988  for i in range (filenum) :
+  989          ConfigureSubFiles[i].close()
+  990  l
+  991  ll
+  992  more configure_subdb.py 
+  993  more split_db.py 
+  994  import getopt, sys
+  995  from urllib import urlencode
+  996  import cookielib, urllib2, os, re, copy, string, operator
+  997  from Bio import SeqIO
+  998  from Bio.Seq import Seq
+  999  OriginalFastaFileName = sys.argv[1]
+ 1000  outputpath            = sys.argv[2]
+ 1001  filenum               = int (sys.argv[3])
+ 1002  FastaSubFiles = []
+ 1003  for i in range (filenum) :
+ 1004  (OriginalFastaFileName)
+ 1005  astaFileNameRoot)+"_subfile"+str(i)+".fasta", "w")
+ 1006  seqCount = 0
+ 1007  for seqRecord in SeqIO.parse( OriginalFastaFileName   , "fasta" ) :
+ 1008  # close files
+ 1009  for i in range (filenum) :
+ 1010  ll
+ 1011  cd ..
+ 1012  ./Sipros5_openmp -c /home/xgo/Temp/SiprosTemp/OldWay/SiprosConfigAMDTry.cfg -f /home/xgo/ORNL/Sipros/Data/AMD_HCD_DE10ppm_CS_1000_NCE30_180_PTM_only/AMD_HCD_DE10ppm_CS_1000_NCE30_180_01.FT2 -o /home/xgo/Temp/SiprosTemp/OldWay/
+ 1013  diff /home/xgo/Temp/SiprosTemp/OldWay/AMD_HCD_DE10ppm_CS_1000_NCE30_180_01.AMD_Old.sip /home/xgo/Temp/SiprosTemp/NewWay/AMD_HCD_DE10ppm_CS_1000_NCE30_180_01.AMD_New.sip > /home/xgo/Temp/SiprosTemp/Diff/Old.vs.New.log
+ 1014  diff /home/xgo/Temp/SiprosTemp/OldWay/AMD_HCD_DE10ppm_CS_1000_NCE30_180_01.AMD_Old_reformat.sip /home/xgo/Temp/SiprosTemp/NewWay/AMD_HCD_DE10ppm_CS_1000_NCE30_180_01.AMD_New_reformat.sip > /home/xgo/Temp/SiprosTemp/Diff/Old.vs.New.log
+ 1015  ll
+ 1016  cp Sipros5_openmp Sipros5_openmp_new
+ 1017  ./Sipros5_openmp_new -c /home/xgo/Temp/SiprosTemp/NewWay/SiprosConfigAMDTry.cfg -f /home/xgo/ORNL/Sipros/Data/AMD_HCD_DE10ppm_CS_1000_NCE30_180_PTM_only/AMD_HCD_DE10ppm_CS_1000_NCE30_180_01.FT2 -o /home/xgo/Temp/SiprosTemp/NewWay/
+ 1018  diff /home/xgo/Temp/SiprosTemp/OldWay/AMD_HCD_DE10ppm_CS_1000_NCE30_180_01.AMD.sip /home/xgo/Temp/SiprosTemp/NewWay/AMD_HCD_DE10ppm_CS_1000_NCE30_180_01.AMD.sip > /home/xgo/Temp/SiprosTemp/Diff/Old.vs.New_2.log
+ 1019  python /home/xgo/ORNL/Sipros/Codes/Sipros-ProRata_V3.0_Linux/scripts/sipros_peptides_filtering.py -c /home/xgo/Temp/SiprosTemp/OldWay/
+ 1020  python /home/xgo/ORNL/Sipros/Codes/Sipros-ProRata_V3.0_Linux/scripts/sipros_peptides_filtering.py -c /home/xgo/Temp/SiprosTemp/OldWay/SiprosConfigAMDTry.cfg -w /home/xgo/Temp/SiprosTemp/OldWay/
+ 1021  python /home/xgo/ORNL/Sipros/Codes/Sipros-ProRata_V3.0_Linux/scripts/sipros_peptides_assembling.py -c /home/xgo/Temp/SiprosTemp/OldWay/SiprosConfigAMDTry.cfg -w /home/xgo/Temp/SiprosTemp/OldWay/
+ 1022  python /home/xgo/ORNL/Sipros/Codes/Sipros-ProRata_V3.0_Linux/scripts/sipros_peptides_filtering.py -c /home/xgo/Temp/SiprosTemp/NewWay/SiprosConfigAMDTry.cfg -w /home/xgo/Temp/SiprosTemp/NewWay/
+ 1023  python /home/xgo/ORNL/Sipros/Codes/Sipros-ProRata_V3.0_Linux/scripts/sipros_peptides_assembling.py -c /home/xgo/Temp/SiprosTemp/NewWay/SiprosConfigAMDTry.cfg -w /home/xgo/Temp/SiprosTemp/NewWay/
+ 1024  python /home/xgo/ORNL/Sipros/Codes/Sipros-ProRata_V3.0_Linux/scripts/sipros_peptides_filtering.py -c /home/xgo/Temp/SiprosTemp/OldWay/SiprosConfigAMDTry.cfg -w /home/xgo/Temp/SiprosTemp/OldWay/
+ 1025  python /home/xgo/ORNL/Sipros/Codes/Sipros-ProRata_V3.0_Linux/scripts/sipros_peptides_assembling.py -c /home/xgo/Temp/SiprosTemp/OldWay/SiprosConfigAMDTry.cfg -w /home/xgo/Temp/SiprosTemp/OldWay/
+ 1026  python /home/xgo/ORNL/Sipros/Codes/Sipros-ProRata_V3.0_Linux/scripts/sipros_peptides_filtering.py -c /home/xgo/Temp/SiprosTemp/NewWay/SiprosConfigAMDTry.cfg -w /home/xgo/Temp/SiprosTemp/NewWay/
+ 1027  python /home/xgo/ORNL/Sipros/Codes/Sipros-ProRata_V3.0_Linux/scripts/sipros_peptides_assembling.py -c /home/xgo/Temp/SiprosTemp/NewWay/SiprosConfigAMDTry.cfg -w /home/xgo/Temp/SiprosTemp/NewWay/
+ 1028  ll
+ 1029  ./Sipros5_openmp -c /home/xgo/Temp/SiprosAMD/SiprosConfigAMDTry.cfg -f /home/xgo/ORNL/Sipros/Data/AMD_HCD_DE10ppm_CS_1000_NCE30_180_PTM_only/AMD_HCD_DE10ppm_CS_1000_NCE30_180_01.FT2 -o ./ 
+ 1030  perf
+ 1031  sudo apt-get install linux-tools-common
+ 1032  perf
+ 1033  sudo apt-get install linux-tools-3.13.0-85-generic
+ 1034  perf
+ 1035  sudo apt-get install linux-cloud-tools-3.13.0-85-generic
+ 1036  sudo apt-get install linux-tools-generic
+ 1037  perf
+ 1038  cd Gperftools/
+ 1039  ll
+ 1040  git clone https://github.com/gperftools/gperftools
+ 1041  cd gperftools/
+ 1042  make
+ 1043  ./configure
+ 1044  chmod u+x ./configure 
+ 1045  ./configure
+ 1046  ./autogen.sh 
+ 1047  ll
+ 1048  autoconf
+ 1049  sudo apt-get install autoconf
+ 1050  autoconf
+ 1051  ll
+ 1052  ./configure
+ 1053  conigure
+ 1054  configure
+ 1055  ./configure
+ 1056  autoconf
+ 1057  ll
+ 1058  ./configure
+ 1059  ./autogen.sh 
+ 1060  rm configure
+ 1061  autoconf
+ 1062  ll
+ 1063  cat configure
+ 1064  more configure.ac 
+ 1065  rm configure
+ 1066  autoconf
+ 1067  sudo apt-get install libtool
+ 1068  sudo apt-get install automake
+ 1069  autoconf
+ 1070  ll
+ 1071  rm configure
+ 1072  autoconf
+ 1073  autoconf -i
+ 1074  autoreconf -i
+ 1075  ll
+ 1076  ./configure
+ 1077  ll
+ 1078  cd ../libunwind-0.99-beta/
+ 1079  ll
+ 1080  ./configure 
+ 1081  make
+ 1082  make clean
+ 1083  make
+ 1084  make clean
+ 1085  make
+ 1086  make install
+ 1087  sudo make install
+ 1088  cd ../gperftools/
+ 1089  ll
+ 1090  autoreconf -i
+ 1091  ./configure
+ 1092  make
+ 1093  make install
+ 1094  sudo make install
+ 1095  cd ..
+ 1096  ll
+ 1097  cd ..
+ 1098  ll
+ 1099  env CPUPROFILE=/home/xgo/Temp/SiprosAMD/Timing/OldWay/Sipros5_openmp.prof /home/xgo/workspace/Sipros5/ReleaseOpenMP/Sipros5_openmp
+ 1100  /home/xgo/workspace/Sipros5/ReleaseOpenMP/Sipros5_openmp
+ 1101  cd ..
+ 1102  cd ReleaseOpenMP/
+ 1103  cd Gperftools/
+ 1104  cd gperftools/
+ 1105  make install
+ 1106  sudo make install
+ 1107  cd ..
+ 1108  ll
+ 1109  ./Sipros5_openmp
+ 1110  sudo ./Sipros5_openmp
+ 1111  ./Sipros5_openmp
+ 1112  ps
+ 1113  source ~/.profile 
+ 1114  env CPUPROFILE=/home/xgo/Temp/SiprosAMD/Timing/OldWay/Sipros5_openmp.prof /home/xgo/workspace/Sipros5/ReleaseOpenMP/Sipros5_openmp -c /home/xgo/Temp/SiprosAMD/SiprosConfigAMDTry.cfg -f /home/xgo/ORNL/Sipros/Data/AMD_HCD_DE10ppm_CS_1000_NCE30_180_PTM_only/AMD_HCD_DE10ppm_CS_1000_NCE30_180_01.FT2 -o /home/xgo/Temp/SiprosAMD/Timing/OldWay/
+ 1115  env CPUPROFILE=/home/xgo/Temp/SiprosAMD/Timing/OldWay/Sipros5_openmp.prof /home/xgo/workspace/Sipros5/ReleaseOpenMP/Sipros5_openmp -c /home/xgo/ORNL/Sipros/Data/AMD_HCD_DE10ppm_CS_1000_NCE30_180_PTM_only/SiprosConfigAMDTry.cfg -f /home/xgo/ORNL/Sipros/Data/AMD_HCD_DE10ppm_CS_1000_NCE30_180_PTM_only/AMD_HCD_DE10ppm_CS_1000_NCE30_180_01.FT2 -o /home/xgo/Temp/SiprosAMD/Timing/OldWay/
+ 1116  pprof
+ 1117  pprof --text Sipros5_openmp /home/xgo/Temp/SiprosAMD/Timing/OldWay/Sipros5_openmp.prof 
+ 1118  pprof --text Sipros5_openmp /home/xgo/Temp/SiprosAMD/Timing/OldWay/Sipros5_openmp.prof > /home/xgo/Temp/SiprosAMD/Timing/OldWay/text_prof.log
+ 1119  pprof --gv Sipros5_openmp /home/xgo/Temp/SiprosAMD/Timing/OldWay/Sipros5_openmp.prof > /home/xgo/Temp/SiprosAMD/Timing/OldWay/gv_prof.log
+ 1120  sudo apt-get install dot
+ 1121  apt-get install graphviz gv
+ 1122  sudo apt-get install graphviz gv
+ 1123  pprof --gv Sipros5_openmp /home/xgo/Temp/SiprosAMD/Timing/OldWay/Sipros5_openmp.prof > /home/xgo/Temp/SiprosAMD/Timing/OldWay/gv_prof.log
+ 1124  env CPUPROFILE=/home/xgo/Temp/SiprosAMD/Timing/NewWay/Sipros5_openmp.prof /home/xgo/workspace/Sipros5/ReleaseOpenMP/Sipros5_openmp -c /home/xgo/ORNL/Sipros/Data/AMD_HCD_DE10ppm_CS_1000_NCE30_180_PTM_only/SiprosConfigAMDTry.cfg -f /home/xgo/ORNL/Sipros/Data/AMD_HCD_DE10ppm_CS_1000_NCE30_180_PTM_only/AMD_HCD_DE10ppm_CS_1000_NCE30_180_01.FT2 -o /home/xgo/Temp/SiprosAMD/Timing/NewWay/
+ 1125  pprof --text Sipros5_openmp /home/xgo/Temp/SiprosAMD/Timing/NewWay/Sipros5_openmp.prof > /home/xgo/Temp/SiprosAMD/Timing/NewWay/text_prof.log
+ 1126  pprof --gv Sipros5_openmp /home/xgo/Temp/SiprosAMD/Timing/NewWay/Sipros5_openmp.prof > /home/xgo/Temp/SiprosAMD/Timing/NewWay/gv_prof.log
+ 1127  env CPUPROFILE=/home/xgo/Temp/SiprosAMD/Timing/Benchmark/Sipros5_openmp.prof /home/xgo/workspace/Sipros5/ReleaseOpenMP/Sipros5_openmp -c /home/xgo/ORNL/Sipros/Data/AMD_HCD_DE10ppm_CS_1000_NCE30_180_PTM_only/SiprosConfigAMDTry.cfg -f /home/xgo/ORNL/Sipros/Data/AMD_HCD_DE10ppm_CS_1000_NCE30_180_PTM_only/AMD_HCD_DE10ppm_CS_1000_NCE30_180_01.FT2 -o /home/xgo/Temp/SiprosAMD/Timing/Benchmark/
+ 1128  pprof --text Sipros5_openmp /home/xgo/Temp/SiprosAMD/Timing/Benchmark/Sipros5_openmp.prof > /home/xgo/Temp/SiprosAMD/Timing/Benchmark/text_prof.log
+ 1129  pprof --gv Sipros5_openmp /home/xgo/Temp/SiprosAMD/Timing/Benchmark/Sipros5_openmp.prof > /home/xgo/Temp/SiprosAMD/Timing/Benchmark/gv_prof.log
+ 1130  env CPUPROFILE=/home/xgo/Temp/SiprosAMD/Timing/Benchmark/Sipros5_openmp.prof CPUPROFILE_FREQUENCY=10000 /home/xgo/workspace/Sipros5/ReleaseOpenMP/Sipros5_openmp -c /home/xgo/ORNL/Sipros/Data/AMD_HCD_DE10ppm_CS_1000_NCE30_180_PTM_only/SiprosConfigAMDTry.cfg -f /home/xgo/ORNL/Sipros/Data/AMD_HCD_DE10ppm_CS_1000_NCE30_180_PTM_only/AMD_HCD_DE10ppm_CS_1000_NCE30_180_01.FT2 -o /home/xgo/Temp/SiprosAMD/Timing/Benchmark/
+ 1131  pprof --gv Sipros5_openmp /home/xgo/Temp/SiprosAMD/Timing/Benchmark/Sipros5_openmp.prof > /home/xgo/Temp/SiprosAMD/Timing/Benchmark/gv_prof.log
+ 1132  env CPUPROFILE=/home/xgo/Temp/SiprosAMD/Timing/OldWay/Sipros5_openmp.prof CPUPROFILE_FREQUENCY=100000 /home/xgo/workspace/Sipros5/ReleaseOpenMP/Sipros5_openmp_old_prof -c /home/xgo/ORNL/Sipros/Data/AMD_HCD_DE10ppm_CS_1000_NCE30_180_PTM_only/SiprosConfigAMDTry.cfg -f /home/xgo/ORNL/Sipros/Data/AMD_HCD_DE10ppm_CS_1000_NCE30_180_PTM_only/AMD_HCD_DE10ppm_CS_1000_NCE30_180_01.FT2 -o /home/xgo/Temp/SiprosAMD/Timing/OldWay/
+ 1133  pprof --text Sipros5_openmp /home/xgo/Temp/SiprosAMD/Timing/OldWay/Sipros5_openmp.prof > /home/xgo/Temp/SiprosAMD/Timing/OldWay/text_prof.log
+ 1134  pprof --text Sipros5_openmp_old_prof /home/xgo/Temp/SiprosAMD/Timing/OldWay/Sipros5_openmp.prof > /home/xgo/Temp/SiprosAMD/Timing/OldWay/text_prof.log
+ 1135  pprof --gv Sipros5_openmp_old_prof /home/xgo/Temp/SiprosAMD/Timing/OldWay/Sipros5_openmp.prof > /home/xgo/Temp/SiprosAMD/Timing/OldWay/gv_prof.log
+ 1136  env CPUPROFILE=/home/xgo/Temp/SiprosAMD/Timing/NewWay/Sipros5_openmp.prof CPUPROFILE_FREQUENCY=100000 /home/xgo/workspace/Sipros5/ReleaseOpenMP/Sipros5_openmp_new_prof -c /home/xgo/ORNL/Sipros/Data/AMD_HCD_DE10ppm_CS_1000_NCE30_180_PTM_only/SiprosConfigAMDTry.cfg -f /home/xgo/ORNL/Sipros/Data/AMD_HCD_DE10ppm_CS_1000_NCE30_180_PTM_only/AMD_HCD_DE10ppm_CS_1000_NCE30_180_01.FT2 -o /home/xgo/Temp/SiprosAMD/Timing/NewWay/
+ 1137  pprof --gv Sipros5_openmp_new_prof /home/xgo/Temp/SiprosAMD/Timing/NewWay/Sipros5_openmp.prof > /home/xgo/Temp/SiprosAMD/Timing/NewWay/gv_prof.log
+ 1138  history > history.log
