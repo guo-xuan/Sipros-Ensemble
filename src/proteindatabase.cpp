@@ -22,8 +22,7 @@ ProteinDatabase::ProteinDatabase(bool bScreenOutput) {
 	for (i = 0; i < (int) vsallNames.size(); i++)
 		if (isalpha(vsallNames.at(i).at(0)))
 			slegalChar = slegalChar + vsallNames.at(i);
-	if ((ProNovoConfig::getSearchType() == "Regular")
-			|| (ProNovoConfig::getSearchType() == "SIP")) {
+	if ((ProNovoConfig::getSearchType() == "Regular") || (ProNovoConfig::getSearchType() == "SIP")) {
 		// Currently, in the peptide generating part, SIP and Regular modes are same.
 		if (!ptmlist.populate_from_xml_config())
 		// the current configure file is not xml format, but we still use this function
@@ -34,8 +33,10 @@ ProteinDatabase::ProteinDatabase(bool bScreenOutput) {
 		Initial_PTM_Map();
 	}
 	if (ProNovoConfig::getSearchType() == "Mutation")
-		sNonAfterCleavage = stringDifference(slegalChar,
-				ProNovoConfig::getCleavageAfterResidues());
+		sNonAfterCleavage = stringDifference(slegalChar, ProNovoConfig::getCleavageAfterResidues());
+	if(ProNovoConfig::isSnpFeatureOn()){
+		slegalChar = slegalChar + "?";
+	}
 }
 
 //ProteinDatabase::ProteinDatabase(const ProteinDatabase& other)
@@ -72,8 +73,7 @@ void ProteinDatabase::initializePtmInfo()
 		residue_id = orderstring.find(sOriginalPeptide.at(j));
 		if (!(ptm_map[residue_id].empty())) {
 			//cout<<residue_id<<endl;
-			ptm_position = make_pair<int, vector<pair<string, double> > >(j,
-					ptm_map[residue_id]);
+			ptm_position = make_pair<int, vector<pair<string, double> > >(j, ptm_map[residue_id]);
 			ptm_position_all.push_back(ptm_position);
 		}
 	}
@@ -81,9 +81,7 @@ void ProteinDatabase::initializePtmInfo()
 	max_ptm = ProNovoConfig::getMaxPTMcount(); //max ptm allowed for each peptides
 	// If max_ptm is greater than the number of positions allowing ptms,
 	// the number of positions is actual upper bounder of ptm
-	icurrentMaxPtm = (
-			(max_ptm < ((int) (ptm_position_all.size()))) ?
-					max_ptm : ((int) (ptm_position_all.size())));
+	icurrentMaxPtm = ((max_ptm < ((int) (ptm_position_all.size()))) ? max_ptm : ((int) (ptm_position_all.size())));
 	iPtmCount = 1;
 	if (iPtmCount <= icurrentMaxPtm)
 		initializeCombOrderPTM();
@@ -107,8 +105,7 @@ void ProteinDatabase::initializePermutationPTM() {
 	//ele_num is for numbers of ptm may happen on positions
 	for (i = 0; i < (int) comb_order.size(); i++) {
 		ptm_order.push_back(0);
-		ele_num.push_back(
-				(int) ptm_position_all.at(comb_order.at(i)).second.size());
+		ele_num.push_back((int) ptm_position_all.at(comb_order.at(i)).second.size());
 	}
 }
 
@@ -155,8 +152,7 @@ bool ProteinDatabase::getNextPeptideMutation(Peptide* currentPeptide)
 		bstayCurrentOriginalPeptide = getNextMutationPeptide(currentPeptide);
 		if (!bstayCurrentOriginalPeptide) {
 			bReVal = getNextOriginalPeptideForMutation(currentPeptide);
-			if ((bReVal)
-					&& (iclCheck > ProNovoConfig::getMaxMissedCleavages())) {
+			if ((bReVal) && (iclCheck > ProNovoConfig::getMaxMissedCleavages())) {
 				// mutate all cleavage for the first peptide, right most for others
 				bReVal = getNextMutationPeptide(currentPeptide);
 				if (!bReVal) {
@@ -178,8 +174,7 @@ bool ProteinDatabase::getNextPeptide(Peptide* currentPeptide) {
 	if (!(bstayCurrentProtein))
 		bReVal = getNextProtein();
 	if (bReVal) {
-		if ((ProNovoConfig::getSearchType() == "Regular")
-				|| (ProNovoConfig::getSearchType() == "SIP")) {
+		if ((ProNovoConfig::getSearchType() == "Regular") || (ProNovoConfig::getSearchType() == "SIP")) {
 			bstayCurrentProtein = getNextPeptidePTM(currentPeptide);
 			if (!bstayCurrentProtein)
 				bReVal = getNextPeptide(currentPeptide);
@@ -200,8 +195,7 @@ void ProteinDatabase::RemoveIllegalResidue(string& seq) {
 	found = seq.find_first_not_of(legalstr);
 	while (found != string::npos) {
 		if (bScreenOutput && seq[found] != '\r')
-			cout << "Remove illegal character " << seq.substr(found, 1)
-					<< " of " << seq << endl;
+			cout << "Remove illegal character " << seq.substr(found, 1) << " of " << seq << endl;
 		seq.erase(found, 1);
 		//cout<<seq<<endl;
 		found = seq.find_first_not_of(legalstr);
@@ -225,8 +219,7 @@ bool ProteinDatabase::getFirstProtein() {
 	if (sline.at(0) == '>') {
 //	cout<<sline<<endl;
 //	cout<<sline.find_first_of(" \t\f\v\n\r")<<endl;
-		scurrentProteinName = sline.substr(1,
-				sline.find_first_of(" \t\f\v\n\r") - 1);
+		scurrentProteinName = sline.substr(1, sline.find_first_of(" \t\f\v\n\r") - 1);
 		while (!db_stream.eof()) {
 			sline.clear();
 			getline(db_stream, sline);
@@ -234,14 +227,11 @@ bool ProteinDatabase::getFirstProtein() {
 				continue;
 			if (sline.find_first_not_of(" \r\n") != string::npos) {
 				if (sline.at(0) == '>') {
-					snextProteinName = sline.substr(1,
-							sline.find_first_of(" \t\f\v\n\r") - 1);
+					snextProteinName = sline.substr(1, sline.find_first_of(" \t\f\v\n\r") - 1);
 					break;
 				} else {
 					RemoveIllegalResidue(sline);
-					scurrentProtein = scurrentProtein
-							+ sline.substr(0,
-									sline.find_last_not_of("\r\n") + 1);
+					scurrentProtein = scurrentProtein + sline.substr(0, sline.find_last_not_of("\r\n") + 1);
 				}
 			}
 
@@ -274,14 +264,11 @@ bool ProteinDatabase::getNextProtein() {
 				continue;
 			if (sline.find_first_not_of(" \r\n") != string::npos) {
 				if (sline.at(0) == '>') {
-					snextProteinName = sline.substr(1,
-							sline.find_first_of(" \t\f\v\n\r") - 1);
+					snextProteinName = sline.substr(1, sline.find_first_of(" \t\f\v\n\r") - 1);
 					break;
 				} else {
 					RemoveIllegalResidue(sline);
-					scurrentProtein = scurrentProtein
-							+ sline.substr(0,
-									sline.find_last_not_of("\r\n") + 1);
+					scurrentProtein = scurrentProtein + sline.substr(0, sline.find_last_not_of("\r\n") + 1);
 				}
 			}
 
@@ -306,14 +293,12 @@ void ProteinDatabase::Initial_PTM_Map()
 //		cout<<orderstring<<"aa"<<endl;
 //		cout<<ptmlist.residue(i)<<"bb"<<endl;
 		residue_id = orderstring.find(ptmlist.residue(i));
-		cur_elm = make_pair<string, double>(ptmlist.symbol(i),
-				ptmlist.mass_shift(i));
+		cur_elm = make_pair<string, double>(ptmlist.symbol(i), ptmlist.mass_shift(i));
 		ptm_map[residue_id].push_back(cur_elm);
 	}
 }
 
-bool ProteinDatabase::GenerateNextComb(std::vector<int>& comb_order,
-		const int& total_num) {
+bool ProteinDatabase::GenerateNextComb(std::vector<int>& comb_order, const int& total_num) {
 	int i, j, r_num, ori_val;
 	bool re_val = false;
 	r_num = comb_order.size();
@@ -329,8 +314,7 @@ bool ProteinDatabase::GenerateNextComb(std::vector<int>& comb_order,
 	return re_val;
 }
 
-bool ProteinDatabase::GenerateNextPTM(std::vector<int>& ptm_order,
-		const std::vector<int>& ele_num)
+bool ProteinDatabase::GenerateNextPTM(std::vector<int>& ptm_order, const std::vector<int>& ele_num)
 // based on given comb_order
 		{
 	bool re_val = false;
@@ -353,18 +337,15 @@ bool ProteinDatabase::GenerateNextPTM(std::vector<int>& ptm_order,
 bool ProteinDatabase::isCleavageSite(char c1, char c2)
 // Return true, if this is a real cleavage site
 		{
-	return ((ProNovoConfig::getCleavageAfterResidues().find(c1, 0)
-			!= string::npos)
-			&& (ProNovoConfig::getCleavageBeforeResidues().find(c2, 0)
-					!= string::npos));
+	return ((ProNovoConfig::getCleavageAfterResidues().find(c1, 0) != string::npos)
+			&& (ProNovoConfig::getCleavageBeforeResidues().find(c2, 0) != string::npos));
 }
 
 void ProteinDatabase::setProtein() {
 	int i;
 	double msum = 0.0;
 	//"M" sometimes is the test start
-	if ((ProNovoConfig::getTestStartRemoval())
-			&& (scurrentProtein.at(0) == 'M'))
+	if ((ProNovoConfig::getTestStartRemoval()) && (scurrentProtein.at(0) == 'M'))
 		scurrentProtein = scurrentProtein.substr(1);
 
 	vicleavageSite.clear();
@@ -384,16 +365,14 @@ void ProteinDatabase::setProtein() {
 		//msum += aa.MonoisotopicMass(scurrentProtein.at(i));
 		msum += ProNovoConfig::getResidueMass(scurrentProtein.substr(i, 1));
 		msum_map.push_back(msum);
-		mass_map.push_back(
-				ProNovoConfig::getResidueMass(scurrentProtein.substr(i, 1)));
+		mass_map.push_back(ProNovoConfig::getResidueMass(scurrentProtein.substr(i, 1)));
 	}
 }
 
 bool ProteinDatabase::isPeptideLengthGood(int ipepLength)
 // return true, if the length of given peptide is acceptable 
 		{
-	return ((ipepLength >= ProNovoConfig::getMinPeptideLength())
-			&& (ipepLength <= ProNovoConfig::getMaxPeptideLength()));
+	return ((ipepLength >= ProNovoConfig::getMinPeptideLength()) && (ipepLength <= ProNovoConfig::getMaxPeptideLength()));
 }
 
 bool ProteinDatabase::getNextOriginalPeptide(Peptide* originalPeptide) {
@@ -406,23 +385,15 @@ bool ProteinDatabase::getNextOriginalPeptide(Peptide* originalPeptide) {
 		ibeginCleavagePos++;
 		iendCleavagePos = ibeginCleavagePos + iclCheck + 1;
 		if (iendCleavagePos < (int) vicleavageSite.size()) {
-			if (isPeptideLengthGood(
-					vicleavageSite.at(iendCleavagePos)
-							- vicleavageSite.at(ibeginCleavagePos))) {
+			if (isPeptideLengthGood(vicleavageSite.at(iendCleavagePos) - vicleavageSite.at(ibeginCleavagePos))) {
 				sOriginalPeptide = "["
-						+ scurrentProtein.substr(
-								vicleavageSite.at(ibeginCleavagePos) + 1,
-								vicleavageSite.at(iendCleavagePos)
-										- vicleavageSite.at(ibeginCleavagePos))
-						+ "]";
-				dOriginalPeptideMass = msum_map[vicleavageSite.at(
-						iendCleavagePos)] + ProNovoConfig::getTerminusMassN()
+						+ scurrentProtein.substr(vicleavageSite.at(ibeginCleavagePos) + 1,
+								vicleavageSite.at(iendCleavagePos) - vicleavageSite.at(ibeginCleavagePos)) + "]";
+				dOriginalPeptideMass = msum_map[vicleavageSite.at(iendCleavagePos)] + ProNovoConfig::getTerminusMassN()
 						+ ProNovoConfig::getTerminusMassC();
 				if (vicleavageSite.at(ibeginCleavagePos) >= 0)
-					dOriginalPeptideMass = dOriginalPeptideMass
-							- msum_map[vicleavageSite.at(ibeginCleavagePos)];
-				setPeptideInfo(originalPeptide, sOriginalPeptide,
-						dOriginalPeptideMass);
+					dOriginalPeptideMass = dOriginalPeptideMass - msum_map[vicleavageSite.at(ibeginCleavagePos)];
+				setPeptideInfo(originalPeptide, sOriginalPeptide, dOriginalPeptideMass);
 				//originalPeptide->setPeptide(sOriginalPeptide, sOriginalPeptide, scurrentProteinName, vicleavageSite.at(ibeginCleavagePos)+1,dOriginalPeptideMass );
 			} else
 				bReVal = getNextOriginalPeptide(originalPeptide);
@@ -436,8 +407,7 @@ bool ProteinDatabase::getNextOriginalPeptide(Peptide* originalPeptide) {
 	return bReVal;
 }
 
-bool ProteinDatabase::getNextOriginalPeptideForMutation(
-		Peptide* originalPeptide)
+bool ProteinDatabase::getNextOriginalPeptideForMutation(Peptide* originalPeptide)
 // The current version allows at most ONE mutation in a peptide
 		{
 	int iendCleavagePos;
@@ -454,23 +424,15 @@ bool ProteinDatabase::getNextOriginalPeptideForMutation(
 		ibeginCleavagePos++;
 		iendCleavagePos = ibeginCleavagePos + iclCheck + 1;
 		if (iendCleavagePos < (int) vicleavageSite.size()) {
-			if (isPeptideLengthGood(
-					vicleavageSite.at(iendCleavagePos)
-							- vicleavageSite.at(ibeginCleavagePos))) {
+			if (isPeptideLengthGood(vicleavageSite.at(iendCleavagePos) - vicleavageSite.at(ibeginCleavagePos))) {
 				sOriginalPeptide = "["
-						+ scurrentProtein.substr(
-								vicleavageSite.at(ibeginCleavagePos) + 1,
-								vicleavageSite.at(iendCleavagePos)
-										- vicleavageSite.at(ibeginCleavagePos))
-						+ "]";
-				dOriginalPeptideMass = msum_map[vicleavageSite.at(
-						iendCleavagePos)] + ProNovoConfig::getTerminusMassN()
+						+ scurrentProtein.substr(vicleavageSite.at(ibeginCleavagePos) + 1,
+								vicleavageSite.at(iendCleavagePos) - vicleavageSite.at(ibeginCleavagePos)) + "]";
+				dOriginalPeptideMass = msum_map[vicleavageSite.at(iendCleavagePos)] + ProNovoConfig::getTerminusMassN()
 						+ ProNovoConfig::getTerminusMassC();
 				if (vicleavageSite.at(ibeginCleavagePos) >= 0)
-					dOriginalPeptideMass = dOriginalPeptideMass
-							- msum_map[vicleavageSite.at(ibeginCleavagePos)];
-				setPeptideInfo(originalPeptide, sOriginalPeptide,
-						dOriginalPeptideMass);
+					dOriginalPeptideMass = dOriginalPeptideMass - msum_map[vicleavageSite.at(ibeginCleavagePos)];
+				setPeptideInfo(originalPeptide, sOriginalPeptide, dOriginalPeptideMass);
 				//originalPeptide->setPeptide(sOriginalPeptide, sOriginalPeptide, scurrentProteinName, vicleavageSite.at(ibeginCleavagePos)+1,dOriginalPeptideMass );
 			} else
 				bReVal = getNextOriginalPeptideForMutation(originalPeptide);
@@ -501,19 +463,16 @@ bool ProteinDatabase::getNextPtmPeptide(Peptide* ptmPeptide)
 			iPtmPos = ptm_position_all.at(comb_order.at(i)).first;
 //	    cout<<"i "<<i<<endl;
 //	    cout<<ptm_position_all.at(comb_order.at(i)).second.size()<<endl;
-			sPtm = ptm_position_all.at(comb_order.at(i)).second.at(
-					ptm_order.at(i)).first;
+			sPtm = ptm_position_all.at(comb_order.at(i)).second.at(ptm_order.at(i)).first;
 
-			dPtmMass = ptm_position_all.at(comb_order.at(i)).second.at(
-					ptm_order.at(i)).second;
+			dPtmMass = ptm_position_all.at(comb_order.at(i)).second.at(ptm_order.at(i)).second;
 			dcurrentMass += dPtmMass;
 			scurrentPeptide.insert(iPtmPos + 1, sPtm);
 		}
 		setPeptideInfo(ptmPeptide, scurrentPeptide, dcurrentMass);
 		//ptmPeptide->setPeptide(scurrentPeptide, sOriginalPeptide, scurrentProteinName, vicleavageSite.at(ibeginCleavagePos)+1,dcurrentMass);
 		if (!GenerateNextPTM(ptm_order, ele_num)) {
-			if (!GenerateNextComb(comb_order,
-					(int) (ptm_position_all.size()))) {
+			if (!GenerateNextComb(comb_order, (int) (ptm_position_all.size()))) {
 				iPtmCount++;
 				if (iPtmCount <= icurrentMaxPtm)
 					initializeCombOrderPTM();
@@ -529,18 +488,15 @@ bool ProteinDatabase::verifyPeptide(const string& sMutatedPeptide) {
 	bool bReVal;
 	int i, iclNum = 0, iclPos;
 	for (i = 1; i <= iclCheck; i++) {
-		iclPos = vicleavageSite.at(ibeginCleavagePos + i)
-				- vicleavageSite.at(ibeginCleavagePos) - 1;
+		iclPos = vicleavageSite.at(ibeginCleavagePos + i) - vicleavageSite.at(ibeginCleavagePos) - 1;
 		if (iclPos == imutationPos)
 			continue;
-		if (isCleavageSite(sMutatedPeptide.at(iclPos),
-				sMutatedPeptide.at(iclPos + 1)))
+		if (isCleavageSite(sMutatedPeptide.at(iclPos), sMutatedPeptide.at(iclPos + 1)))
 			iclNum++;
 	}
 
 	if (imutationPos < ((int) sMutatedPeptide.length() - 1))
-		if (isCleavageSite(sMutatedPeptide.at(imutationPos),
-				sMutatedPeptide.at(imutationPos + 1)))
+		if (isCleavageSite(sMutatedPeptide.at(imutationPos), sMutatedPeptide.at(imutationPos + 1)))
 			iclNum++;
 
 	if (iclNum > ProNovoConfig::getMaxMissedCleavages())
@@ -550,9 +506,8 @@ bool ProteinDatabase::verifyPeptide(const string& sMutatedPeptide) {
 	return bReVal;
 }
 
-bool ProteinDatabase::mutatePeptideLessCleavage(Peptide* mutationPeptide,
-		const string& sOriginalPeptideContent, int iendCleavagePos,
-		string& sMutatedPeptide) {
+bool ProteinDatabase::mutatePeptideLessCleavage(Peptide* mutationPeptide, const string& sOriginalPeptideContent,
+		int iendCleavagePos, string& sMutatedPeptide) {
 	// This function is used to mutate original peptides with less than
 	// maximum missed cleavage sites, so a new missed cleavage site is acceptable.
 	// Once a new cleavage site is created, we may have new peptides.
@@ -564,17 +519,14 @@ bool ProteinDatabase::mutatePeptideLessCleavage(Peptide* mutationPeptide,
 	double dmutationMass;
 	if (imutationOrder == -1) {
 		if ((imutationPos == 0) && (ibeginCleavagePos != 0))
-			sMutationOrder = mutationString(
-					ProNovoConfig::getCleavageBeforeResidues(),
+			sMutationOrder = mutationString(ProNovoConfig::getCleavageBeforeResidues(),
 					sOriginalPeptideContent.at(imutationPos));
 		else if ((imutationPos == ((int) sOriginalPeptideContent.length() - 1))
 				&& (iendCleavagePos < (int) vicleavageSite.size() - 1))
-			sMutationOrder = mutationString(
-					ProNovoConfig::getCleavageAfterResidues(),
+			sMutationOrder = mutationString(ProNovoConfig::getCleavageAfterResidues(),
 					sOriginalPeptideContent.at(imutationPos));
 		else
-			sMutationOrder = mutationString(slegalChar,
-					sOriginalPeptideContent.at(imutationPos));
+			sMutationOrder = mutationString(slegalChar, sOriginalPeptideContent.at(imutationPos));
 	}
 	imutationOrder++;
 	if (imutationOrder >= (int) sMutationOrder.length()) {
@@ -586,10 +538,8 @@ bool ProteinDatabase::mutatePeptideLessCleavage(Peptide* mutationPeptide,
 		mutatePeptide(sOriginalPeptideContent, sMutatedPeptide);
 		//setPeptide;
 		dmutationMass = dOriginalPeptideMass
-				- ProNovoConfig::getResidueMass(
-						sOriginalPeptideContent.substr(imutationPos, 1))
-				+ ProNovoConfig::getResidueMass(
-						sMutationOrder.substr(imutationOrder, 1));
+				- ProNovoConfig::getResidueMass(sOriginalPeptideContent.substr(imutationPos, 1))
+				+ ProNovoConfig::getResidueMass(sMutationOrder.substr(imutationOrder, 1));
 		if (imutationPos < ((int) sMutatedPeptide.length() - 1))
 			subPeptide(sMutatedPeptide); // call this function before [] are added
 		sMutatedPeptide = '[' + sMutatedPeptide + ']';
@@ -599,9 +549,8 @@ bool ProteinDatabase::mutatePeptideLessCleavage(Peptide* mutationPeptide,
 	return bReVal;
 }
 
-bool ProteinDatabase::mutatePeptideEqualCleavage(Peptide* mutationPeptide,
-		const string& sOriginalPeptideContent, int iendCleavagePos,
-		string& sMutatedPeptide)
+bool ProteinDatabase::mutatePeptideEqualCleavage(Peptide* mutationPeptide, const string& sOriginalPeptideContent,
+		int iendCleavagePos, string& sMutatedPeptide)
 		// This function is used to mutate original peptides with
 		// maximum missed cleavage sites. If a new cleavage site is created by mutation,
 		// the current peptide can't exist due to the number of cleavage sites
@@ -611,17 +560,14 @@ bool ProteinDatabase::mutatePeptideEqualCleavage(Peptide* mutationPeptide,
 	double dmutationMass;
 	if (imutationOrder == -1) {
 		if ((imutationPos == 0) && (ibeginCleavagePos != 0))
-			sMutationOrder = mutationString(
-					ProNovoConfig::getCleavageBeforeResidues(),
+			sMutationOrder = mutationString(ProNovoConfig::getCleavageBeforeResidues(),
 					sOriginalPeptideContent.at(imutationPos));
 		else if ((imutationPos == ((int) sOriginalPeptideContent.length() - 1))
 				&& (iendCleavagePos < (int) vicleavageSite.size() - 1))
-			sMutationOrder = mutationString(
-					ProNovoConfig::getCleavageAfterResidues(),
+			sMutationOrder = mutationString(ProNovoConfig::getCleavageAfterResidues(),
 					sOriginalPeptideContent.at(imutationPos));
 		else
-			sMutationOrder = mutationString(slegalChar,
-					sOriginalPeptideContent.at(imutationPos));
+			sMutationOrder = mutationString(slegalChar, sOriginalPeptideContent.at(imutationPos));
 	}
 	imutationOrder++;
 	if (imutationOrder >= (int) sMutationOrder.length()) {
@@ -630,16 +576,13 @@ bool ProteinDatabase::mutatePeptideEqualCleavage(Peptide* mutationPeptide,
 		bReVal = getNextMutationPeptide(mutationPeptide);
 	} else {
 		mutatePeptide(sOriginalPeptideContent, sMutatedPeptide);
-		if ((imutationPos > 0)
-				&& (imutationPos < ((int) sMutatedPeptide.length() - 1)))
+		if ((imutationPos > 0) && (imutationPos < ((int) sMutatedPeptide.length() - 1)))
 			subPeptide(sMutatedPeptide);
 		if (verifyPeptide(sMutatedPeptide)) {
 			bReVal = true;
 			dmutationMass = dOriginalPeptideMass
-					- ProNovoConfig::getResidueMass(
-							sOriginalPeptideContent.substr(imutationPos, 1))
-					+ ProNovoConfig::getResidueMass(
-							sMutationOrder.substr(imutationOrder, 1));
+					- ProNovoConfig::getResidueMass(sOriginalPeptideContent.substr(imutationPos, 1))
+					+ ProNovoConfig::getResidueMass(sMutationOrder.substr(imutationOrder, 1));
 			sMutatedPeptide = '[' + sMutatedPeptide + ']';
 			setPeptideInfo(mutationPeptide, sMutatedPeptide, dmutationMass);
 		} else if (bLeftSubpeptide) {
@@ -654,9 +597,8 @@ bool ProteinDatabase::mutatePeptideEqualCleavage(Peptide* mutationPeptide,
 	return bReVal;
 }
 
-bool ProteinDatabase::mutatePeptideMoreCleavage(Peptide* mutationPeptide,
-		const string& sOriginalPeptideContent, int iendCleavagePos,
-		string& sMutatedPeptide)
+bool ProteinDatabase::mutatePeptideMoreCleavage(Peptide* mutationPeptide, const string& sOriginalPeptideContent,
+		int iendCleavagePos, string& sMutatedPeptide)
 		// This function is used to mutate original peptides with one more
 		// maximum missed cleavage sites. One missed cleavage site needs to
 		// be silenced for meeting the requirement of maximum missed cleavage sites
@@ -669,11 +611,9 @@ bool ProteinDatabase::mutatePeptideMoreCleavage(Peptide* mutationPeptide,
 		if (imutationCleavageCount > iclCheck)
 			bReVal = false;
 		else {
-			imutationPos = vicleavageSite.at(
-					ibeginCleavagePos + imutationCleavageCount)
+			imutationPos = vicleavageSite.at(ibeginCleavagePos + imutationCleavageCount)
 					- vicleavageSite.at(ibeginCleavagePos) - 1;
-			sMutationOrder = mutationString(sNonAfterCleavage,
-					sOriginalPeptideContent.at(imutationPos));
+			sMutationOrder = mutationString(sNonAfterCleavage, sOriginalPeptideContent.at(imutationPos));
 		}
 	}
 	imutationOrder++;
@@ -688,10 +628,8 @@ bool ProteinDatabase::mutatePeptideMoreCleavage(Peptide* mutationPeptide,
 			else {
 				bReVal = true;
 				dmutationMass = dOriginalPeptideMass
-						- ProNovoConfig::getResidueMass(
-								sOriginalPeptideContent.substr(imutationPos, 1))
-						+ ProNovoConfig::getResidueMass(
-								sMutationOrder.substr(imutationOrder, 1));
+						- ProNovoConfig::getResidueMass(sOriginalPeptideContent.substr(imutationPos, 1))
+						+ ProNovoConfig::getResidueMass(sMutationOrder.substr(imutationOrder, 1));
 				sMutatedPeptide = '[' + sMutatedPeptide + ']';
 				setPeptideInfo(mutationPeptide, sMutatedPeptide, dmutationMass);
 			}
@@ -709,8 +647,7 @@ bool ProteinDatabase::getNextMutationPeptide(Peptide* mutationPeptide)
 	string sMutatedPeptide;
 
 	iendCleavagePos = ibeginCleavagePos + iclCheck + 1;
-	sOriginalPeptideContent = sOriginalPeptide.substr(1,
-			sOriginalPeptide.length() - 2);
+	sOriginalPeptideContent = sOriginalPeptide.substr(1, sOriginalPeptide.length() - 2);
 
 	if (bLeftSubpeptide) {
 		bReVal = true;
@@ -720,20 +657,19 @@ bool ProteinDatabase::getNextMutationPeptide(Peptide* mutationPeptide)
 		setRightSubPeptideInfo(mutationPeptide); //setRightPeptide
 	} else if (imutationPos < (int) sOriginalPeptideContent.length()) {
 		if (iclCheck < ProNovoConfig::getMaxMissedCleavages())
-			bReVal = mutatePeptideLessCleavage(mutationPeptide,
-					sOriginalPeptideContent, iendCleavagePos, sMutatedPeptide);
+			bReVal = mutatePeptideLessCleavage(mutationPeptide, sOriginalPeptideContent, iendCleavagePos,
+					sMutatedPeptide);
 		else if (iclCheck == ProNovoConfig::getMaxMissedCleavages())
-			bReVal = mutatePeptideEqualCleavage(mutationPeptide,
-					sOriginalPeptideContent, iendCleavagePos, sMutatedPeptide);
+			bReVal = mutatePeptideEqualCleavage(mutationPeptide, sOriginalPeptideContent, iendCleavagePos,
+					sMutatedPeptide);
 		else
-			bReVal = mutatePeptideMoreCleavage(mutationPeptide,
-					sOriginalPeptideContent, iendCleavagePos, sMutatedPeptide);
+			bReVal = mutatePeptideMoreCleavage(mutationPeptide, sOriginalPeptideContent, iendCleavagePos,
+					sMutatedPeptide);
 	}
 	return bReVal;
 }
 
-string ProteinDatabase::stringDifference(const string& sStringA,
-		const string& sStringB) {
+string ProteinDatabase::stringDifference(const string& sStringA, const string& sStringB) {
 	//return characters contained by sStringA, but not by sStringB
 	string sDifferenceString = "";
 	int i, iPos;
@@ -745,8 +681,7 @@ string ProteinDatabase::stringDifference(const string& sStringA,
 	return sDifferenceString;
 }
 
-string ProteinDatabase::mutationString(const string& sWholeString,
-		const char& chCurrentRedidue) {
+string ProteinDatabase::mutationString(const string& sWholeString, const char& chCurrentRedidue) {
 	// return the chars for mutation
 	// the usage of this function is to make sure the cleavage site will be kept or slienced,
 	// or no cleavage sites will be created
@@ -756,24 +691,19 @@ string ProteinDatabase::mutationString(const string& sWholeString,
 	if (iPos == 0)
 		sReString = sWholeString.substr(iPos + 1);
 	else
-		sReString = sWholeString.substr(0, iPos)
-				+ sWholeString.substr(iPos + 1);
+		sReString = sWholeString.substr(0, iPos) + sWholeString.substr(iPos + 1);
 	return sReString;
 }
 
-void ProteinDatabase::mutatePeptide(const string & sOriginalPeptideContent,
-		string & sMutatedPeptide) {
+void ProteinDatabase::mutatePeptide(const string & sOriginalPeptideContent, string & sMutatedPeptide) {
 	if (imutationPos == 0)
-		sMutatedPeptide = sMutationOrder.substr(imutationOrder, 1)
-				+ sOriginalPeptideContent.substr(imutationPos + 1);
+		sMutatedPeptide = sMutationOrder.substr(imutationOrder, 1) + sOriginalPeptideContent.substr(imutationPos + 1);
 	else
-		sMutatedPeptide = sOriginalPeptideContent.substr(0, imutationPos)
-				+ sMutationOrder.substr(imutationOrder, 1)
+		sMutatedPeptide = sOriginalPeptideContent.substr(0, imutationPos) + sMutationOrder.substr(imutationOrder, 1)
 				+ sOriginalPeptideContent.substr(imutationPos + 1);
 }
 
-void ProteinDatabase::setPeptideInfo(Peptide* thePeptide,
-		const string & sIdentifyPeptide, const double & dMass) {
+void ProteinDatabase::setPeptideInfo(Peptide* thePeptide, const string & sIdentifyPeptide, const double & dMass) {
 	char cIdentifyPrefix, cIdentifySuffix, cOriginalPrefix, cOriginalSuffix;
 	int iBeginPos, iEndPos; // positions of Peptide on the original protein
 	iBeginPos = vicleavageSite.at(ibeginCleavagePos) + 1;
@@ -788,9 +718,8 @@ void ProteinDatabase::setPeptideInfo(Peptide* thePeptide,
 	else
 		cOriginalSuffix = scurrentProtein.at(iEndPos + 1);
 	cIdentifySuffix = cOriginalSuffix;
-	thePeptide->setPeptide(sIdentifyPeptide, sOriginalPeptide,
-			scurrentProteinName, vicleavageSite.at(ibeginCleavagePos) + 1,
-			dMass, cIdentifyPrefix, cIdentifySuffix, cOriginalPrefix,
+	thePeptide->setPeptide(sIdentifyPeptide, sOriginalPeptide, scurrentProteinName,
+			vicleavageSite.at(ibeginCleavagePos) + 1, dMass, cIdentifyPrefix, cIdentifySuffix, cOriginalPrefix,
 			cOriginalSuffix);
 }
 
@@ -803,8 +732,7 @@ void ProteinDatabase::setLeftSubPeptideInfo(Peptide* thePeptide) {
 	bLeftSubpeptide = false;
 	ilength = iLeftSubPeptideEndPos - iLeftSubPeptideBeginPos + 1;
 	sSubIndentifyPeptide = '[' + sLeftSubpeptide + ']';
-	sSubOriginalPeptide = '['
-			+ scurrentProtein.substr(iLeftSubPeptideBeginPos, ilength) + ']';
+	sSubOriginalPeptide = '[' + scurrentProtein.substr(iLeftSubPeptideBeginPos, ilength) + ']';
 	if (iLeftSubPeptideBeginPos == 0)
 		cIdentifyPrefix = '-'; //  since no good empty character, '-' won't be printed finally
 	else
@@ -817,14 +745,11 @@ void ProteinDatabase::setLeftSubPeptideInfo(Peptide* thePeptide) {
 		dSubMass += msum_map[iLeftSubPeptideEndPos - 1];
 	if (iLeftSubPeptideBeginPos > 0)
 		dSubMass = dSubMass - msum_map[iLeftSubPeptideBeginPos - 1];
-	dSubMass += ProNovoConfig::getResidueMass(
-			sLeftSubpeptide.substr(ilength - 1, 1));
-	dSubMass += ProNovoConfig::getTerminusMassN()
-			+ ProNovoConfig::getTerminusMassC();
+	dSubMass += ProNovoConfig::getResidueMass(sLeftSubpeptide.substr(ilength - 1, 1));
+	dSubMass += ProNovoConfig::getTerminusMassN() + ProNovoConfig::getTerminusMassC();
 
-	thePeptide->setPeptide(sSubIndentifyPeptide, sSubOriginalPeptide,
-			scurrentProteinName, iLeftSubPeptideBeginPos, dSubMass,
-			cIdentifyPrefix, cIdentifySuffix, cOriginalPrefix, cOriginalSuffix);
+	thePeptide->setPeptide(sSubIndentifyPeptide, sSubOriginalPeptide, scurrentProteinName, iLeftSubPeptideBeginPos,
+			dSubMass, cIdentifyPrefix, cIdentifySuffix, cOriginalPrefix, cOriginalSuffix);
 }
 
 void ProteinDatabase::setRightSubPeptideInfo(Peptide* thePeptide) {
@@ -836,8 +761,7 @@ void ProteinDatabase::setRightSubPeptideInfo(Peptide* thePeptide) {
 	bRightSubpeptide = false;
 	ilength = iRightSubPeptideEndPos - iRightSubPeptideBeginPos;
 	sSubIndentifyPeptide = '[' + sRightSubpeptide + ']';
-	sSubOriginalPeptide = '['
-			+ scurrentProtein.substr(iRightSubPeptideBeginPos, ilength) + ']';
+	sSubOriginalPeptide = '[' + scurrentProtein.substr(iRightSubPeptideBeginPos, ilength) + ']';
 	cIdentifyPrefix = cRightSubPeptidePrefix;
 	cOriginalPrefix = scurrentProtein.at(iRightSubPeptideBeginPos - 1);
 	if (iRightSubPeptideEndPos == ((int) scurrentProtein.length() - 1))
@@ -849,12 +773,10 @@ void ProteinDatabase::setRightSubPeptideInfo(Peptide* thePeptide) {
 	dSubMass += msum_map[iRightSubPeptideEndPos];
 	dSubMass = dSubMass - msum_map[iRightSubPeptideBeginPos];
 	dSubMass += ProNovoConfig::getResidueMass(sRightSubpeptide.substr(0, 1));
-	dSubMass += ProNovoConfig::getTerminusMassN()
-			+ ProNovoConfig::getTerminusMassC();
+	dSubMass += ProNovoConfig::getTerminusMassN() + ProNovoConfig::getTerminusMassC();
 
-	thePeptide->setPeptide(sSubIndentifyPeptide, sSubOriginalPeptide,
-			scurrentProteinName, iRightSubPeptideBeginPos, dSubMass,
-			cIdentifyPrefix, cIdentifySuffix, cOriginalPrefix, cOriginalSuffix);
+	thePeptide->setPeptide(sSubIndentifyPeptide, sSubOriginalPeptide, scurrentProteinName, iRightSubPeptideBeginPos,
+			dSubMass, cIdentifyPrefix, cIdentifySuffix, cOriginalPrefix, cOriginalSuffix);
 
 }
 
@@ -865,12 +787,10 @@ void ProteinDatabase::subPeptide(const string& sMutatedPeptide)
 	int i, ileftMostCleavage, irightMostCleavage;
 	bool bnewCleavage = true;
 	if (imutationPos < ((int) sMutatedPeptide.length() - 1)) {
-		if (isCleavageSite(sMutatedPeptide.at(imutationPos),
-				sMutatedPeptide.at(imutationPos + 1))) {
+		if (isCleavageSite(sMutatedPeptide.at(imutationPos), sMutatedPeptide.at(imutationPos + 1))) {
 			for (i = 1; i <= iclCheck; i++)
 				if (imutationPos
-						== (vicleavageSite.at(ibeginCleavagePos + i)
-								- vicleavageSite.at(ibeginCleavagePos) - 1)) {
+						== (vicleavageSite.at(ibeginCleavagePos + i) - vicleavageSite.at(ibeginCleavagePos) - 1)) {
 					bnewCleavage = false;
 					break;
 				}
@@ -881,30 +801,23 @@ void ProteinDatabase::subPeptide(const string& sMutatedPeptide)
 	//irightMostCleavage is -1 for no missed cleavage site case, otherwise the relative position of right most missing cleavage site
 	//ileftMostCleavage is -1 for no missed cleavage site case, otherwise the relative position of left most missing cleavage site
 	if (bnewCleavage) {
-		irightMostCleavage = vicleavageSite.at(ibeginCleavagePos + iclCheck)
-				- vicleavageSite.at(ibeginCleavagePos) - 1;
+		irightMostCleavage = vicleavageSite.at(ibeginCleavagePos + iclCheck) - vicleavageSite.at(ibeginCleavagePos) - 1;
 		if (imutationPos > irightMostCleavage) //for left peptide
 			if (isPeptideLengthGood(imutationPos + 1)) {
 				bLeftSubpeptide = true;
 				sLeftSubpeptide = sMutatedPeptide.substr(0, imutationPos + 1);
 				cLeftSubPeptideSuffix = sMutatedPeptide.at(imutationPos + 1);
-				iLeftSubPeptideBeginPos = vicleavageSite.at(ibeginCleavagePos)
-						+ 1;
-				iLeftSubPeptideEndPos = vicleavageSite.at(ibeginCleavagePos)
-						+ imutationPos + 1;
+				iLeftSubPeptideBeginPos = vicleavageSite.at(ibeginCleavagePos) + 1;
+				iLeftSubPeptideEndPos = vicleavageSite.at(ibeginCleavagePos) + imutationPos + 1;
 			}
-		ileftMostCleavage = vicleavageSite.at(ibeginCleavagePos + 1)
-				- vicleavageSite.at(ibeginCleavagePos) - 1;
+		ileftMostCleavage = vicleavageSite.at(ibeginCleavagePos + 1) - vicleavageSite.at(ibeginCleavagePos) - 1;
 		if ((imutationPos < ileftMostCleavage)) // for right peptide
-			if (isPeptideLengthGood(
-					sMutatedPeptide.length() - imutationPos - 1)) {
+			if (isPeptideLengthGood(sMutatedPeptide.length() - imutationPos - 1)) {
 				bRightSubpeptide = true;
 				sRightSubpeptide = sMutatedPeptide.substr(imutationPos + 1);
 				cRightSubPeptidePrefix = sMutatedPeptide.at(imutationPos);
-				iRightSubPeptideBeginPos = vicleavageSite.at(ibeginCleavagePos)
-						+ imutationPos + 2;
-				iRightSubPeptideEndPos = vicleavageSite.at(ibeginCleavagePos)
-						+ sMutatedPeptide.length();
+				iRightSubPeptideBeginPos = vicleavageSite.at(ibeginCleavagePos) + imutationPos + 2;
+				iRightSubPeptideEndPos = vicleavageSite.at(ibeginCleavagePos) + sMutatedPeptide.length();
 			}
 	}
 }

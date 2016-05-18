@@ -12,9 +12,10 @@
 #include "tokenvector.h"
 #include "proNovoConfig.h"
 #include "proteindatabase.h"
+#include "./Scores/CometSearch.h"
 
 #define ZERO            0.00000001
-#define PEPTIDE_ARRAY_SIZE  10000
+#define PEPTIDE_ARRAY_SIZE  100000
 
 using namespace std;
 
@@ -75,7 +76,6 @@ public:
 	bool loadFT2file();
 	bool ReadFT2File();    //Read FT2 files
 	void startProcessing(); // start functions to process the loaded FT2 file
-
 };
 
 #endif // MS2SCANVECTOR_H

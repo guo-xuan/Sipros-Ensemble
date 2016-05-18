@@ -66,7 +66,7 @@ public:
 	// The first dimension of vvdYionMass and vvdYionProb is from y1, y2, ...
 	// The first dimension of vvdBionMass and vvdBionProb is from b1, b2, ...
 	// the mass is calculated assuming cleavage of the peptide bond
-	bool computeProductIon(string sSequence, vector<vector<double> > & vvdYionMass, vector<vector<double> > & vvdYionProb, vector<vector<double> > & vvdBionMass, vector<vector<double> > & vvdBionProb);
+	bool computeProductIon(const string & sSequence, vector<vector<double> > & vvdYionMass, vector<vector<double> > & vvdYionProb, vector<vector<double> > & vvdBionMass, vector<vector<double> > & vvdBionProb);
 
 	// compute isotoptic distribution for an amino acid sequence
 	bool computeIsotopicDistribution(string sSequence, IsotopeDistribution & myIsotopeDistribution);

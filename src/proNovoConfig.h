@@ -12,7 +12,6 @@
 #include <stdio.h>
 #include "isotopologue.h"
 #include "TableIsotopeDistribution.h"
-#include "proNovoConfig.h"
 #include "directoryStructure.h"
 #include "omp.h"
 
@@ -21,9 +20,82 @@ using namespace std;
 #define CLOCKSTART double begin = omp_get_wtime(); cout<<"Currently in file: " << __FILE__ << " Function: "<< __FUNCTION__ << "()" << endl;
 #define CLOCKSTOP double end = omp_get_wtime(); cout << "Function " << __FUNCTION__ << "() finished in " << double(end - begin) << " Seconds." << endl << endl;
 
-
 class Isotopologue;
 class TableIsotopeDistribution;
+
+//--------------Comet------------
+#define PROTON_MASS 1.00727646688
+#define NUM_ION_SERIES 9
+#define NUM_SP_IONS 200 // num ions for preliminary scoring
+
+#define ION_SERIES_A                0
+#define ION_SERIES_B                1
+#define ION_SERIES_C                2
+#define ION_SERIES_X                3
+#define ION_SERIES_Y                4
+#define ION_SERIES_Z                5
+
+#define SPARSE_MATRIX_SIZE          100
+#define FLOAT_ZERO                  1e-6     // 0.000001
+
+#define MAX_FRAGMENT_CHARGE         5
+#define MAX_PEPTIDE_LEN             64       // max # of AA for a peptide
+
+struct Options             // output parameters
+{
+	int iNumStored;               // # of search results to store for xcorr analysis
+	int iStartCharge;
+	int iEndCharge;
+	int iMaxFragmentCharge;
+	int iMaxPrecursorCharge;
+	int iRemovePrecursor;         // 0=no, 1=yes, 2=ETD precursors
+	double dMinIntensity;
+	double dRemovePrecursorTol;
+
+	Options() {
+		iNumStored = 0;               // # of search results to store for xcorr analysis
+		iStartCharge = 0;
+		iEndCharge = 0;
+		iMaxFragmentCharge = 0;
+		iMaxPrecursorCharge = 0;
+		iRemovePrecursor = 0;         // 0=no, 1=yes, 2=ETD precursors
+		dMinIntensity = 0;
+		dRemovePrecursorTol = 0;
+	}
+};
+
+struct IonInfo {
+	int iNumIonSeriesUsed;
+	int piSelectedIonSeries[NUM_ION_SERIES];
+	int bUseNeutralLoss;
+	int iIonVal[NUM_ION_SERIES];
+	IonInfo() {
+		bUseNeutralLoss = 1;
+		iIonVal[ION_SERIES_A] = 0;
+		iIonVal[ION_SERIES_B] = 1;
+		iIonVal[ION_SERIES_C] = 0;
+		iIonVal[ION_SERIES_X] = 0;
+		iIonVal[ION_SERIES_Y] = 1;
+		iIonVal[ION_SERIES_Z] = 0;
+		iNumIonSeriesUsed = 2;
+		piSelectedIonSeries[0] = 1;
+		piSelectedIonSeries[1] = 4;
+	}
+};
+struct PrecalcMasses {
+	double dNtermProton;          // dAddNterminusPeptide + PROTON_MASS
+	double dCtermOH2Proton;       // dAddCterminusPeptide + dOH2fragment + PROTON_MASS
+	double dOH2ProtonCtermNterm;  // dOH2parent + PROTON_MASS + dAddCterminusPeptide + dAddNterminusPeptide
+	int iMinus17HighRes; // BIN'd value of mass(NH3)
+	int iMinus17LowRes;
+	int iMinus18HighRes; // BIN'd value of mass(H2O)
+	int iMinus18LowRes;
+	double dCO;
+	double dNH3;
+	double dNH2;
+	double dCOminusH2;
+};
+//--------------Comet End------------
 
 class ProNovoConfig {
 public:
@@ -38,8 +110,8 @@ public:
 
 	static bool setWorkingDirectory(const string & sDirectoryName);
 
-	static vector<pair<string, string> > getNeutralLossList() {
-		return vpNeutralLossList;
+	static vector<pair<string, string> > * getNeutralLossList() {
+		return &vpNeutralLossList;
 	}
 
 	static string getWorkingDirectory() {
@@ -93,8 +165,8 @@ public:
 
 	static bool getPeptideMassWindows(double dPeptideMass, vector<pair<double, double> > & vpPeptideMassWindows);
 
-	static bool isPrecalculationEnabled(){
-		if(iMaxPTMcount==0&&iNumPrecalcuatedResidues>1){
+	static bool isPrecalculationEnabled() {
+		if (iMaxPTMcount == 0 && iNumPrecalcuatedResidues > 1) {
 			return true;
 		}
 		return false;
@@ -172,6 +244,31 @@ public:
 
 	}
 
+	static bool isSnpFeatureOn() {
+		return bSnpFeature;
+	}
+
+	//---------------Comet Begin---------------------
+	static bool bCometEnable;
+	static Options options;
+	static double dInverseBinWidth; // this is used in BIN() many times so use inverse binWidth to do multiply vs. divide
+	static double dOneMinusBinOffset;  // this is used in BIN() many times so calculate once
+	static IonInfo ionInformation;
+	static int iXcorrProcessingOffset;
+	static PrecalcMasses precalcMasses;
+	static double dMaxMS2ScanMass;
+	static double dMaxPeptideMass;
+	static map<string, double> pdAAMassFragment;
+	static double dHighResFragmentBinSize;
+	static double dHighResFragmentBinStartOffset;
+	static double dLowResFragmentBinSize;
+	static double dLowResFragmentBinStartOffset;
+	static double dHighResInverseBinWidth;
+	static double dLowResInverseBinWidth;
+	static double dHighResOneMinusBinOffset;
+	static double dLowResOneMinusBinOffset;
+	//---------------Comet End-----------------------
+
 protected:
 	ProNovoConfig();
 
@@ -220,6 +317,8 @@ private:
 	static double dTerminusMassC;
 
 	static string sElementList;
+
+	static bool bSnpFeature;
 
 	// this is used to setup configIsotopologue
 	// retrieve Elemental composition of amino acid residues

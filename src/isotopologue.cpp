@@ -180,6 +180,71 @@ bool Isotopologue::setupIsotopologue(const string & sTable, const string & AtomN
 //		tempIsotopeDistribution.print();
 	}
 
+	//-----Comet Begin--------
+	map<string, double>::iterator iterAtomMonoMass;
+	double dProb = 0;
+	double dMass = 0;
+	for (i = 0; i < AtomName.size(); ++i) {
+		dProb = 0;
+		for (size_t j = 0; j < vAtomIsotopicDistribution.at(i).vProb.size(); j++) {
+			if (dProb < vAtomIsotopicDistribution[i].vProb.at(j)) {
+				dProb = vAtomIsotopicDistribution[i].vProb.at(j);
+				dMass = vAtomIsotopicDistribution[i].vMass.at(j);
+			}
+		}
+		string sTemp = AtomName.substr(i, 1);
+		std::transform(sTemp.begin(), sTemp.end(), sTemp.begin(), ::tolower);
+		iterAtomMonoMass = ProNovoConfig::pdAAMassFragment.find(sTemp);
+		if (iterAtomMonoMass == ProNovoConfig::pdAAMassFragment.end()) {
+			ProNovoConfig::pdAAMassFragment[sTemp] = dMass;
+		} else {
+			cout << "error: duplicate symbols" << endl;
+		}
+	}
+	map<string, IsotopeDistribution>::iterator iterResidueMonoMass;
+	for (iterResidueMonoMass = vResidueIsotopicDistribution.begin();
+			iterResidueMonoMass != vResidueIsotopicDistribution.end(); iterResidueMonoMass++) {
+		dProb = 0;
+		for (size_t j = 0; j < iterResidueMonoMass->second.vProb.size(); j++) {
+			if (dProb < iterResidueMonoMass->second.vProb.at(j)) {
+				dProb = iterResidueMonoMass->second.vProb.at(j);
+				dMass = iterResidueMonoMass->second.vMass.at(j);
+			}
+		}
+		iterAtomMonoMass = ProNovoConfig::pdAAMassFragment.find(iterResidueMonoMass->first);
+		if (iterAtomMonoMass == ProNovoConfig::pdAAMassFragment.end()) {
+			ProNovoConfig::pdAAMassFragment[iterResidueMonoMass->first] = dMass;
+		} else {
+			cout << "error: duplicate symbols" << endl;
+		}
+	}
+	//H2O
+	dMass = ProNovoConfig::pdAAMassFragment.find("h")->second * 2 + ProNovoConfig::pdAAMassFragment.find("o")->second;
+	ProNovoConfig::precalcMasses.iMinus17LowRes = (int) (dMass * ProNovoConfig::dLowResInverseBinWidth
+			+ ProNovoConfig::dLowResOneMinusBinOffset);
+	ProNovoConfig::precalcMasses.iMinus17HighRes = (int) (dMass * ProNovoConfig::dHighResInverseBinWidth
+			+ ProNovoConfig::dHighResOneMinusBinOffset);
+	//NH3
+	dMass = ProNovoConfig::pdAAMassFragment.find("h")->second * 3 + ProNovoConfig::pdAAMassFragment.find("n")->second;
+	ProNovoConfig::precalcMasses.iMinus18LowRes = (int) (dMass * ProNovoConfig::dLowResInverseBinWidth
+			+ ProNovoConfig::dLowResOneMinusBinOffset);
+	ProNovoConfig::precalcMasses.iMinus18HighRes = (int) (dMass * ProNovoConfig::dHighResInverseBinWidth
+			+ ProNovoConfig::dHighResOneMinusBinOffset);
+	//PROTON_MASS
+	ProNovoConfig::precalcMasses.dNtermProton = PROTON_MASS;
+	//dOH2fragment + PROTON_MASS
+	ProNovoConfig::precalcMasses.dCtermOH2Proton = PROTON_MASS + ProNovoConfig::pdAAMassFragment.find("o")->second
+			+ ProNovoConfig::pdAAMassFragment.find("h")->second * 2;
+	ProNovoConfig::precalcMasses.dCO = ProNovoConfig::pdAAMassFragment.find("o")->second
+			+ ProNovoConfig::pdAAMassFragment.find("c")->second;
+	ProNovoConfig::precalcMasses.dNH2 = ProNovoConfig::pdAAMassFragment.find("n")->second
+			+ ProNovoConfig::pdAAMassFragment.find("h")->second * 2;
+	ProNovoConfig::precalcMasses.dNH3 = ProNovoConfig::pdAAMassFragment.find("n")->second
+			+ ProNovoConfig::pdAAMassFragment.find("h")->second * 3;
+	ProNovoConfig::precalcMasses.dCOminusH2 = ProNovoConfig::precalcMasses.dCO
+			- (ProNovoConfig::pdAAMassFragment.find("h")->second * 2);
+	//-----Comet End----------
+
 	return true;
 
 }
@@ -433,7 +498,7 @@ bool Isotopologue::computeIsotopicDistribution4(string sSequence, IsotopeDistrib
 
 }
 
-bool Isotopologue::computeProductIon(string sSequence, vector<vector<double> > & vvdYionMass,
+bool Isotopologue::computeProductIon(const string & sSequence, vector<vector<double> > & vvdYionMass,
 		vector<vector<double> > & vvdYionProb, vector<vector<double> > & vvdBionMass,
 		vector<vector<double> > & vvdBionProb) {
 	// get the mass for a proton

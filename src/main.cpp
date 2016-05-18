@@ -112,6 +112,7 @@ void handleScan(const string & sFT2filename, const string & sOutputDirectory, co
 
 int main(int argc, char **argv) {
 	// A list of FT2/MS2 files to be searched
+	double begin = omp_get_wtime();
 	vector<string> vsFT2Filenames;
 	bool bScreenOutput;
 	string sWorkingDirectory, sConfigFilename, sSingleWorkingFile, sOutputDirectory;
@@ -135,8 +136,9 @@ int main(int argc, char **argv) {
 	for (int i = 0; i < (int) vsFT2Filenames.size(); i++) {
 		handleScan(vsFT2Filenames[i], sOutputDirectory, sConfigFilename, bScreenOutput);
 	}
-
-	//std::cout << "Hello, world!" << std::endl;
+	double end = omp_get_wtime();
+	cout << endl;
+	cout << "Total time:\t" << double(end - begin) << " Seconds." << endl << endl;
 	return 0;
 }
 

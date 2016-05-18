@@ -14,6 +14,8 @@ MS2Scan::~MS2Scan() {
 	int i;
 	for (i = 0; i < (int) vpWeightSumTopPeptides.size(); i++)
 		delete vpWeightSumTopPeptides.at(i);
+
+	delete pQuery;
 }
 
 void MS2Scan::postprocess() {
@@ -47,9 +49,10 @@ void MS2Scan::scorePeptidesHighMS2() {
 	int i;
 	for (i = 0; i < (int) vpPeptides.size(); i++) {
 		if (!mergePeptide(vpWeightSumTopPeptides, vpPeptides.at(i)->getPeptideSeq(),
-				vpPeptides.at(i)->getProteinName()))
+				vpPeptides.at(i)->getProteinName())) {
 			scoreWeightSumHighMS2(vpPeptides.at(i));
-		//scoreRankSumHighMS2(vpPeptides.at(i));
+			//scoreRankSumHighMS2(vpPeptides.at(i));
+		}
 	}
 }
 
@@ -59,7 +62,7 @@ void MS2Scan::scorePeptidesLowMS2() {
 		if (!mergePeptide(vpWeightSumTopPeptides, vpPeptides.at(i)->getPeptideSeq(),
 				vpPeptides.at(i)->getProteinName())) {
 			scoreWeightSum(vpPeptides.at(i));
-//	    scoreRankSum(vpPeptides.at(i));
+			//scoreRankSum(vpPeptides.at(i));
 		}
 	}
 }
@@ -592,11 +595,11 @@ bool MS2Scan::GreaterScore(PeptideUnit * p1, PeptideUnit * p2) {
 
 void MS2Scan::scorePeptides() {
 	if (bSetMS2Flag) {
-		if (isMS2HighRes)
+		if (isMS2HighRes) {
 			scorePeptidesHighMS2();
-		else
+		} else {
 			scorePeptidesLowMS2();
-
+		}
 		vpPeptides.clear();
 	}
 }
@@ -1124,8 +1127,8 @@ bool MS2Scan::findProductIonSIP(const vector<double> & vdIonMass, const vector<d
 
 void MS2Scan::scoreWeightSumHighMS2(Peptide* currentPeptide) {	//it's primaryScorePetide in the previous version
 	/*if (this->iScanId == 28 && currentPeptide->getPeptideSeq() == "[ALTGALIVLIIIR]") {
-		cout << "check" << endl;
-	}*/
+	 cout << "check" << endl;
+	 }*/
 	double dScore = 0;
 	int iPeptideLength = currentPeptide->getPeptideLength(), i, j, iMostAbundantPeakIndex = 0;
 	int n; // Ion number starting from one
@@ -1133,7 +1136,7 @@ void MS2Scan::scoreWeightSumHighMS2(Peptide* currentPeptide) {	//it's primarySco
 	vector<ProductIon> vFoundIons;
 	double dScoreWeight = 0, dMZError = 1, dMostAbundantObservedMZ = 0, dAverageMZError = 0,
 			dBonus4ComplementaryFragmentObserved = 1.0;
-	string sPeptide = currentPeptide->getPeptideSeq();
+	//string sPeptide = currentPeptide->getPeptideSeq();
 //    cout<<currentPeptide->vvdYionMass.size()<<endl;
 	for (n = 0; n < (int) currentPeptide->vvdYionMass.size(); ++n)
 		for (z = 1; z <= iParentChargeState; ++z) {
@@ -1210,17 +1213,17 @@ void MS2Scan::scoreWeightSumHighMS2(Peptide* currentPeptide) {	//it's primarySco
 
 	saveScore(dScore, currentPeptide, vpWeightSumTopPeptides, vdWeightSumAllScores);
 	/*if (this->iScanId == 28 && currentPeptide->getPeptideSeq() == "[ALTGALIVLIIIR]") {
-		cout << "check" << endl;
-		for (size_t i = 0; i < vFoundIons.size(); i++) {
-			cout << "IonNumber\t" << vFoundIons.at(i).getIonNumber() << endl;
-			cout << "MostAbundantPeakIndex\t" << vFoundIons.at(i).getMostAbundantPeakIndex() << endl;
-			cout << "ScoreWeight\t" << vFoundIons.at(i).getScoreWeight() << endl;
-			cout << "MostAbundantMass\t" << vFoundIons.at(i).getMostAbundantMass() << endl;
-			cout << "MZError\t" << vFoundIons.at(i).getMZError() << endl;
-			cout << "MassError\t" << vFoundIons.at(i).getMassError() << endl;
-		}
-		exit(EXIT_FAILURE);
-	}*/
+	 cout << "check" << endl;
+	 for (size_t i = 0; i < vFoundIons.size(); i++) {
+	 cout << "IonNumber\t" << vFoundIons.at(i).getIonNumber() << endl;
+	 cout << "MostAbundantPeakIndex\t" << vFoundIons.at(i).getMostAbundantPeakIndex() << endl;
+	 cout << "ScoreWeight\t" << vFoundIons.at(i).getScoreWeight() << endl;
+	 cout << "MostAbundantMass\t" << vFoundIons.at(i).getMostAbundantMass() << endl;
+	 cout << "MZError\t" << vFoundIons.at(i).getMZError() << endl;
+	 cout << "MassError\t" << vFoundIons.at(i).getMassError() << endl;
+	 }
+	 exit(EXIT_FAILURE);
+	 }*/
 }
 
 bool MS2Scan::binarySearch(const double& dTarget, const vector<double>& vdList, const double& dTolerance,
@@ -1310,4 +1313,3 @@ void PeptideUnit::setPeptideUnitInfo(const Peptide* currentPeptide, const double
 	this->dScore = dScore;
 	this->sScoringFunction = sScoringFunction;
 }
-

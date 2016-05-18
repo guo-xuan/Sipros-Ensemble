@@ -46,6 +46,30 @@ vector<pair<double, double> > ProNovoConfig::vpPeptideMassWindowOffset;
 
 vector<pair<string, string> > ProNovoConfig::vpNeutralLossList;
 
+bool ProNovoConfig::bSnpFeature = true;
+
+//---------------Comet Begin---------------------
+bool ProNovoConfig::bCometEnable = true;
+Options ProNovoConfig::options;
+double ProNovoConfig::dInverseBinWidth = 0;    // this is used in BIN() many times so use inverse binWidth to do multiply vs. divide
+double ProNovoConfig::dOneMinusBinOffset = 0;  // this is used in BIN() many times so calculate once
+IonInfo ProNovoConfig::ionInformation;
+int ProNovoConfig::iXcorrProcessingOffset = 75;
+PrecalcMasses ProNovoConfig::precalcMasses;
+double ProNovoConfig::dMaxMS2ScanMass = 0;
+double ProNovoConfig::dMaxPeptideMass = 0;
+map<string, double> ProNovoConfig::pdAAMassFragment;
+double ProNovoConfig::dHighResFragmentBinSize = 0.02;
+double ProNovoConfig::dHighResFragmentBinStartOffset = 0;
+double ProNovoConfig::dLowResFragmentBinSize = 1.0005;
+double ProNovoConfig::dLowResFragmentBinStartOffset = 0.4;
+double ProNovoConfig::dHighResInverseBinWidth = 1.0 /ProNovoConfig::dHighResFragmentBinSize;
+double ProNovoConfig::dLowResInverseBinWidth = 1.0 /ProNovoConfig::dLowResFragmentBinSize;
+double ProNovoConfig::dHighResOneMinusBinOffset = 1.0 - ProNovoConfig::dHighResFragmentBinStartOffset;
+double ProNovoConfig::dLowResOneMinusBinOffset = 1.0 - ProNovoConfig::dLowResFragmentBinStartOffset;
+//---------------Comet End-----------------------
+
+
 ProNovoConfig::ProNovoConfig() {
 }
 

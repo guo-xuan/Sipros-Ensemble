@@ -2,13 +2,16 @@
 
 Peptide::Peptide() {
 	iPeptideLength = 0;
+	dxScore = 0;
 }
 
 Peptide::~Peptide() {
 
 }
 
-void Peptide::setPeptide(const string& sPeptide, const string& sOriginalPeptide, const string& sProteinName, const int& ibeginPos, const double & dPeptideMass, const char & cIdentifyPrefix, const char & cIdentifySuffix, const char & cOriginalPrefix, const char & cOriginalSuffix) {
+void Peptide::setPeptide(const string& sPeptide, const string& sOriginalPeptide, const string& sProteinName,
+		const int& ibeginPos, const double & dPeptideMass, const char & cIdentifyPrefix, const char & cIdentifySuffix,
+		const char & cOriginalPrefix, const char & cOriginalSuffix) {
 	this->sPeptide = sPeptide;
 	this->sOriginalPeptide = sOriginalPeptide;
 	this->sProteinName = sProteinName;
@@ -37,7 +40,8 @@ void Peptide::calculateExpectedFragments(const string & sNewPeptide, const map<c
 			break;
 		iter = mapResidueMass.find(sNewPeptide[i]);
 		if (iter == mapResidueMass.end())
-			cerr << "WARNING: Residue " << sNewPeptide[i] << " Peptide " << sNewPeptide << " is not defined in the config." << endl;
+			cerr << "WARNING: Residue " << sNewPeptide[i] << " Peptide " << sNewPeptide
+					<< " is not defined in the config." << endl;
 		else if (isalpha(sNewPeptide[i])) {
 			// this is an amino acid residue
 			dMass = dMass + iter->second;
@@ -56,7 +60,8 @@ void Peptide::calculateExpectedFragments(const string & sNewPeptide, const map<c
 			// this is PTM to the C terminus
 			iter = mapResidueMass.find(sNewPeptide[i]);
 			if (iter == mapResidueMass.end())
-				cerr << "WARNING: Residue " << sNewPeptide[i] << " Peptide " << sNewPeptide << " is not defined in the config." << endl;
+				cerr << "WARNING: Residue " << sNewPeptide[i] << " Peptide " << sNewPeptide
+						<< " is not defined in the config." << endl;
 			else
 				dMass = dMass + iter->second;
 		}
@@ -77,10 +82,11 @@ void printx(vector<vector<double> > & _v) {
 }
 
 void Peptide::calculateIsotope(const string & sNewPeptide, const map<char, double>& mapResidueMass) {
-	if(ProNovoConfig::isPrecalculationEnabled()){
+	if (ProNovoConfig::isPrecalculationEnabled()) {
 		ProNovoConfig::tid->computeProductIon(sNewPeptide, vvdYionMass, vvdYionProb, vvdBionMass, vvdBionProb);
-	}else{
-		ProNovoConfig::configIsotopologue.computeProductIon(sNewPeptide, vvdYionMass, vvdYionProb, vvdBionMass, vvdBionProb);
+	} else {
+		ProNovoConfig::configIsotopologue.computeProductIon(sNewPeptide, vvdYionMass, vvdYionProb, vvdBionMass,
+				vvdBionProb);
 	}
 
 }
@@ -88,33 +94,35 @@ void Peptide::calculateIsotope(const string & sNewPeptide, const map<char, doubl
 void Peptide::preprocessing(bool isMS2HighRes, const map<char, double>& mapResidueMass) {
 	int i;
 	string sNewPeptide;
-	for (i = 0; i < (int) sPeptide.length(); ++i)
-		if (isalpha(sPeptide[i]))
+	for (i = 0; i < (int) sPeptide.length(); ++i){
+		if (isalpha(sPeptide[i])){
 			iPeptideLength = iPeptideLength + 1;
-
+		}
+	}
 	sNewPeptide = neutralLossProcess(sPeptide);
 	if (isMS2HighRes) {
 		calculateIsotope(sNewPeptide, mapResidueMass); // just for weightsum
 		//calculateExpectedFragments(mapResidueMass); // just for ranksum
-	} else
+	} else {
 		calculateExpectedFragments(sNewPeptide, mapResidueMass);
+	}
 }
 
 string Peptide::neutralLossProcess(const string& sCurrentPeptide) {
 	string sNewPeptide;
-	vector<pair<string, string> > vpNeutralLossList;
+	vector<pair<string, string> >* vpNeutralLossList;
 	size_t i, listLength, pos;
 	sNewPeptide = sCurrentPeptide;
 	vpNeutralLossList = ProNovoConfig::getNeutralLossList();
 	//   cout<<"!!!"<<endl;
 	//   cout<< sNewPeptide <<endl;
-	listLength = vpNeutralLossList.size();
+	listLength = vpNeutralLossList->size();
 	for (i = 0; i < listLength; i++) {
 		pos = 0;
-		pos = sNewPeptide.find(vpNeutralLossList[i].first, pos);
+		pos = sNewPeptide.find((*vpNeutralLossList)[i].first, pos);
 		while (pos != string::npos) {
-			sNewPeptide.replace(pos, 1, vpNeutralLossList[i].second);
-			pos = sNewPeptide.find(vpNeutralLossList[i].first, pos);
+			sNewPeptide.replace(pos, 1, (*vpNeutralLossList)[i].second);
+			pos = sNewPeptide.find((*vpNeutralLossList)[i].first, pos);
 		}
 		//cout<<vpNeutralLossList[i].first<<" : "<<vpNeutralLossList[i].second<<endl;
 	}
