@@ -39,7 +39,7 @@ class TableIsotopeDistribution;
 #define FLOAT_ZERO                  1e-6     // 0.000001
 
 #define MAX_FRAGMENT_CHARGE         5
-#define MAX_PEPTIDE_LEN             64       // max # of AA for a peptide
+#define MAX_PEPTIDE_LEN             75       // max # of AA for a peptide
 
 struct Options             // output parameters
 {
@@ -85,6 +85,7 @@ struct IonInfo {
 struct PrecalcMasses {
 	double dNtermProton;          // dAddNterminusPeptide + PROTON_MASS
 	double dCtermOH2Proton;       // dAddCterminusPeptide + dOH2fragment + PROTON_MASS
+	double dCtermOH2;       // dAddCterminusPeptide + dOHfragment
 	double dOH2ProtonCtermNterm;  // dOH2parent + PROTON_MASS + dAddCterminusPeptide + dAddNterminusPeptide
 	int iMinus17HighRes; // BIN'd value of mass(NH3)
 	int iMinus17LowRes;
@@ -267,7 +268,18 @@ public:
 	static double dLowResInverseBinWidth;
 	static double dHighResOneMinusBinOffset;
 	static double dLowResOneMinusBinOffset;
+	static int iMaxPercusorCharge;
 	//---------------Comet End-----------------------
+
+	//---------------Myrimatch Begin-----------------
+	static bool bMvhEnable;
+	static double ClassSizeMultiplier;
+	static int NumIntensityClasses;
+	static int minIntensityClassCount;
+	static double ticCutoffPercentage;
+	static int MaxPeakCount;
+	static int MinMatchedFragments;
+	//---------------Myrimatch End-------------------
 
 protected:
 	ProNovoConfig();

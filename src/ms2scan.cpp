@@ -8,6 +8,13 @@ MS2Scan::MS2Scan() {
 	inumberofWeightSumScore = 0;
 	dsumofSquareWeightSumScore = 0;
 	dsumofWeightScore = 0;
+	pQuery = NULL;
+	peakData = NULL;
+	intenClassCounts = NULL;
+	mvh = 0;
+	totalPeakBins = 0;
+	mzLowerBound = 0;
+	mzUpperBound = 0;
 }
 
 MS2Scan::~MS2Scan() {
@@ -15,7 +22,17 @@ MS2Scan::~MS2Scan() {
 	for (i = 0; i < (int) vpWeightSumTopPeptides.size(); i++)
 		delete vpWeightSumTopPeptides.at(i);
 
-	delete pQuery;
+	if (pQuery) {
+		delete pQuery;
+	}
+
+	if(peakData){
+		delete peakData;
+	}
+
+	if(intenClassCounts){
+		delete intenClassCounts;
+	}
 }
 
 void MS2Scan::postprocess() {
@@ -863,10 +880,11 @@ double MS2Scan::CalculateRankSum(double dUvalue, double n1, double n2) {
 }
 
 void MS2Scan::preprocess() {
-	if (isMS2HighRes)
+	if (isMS2HighRes) {
 		preprocessHighMS2();
-	else
+	} else {
 		preprocessLowMS2();
+	}
 	cleanup();
 }
 

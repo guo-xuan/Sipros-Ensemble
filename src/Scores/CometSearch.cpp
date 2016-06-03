@@ -8,12 +8,11 @@
 #include "CometSearch.h"
 
 CometSearch::CometSearch() {
-	// TODO Auto-generated constructor stub
 
 }
 
 CometSearch::~CometSearch() {
-	// TODO Auto-generated destructor stub
+
 }
 
 bool CometSearch::Preprocess(struct Query *pScoring, MS2Scan * mstSpectrum, double *pdTmpRawData,
@@ -25,7 +24,7 @@ bool CometSearch::Preprocess(struct Query *pScoring, MS2Scan * mstSpectrum, doub
 	struct msdata pTmpSpData[NUM_SP_IONS];
 	struct PreprocessStruct pPre;
 	double dInverseBinWidth = 0, iMinus17 = 0, iMinus18 = 0, dFragmentBinSize = 0;
-	mstSpectrum->isMS2HighRes = false;
+	//mstSpectrum->isMS2HighRes = false;
 	if (mstSpectrum->isMS2HighRes) {
 		dInverseBinWidth = ProNovoConfig::dHighResInverseBinWidth;
 		iMinus17 = ProNovoConfig::precalcMasses.iMinus17HighRes;
@@ -44,10 +43,13 @@ bool CometSearch::Preprocess(struct Query *pScoring, MS2Scan * mstSpectrum, doub
 	// very wide mass tolerance searches (i.e. 500 Da).
 	double dCushion = 3.0;
 	pScoring->_spectrumInfoInternal.iArraySize = (int) ((mstSpectrum->dParentMass + dCushion + 2.0) * dInverseBinWidth);
-	if(mstSpectrum->iParentChargeState==1){
+	if (mstSpectrum->iParentChargeState == 1) {
 		pScoring->_spectrumInfoInternal.iMaxFragCharge = 1;
-	}else{
+	} else {
 		pScoring->_spectrumInfoInternal.iMaxFragCharge = mstSpectrum->iParentChargeState - 1;
+	}
+	if (mstSpectrum->iParentChargeState > ProNovoConfig::iMaxPercusorCharge) {
+		ProNovoConfig::iMaxPercusorCharge = mstSpectrum->iParentChargeState;
 	}
 
 	// initialize these temporary arrays before re-using
@@ -338,7 +340,7 @@ bool CometSearch::Preprocess(struct Query *pScoring, MS2Scan * mstSpectrum, doub
 
 	delete[] pScoring->pfSpScoreData;
 	pScoring->pfSpScoreData = NULL;
-	print(pScoring);
+	//print(pScoring);
 	return true;
 }
 
@@ -647,7 +649,7 @@ void CometSearch::print(Query * pScoring) {
 }
 
 bool CometSearch::ScorePeptides(Peptide * currentPeptide, bool *pbDuplFragment, double * _pdAAforward,
-		double * _pdAAreverse, MS2Scan * mstSpectrum, struct BinnedIonMasses * _uiBinnedIonMasses, double & dXcorr) {
+		double * _pdAAreverse, MS2Scan * mstSpectrum, unsigned int *** _uiBinnedIonMasses, double & dXcorr, int test) {
 	double dInverseBinWidth = 0, dOneMinusBinOffset = 0;
 	if (mstSpectrum->isMS2HighRes) {
 		dInverseBinWidth = ProNovoConfig::dHighResInverseBinWidth;
@@ -693,8 +695,9 @@ bool CometSearch::ScorePeptides(Peptide * currentPeptide, bool *pbDuplFragment, 
 		dBion += iterResidueMonoMass->second;
 		j++;
 	}
-	k--;
-	if (!isalpha(sSequence->at(k))) {
+	if (sSequence->at(k) == ']') {
+		k--;
+	} else {
 		currentPTM = sSequence->at(k);
 		iterResidueMonoMass = ProNovoConfig::pdAAMassFragment.find(currentPTM);
 		if (iterResidueMonoMass == ProNovoConfig::pdAAMassFragment.end()) {
@@ -702,6 +705,11 @@ bool CometSearch::ScorePeptides(Peptide * currentPeptide, bool *pbDuplFragment, 
 			return false;
 		}
 		dYion += iterResidueMonoMass->second;
+		k--;
+		if (sSequence->at(k) != ']') {
+			cerr << "ERROR: (second) Last character in a peptide sequence must be ]." << endl;
+			return false;
+		}
 		k--;
 	}
 	for (i = 0; i < (size_t) iLenMinus1; i++) {
@@ -731,18 +739,6 @@ bool CometSearch::ScorePeptides(Peptide * currentPeptide, bool *pbDuplFragment, 
 		_pdAAforward[iPos] = dBion;
 		//Now reverse
 		if (!isalpha(sSequence->at(k))) {
-			cerr << "ERROR: One residue can only have one PTM (Up to only one symbol after an amino acid)" << endl;
-			return false;
-		}
-		currentPTM = sSequence->at(k);
-		iterResidueMonoMass = ProNovoConfig::pdAAMassFragment.find(currentPTM);
-		if (iterResidueMonoMass == ProNovoConfig::pdAAMassFragment.end()) {
-			cerr << "ERROR: One residue can only have one PTM (Up to only one symbol after an amino acid)" << endl;
-			return false;
-		}
-		dYion += iterResidueMonoMass->second;
-		k--;
-		if (!isalpha(sSequence->at(k))) {
 			currentPTM = sSequence->at(k);
 			iterResidueMonoMass = ProNovoConfig::pdAAMassFragment.find(currentPTM);
 			if (iterResidueMonoMass == ProNovoConfig::pdAAMassFragment.end()) {
@@ -752,23 +748,36 @@ bool CometSearch::ScorePeptides(Peptide * currentPeptide, bool *pbDuplFragment, 
 			dYion += iterResidueMonoMass->second;
 			k--;
 		}
+		if (!isalpha(sSequence->at(k))) {
+			cerr << "ERROR: One residue can only have one PTM (Up to only one symbol after an amino acid)" << endl;
+			return false;
+		}
+		currentPTM = sSequence->at(k);
+		iterResidueMonoMass = ProNovoConfig::pdAAMassFragment.find(currentPTM);
+		if (iterResidueMonoMass == ProNovoConfig::pdAAMassFragment.end()) {
+			cerr << "ERROR: cannot find this PTM in the config file" << currentPTM << endl;
+			return false;
+		}
+		dYion += iterResidueMonoMass->second;
+		k--;
 		_pdAAreverse[iPos] = dYion;
 		iPos++;
 	}
 	// Now get the set of binned fragment ions once to compare this peptide against all matching spectra.
-	int ctCharge;
-	int ctIonSeries;
-	int iWhichIonSeries;
-	int ctLen;
-	int iVal;
+	int ctCharge = 0;
+	int ctIonSeries = 0;
+	int iWhichIonSeries = 0;
+	int ctLen = 0;
+	int iVal = 0;
 	Query* pQuery = mstSpectrum->pQuery;
 	int iMaxFragCharge = pQuery->_spectrumInfoInternal.iMaxFragCharge;
 	for (ctCharge = 1; ctCharge <= iMaxFragCharge; ctCharge++) {
 		for (ctIonSeries = 0; ctIonSeries < ProNovoConfig::ionInformation.iNumIonSeriesUsed; ctIonSeries++) {
 			iWhichIonSeries = ProNovoConfig::ionInformation.piSelectedIonSeries[ctIonSeries];
 			for (ctLen = 0; ctLen < iLenMinus1; ctLen++) {
-				pbDuplFragment[BINX(GetFragmentIonMass(iWhichIonSeries, ctLen, ctCharge, _pdAAforward, _pdAAreverse),
-						dInverseBinWidth, dOneMinusBinOffset)] = false;
+				iVal = BINX(GetFragmentIonMass(iWhichIonSeries, ctLen, ctCharge, _pdAAforward, _pdAAreverse),
+						dInverseBinWidth, dOneMinusBinOffset);
+				pbDuplFragment[iVal] = false;
 			}
 		}
 	}
@@ -779,14 +788,14 @@ bool CometSearch::ScorePeptides(Peptide * currentPeptide, bool *pbDuplFragment, 
 				iVal = BINX(GetFragmentIonMass(iWhichIonSeries, ctLen, ctCharge, _pdAAforward, _pdAAreverse),
 						dInverseBinWidth, dOneMinusBinOffset);
 				if (pbDuplFragment[iVal] == false) {
-					_uiBinnedIonMasses->_uiBinnedIonMasses[ctCharge][ctIonSeries][ctLen] = iVal;
+					_uiBinnedIonMasses[ctCharge][ctIonSeries][ctLen] = iVal;
 					pbDuplFragment[iVal] = true;
-				} else
-					_uiBinnedIonMasses->_uiBinnedIonMasses[ctCharge][ctIonSeries][ctLen] = 0;
+				} else {
+					_uiBinnedIonMasses[ctCharge][ctIonSeries][ctLen] = 0;
+				}
 			}
 		}
 	}
-
 	dXcorr = 0;
 	bool bUseNLPeaks = false;
 	float **ppSparseFastXcorrData;              // use this if bSparseMatrix
@@ -810,32 +819,47 @@ bool CometSearch::ScorePeptides(Peptide * currentPeptide, bool *pbDuplFragment, 
 			}
 			for (ctLen = 0; ctLen < iLenMinus1; ctLen++) {
 				//MH: newer sparse matrix converts bin to sparse matrix bin
-				bin = _uiBinnedIonMasses->_uiBinnedIonMasses[ctCharge][ctIonSeries][ctLen];
+				bin = _uiBinnedIonMasses[ctCharge][ctIonSeries][ctLen];
 				x = bin / SPARSE_MATRIX_SIZE;
 				if (ppSparseFastXcorrData[x] == NULL || x > iMax) // x should never be > iMax so this is just a safety check
 					continue;
 				y = bin - (x * SPARSE_MATRIX_SIZE);
 				dXcorr += ppSparseFastXcorrData[x][y];
-				cout << x << "," << y << endl;
+				//cout << x << "," << y << endl;
 			}
 		}
 	}
-	if (dXcorr < XCORR_CUTOFF)
+	if (dXcorr < XCORR_CUTOFF) {
 		dXcorr = XCORR_CUTOFF;
-	else
+	} else {
 		dXcorr *= 0.005;  // Scale intensities to 50 and divide score by 1E4.
-
-	cout << "\n" << endl;
-	for (i = 1; i < pQuery->_spectrumInfoInternal.iArraySize; i++) {
-		x = i / SPARSE_MATRIX_SIZE;
-		if (ppSparseFastXcorrData[x] == NULL) {
-			cout << "0\t";
-		} else {
-			y = i - (x * SPARSE_MATRIX_SIZE);
-			cout << ppSparseFastXcorrData[x][y] << "\t";
-		}
 	}
-	cout << endl;
+
+	/*cout << "\n" << endl;
+	 for (i = 1; (int) i < pQuery->_spectrumInfoInternal.iArraySize; i++) {
+	 x = i / SPARSE_MATRIX_SIZE;
+	 if (pQuery->ppfSparseFastXcorrDataNL[x] == NULL) {
+	 //cout << "0\t";
+	 } else {
+	 y = i - (x * SPARSE_MATRIX_SIZE);
+	 if (pQuery->ppfSparseFastXcorrDataNL[x][y] != 0) {
+	 cout << pQuery->ppfSparseFastXcorrDataNL[x][y] << "\t";
+	 }
+	 }
+	 }
+	 cout << endl;
+	 for (i = 1; (int) i < pQuery->_spectrumInfoInternal.iArraySize; i++) {
+	 x = i / SPARSE_MATRIX_SIZE;
+	 if (pQuery->ppfSparseFastXcorrData[x] == NULL) {
+	 //cout << "0\t";
+	 } else {
+	 y = i - (x * SPARSE_MATRIX_SIZE);
+	 if (pQuery->ppfSparseFastXcorrData[x][y] != 0) {
+	 cout << pQuery->ppfSparseFastXcorrData[x][y] << "\t";
+	 }
+	 }
+	 }
+	 cout << endl;*/
 
 	return true;
 }
@@ -866,4 +890,75 @@ double CometSearch::GetFragmentIonMass(int iWhichIonSeries, int i, int ctCharge,
 	}
 
 	return (dFragmentIonMass + (ctCharge - 1) * PROTON_MASS) / ctCharge;
+}
+
+bool CometSearch::CalculateSP(double & fScoreSp, double* _pdAAforward, double * _pdAAreverse, MS2Scan * mstSpectrum,
+		int iLenPeptide) {
+	double dInverseBinWidth = 0, dOneMinusBinOffset = 0;
+	if (mstSpectrum->isMS2HighRes) {
+		dInverseBinWidth = ProNovoConfig::dHighResInverseBinWidth;
+		dOneMinusBinOffset = ProNovoConfig::dHighResOneMinusBinOffset;
+	} else {
+		dInverseBinWidth = ProNovoConfig::dLowResInverseBinWidth;
+		dOneMinusBinOffset = ProNovoConfig::dLowResOneMinusBinOffset;
+	}
+	int iMaxFragCharge = mstSpectrum->pQuery->_spectrumInfoInternal.iMaxFragCharge;
+	int iMatchedFragmentIonCt = 0;
+	IonSeriesStruct ionSeries[9];
+	double dTmpIntenMatch = 0.0;
+	double dConsec = 0.0;
+	int ii;
+	for (ii = 0; ii < ProNovoConfig::ionInformation.iNumIonSeriesUsed; ii++) {
+		int iii;
+		for (iii = 1; iii <= iMaxFragCharge; iii++)
+			ionSeries[ProNovoConfig::ionInformation.piSelectedIonSeries[ii]].bPreviousMatch[iii] = 0;
+	}
+	int ctCharge;
+	double dFragmentIonMass = 0.0;
+	for (ctCharge = 1; ctCharge <= iMaxFragCharge; ctCharge++) {
+		for (ii = 0; ii < ProNovoConfig::ionInformation.iNumIonSeriesUsed; ii++) {
+			int iWhichIonSeries = ProNovoConfig::ionInformation.piSelectedIonSeries[ii];
+
+			// As both _pdAAforward and _pdAAreverse are increasing, loop through
+			// iLenPeptide-1 to complete set of internal fragment ions.
+			for (int iii = 0; iii < iLenPeptide - 1; iii++) {
+				// Gets fragment ion mass.
+				dFragmentIonMass = GetFragmentIonMass(iWhichIonSeries, iii, ctCharge, _pdAAforward, _pdAAreverse);
+
+				if (!(dFragmentIonMass <= FLOAT_ZERO)) {
+					int iFragmentIonMass = BINX(dFragmentIonMass, dInverseBinWidth, dOneMinusBinOffset);
+					float fSpScore;
+
+					fSpScore = FindSpScore(mstSpectrum->pQuery, iFragmentIonMass);
+
+					if (fSpScore > FLOAT_ZERO) {
+						iMatchedFragmentIonCt++;
+
+						// Simple sum intensity.
+						dTmpIntenMatch += fSpScore;
+
+						// Increase score for consecutive fragment ion series matches.
+						if (ionSeries[iWhichIonSeries].bPreviousMatch[ctCharge])
+							dConsec += 0.075;
+
+						ionSeries[iWhichIonSeries].bPreviousMatch[ctCharge] = 1;
+					} else {
+						ionSeries[iWhichIonSeries].bPreviousMatch[ctCharge] = 0;
+					}
+				}
+			}
+		}
+	}
+	fScoreSp = (double) ((dTmpIntenMatch * iMatchedFragmentIonCt * (1.0 + dConsec))
+			/ ((iLenPeptide) * iMaxFragCharge * ProNovoConfig::ionInformation.iNumIonSeriesUsed));
+
+	return true;
+}
+
+double CometSearch::FindSpScore(Query *pQuery, int bin) {
+	int x = bin / SPARSE_MATRIX_SIZE;
+	if (pQuery->ppfSparseSpScoreData[x] == NULL)
+		return 0.0f;
+	int y = bin - (x * SPARSE_MATRIX_SIZE);
+	return pQuery->ppfSparseSpScoreData[x][y];
 }

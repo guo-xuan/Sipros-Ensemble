@@ -231,7 +231,7 @@ void MS2ScanVector::saveScan(MS2Scan * pMS2Scan) { //parentChargeState > 0, save
 	if (pMS2newScan->dParentMass > ProNovoConfig::dMaxMS2ScanMass) {
 		ProNovoConfig::dMaxMS2ScanMass = pMS2newScan->dParentMass;
 	}
-	if(pMS2newScan->iParentChargeState > ProNovoConfig::options.iMaxFragmentCharge){
+	if (pMS2newScan->iParentChargeState > ProNovoConfig::options.iMaxFragmentCharge) {
 		ProNovoConfig::options.iMaxFragmentCharge = pMS2newScan->iParentChargeState;
 	}
 	delete pMS2Scan;
@@ -248,16 +248,35 @@ void MS2ScanVector::preProcessAllMS2() {
 		{
 			//MH: Must be equal to largest possible array
 			int iArraySize = (int) ((ProNovoConfig::dMaxMS2ScanMass + 3 + 2.0) * ProNovoConfig::dHighResInverseBinWidth);
-			double *pdTmpRawData = new double[iArraySize];
-			double *pdTmpFastXcorrData = new double[iArraySize];
-			double *pdTmpCorrelationData = new double[iArraySize];
-			double *pdTmpSmoothedSpectrum = new double[iArraySize];
-			double *pdTmpPeakExtracted = new double[iArraySize];
+			double *pdTmpRawData;
+			double *pdTmpFastXcorrData;
+			double *pdTmpCorrelationData;
+			double *pdTmpSmoothedSpectrum;
+			double *pdTmpPeakExtracted;
+			try {
+				pdTmpRawData = new double[iArraySize]();
+				pdTmpFastXcorrData = new double[iArraySize]();
+				pdTmpCorrelationData = new double[iArraySize]();
+				pdTmpSmoothedSpectrum = new double[iArraySize]();
+				pdTmpPeakExtracted = new double[iArraySize]();
+			} catch (std::bad_alloc& ba) {
+				char szErrorMsg[256];
+				sprintf(szErrorMsg, " Error - new(pd[%d]). bad_alloc: %s.\n", iArraySize, ba.what());
+				sprintf(szErrorMsg + strlen(szErrorMsg),
+						"Comet ran out of memory. Look into \"spectrum_batch_size\"\n");
+				sprintf(szErrorMsg + strlen(szErrorMsg), "parameters to address mitigate memory use.\n");
+				string strErrorMsg(szErrorMsg);
+				logerr(szErrorMsg);
+				exit(1);
+			}
 #pragma omp for schedule(dynamic)
 			for (int ii = 0; ii < iScanSize; ii++) {
 				struct Query * pQuery = new Query();
-				CometSearch::Preprocess(pQuery, vpAllMS2Scans.at(ii), pdTmpRawData, pdTmpFastXcorrData,
-						pdTmpCorrelationData, pdTmpSmoothedSpectrum, pdTmpPeakExtracted);
+				if (!CometSearch::Preprocess(pQuery, vpAllMS2Scans.at(ii), pdTmpRawData, pdTmpFastXcorrData,
+						pdTmpCorrelationData, pdTmpSmoothedSpectrum, pdTmpPeakExtracted)) {
+					cout << "Error" << endl;
+					exit(1);
+				}
 				vpAllMS2Scans.at(ii)->pQuery = pQuery;
 			}
 			delete[] pdTmpRawData;
@@ -266,6 +285,35 @@ void MS2ScanVector::preProcessAllMS2() {
 			delete[] pdTmpSmoothedSpectrum;
 			delete[] pdTmpPeakExtracted;
 		}
+	}
+
+	if (ProNovoConfig::bMvhEnable) {
+#pragma omp for schedule(dynamic)
+		for (int ii = 0; ii < iScanSize; ii++) {
+			vpAllMS2Scans.at(ii)->sortPeakList();
+		}
+		double minObservedMz = numeric_limits<double>::max();
+		double maxObservedMz = 0;
+		for (int ii = 0; ii < iScanSize; ii++) {
+			minObservedMz = min(minObservedMz, vpAllMS2Scans.at(ii)->vdMZ.front());
+			maxObservedMz = max(maxObservedMz, vpAllMS2Scans.at(ii)->vdMZ.back());
+		}
+#pragma omp parallel
+		{
+			multimap<double, double> * IntenSortedPeakPreData = new multimap<double, double>();
+#pragma omp for schedule(dynamic)
+			for (int ii = 0; ii < iScanSize; ii++) {
+				MVH::Preprocess(vpAllMS2Scans.at(ii), IntenSortedPeakPreData, minObservedMz, maxObservedMz);
+			}
+			delete IntenSortedPeakPreData;
+		}
+		size_t maxPeakBins = 0;
+		for (int ii = 0; ii < iScanSize; ii++) {
+			if (vpAllMS2Scans.at(ii)->totalPeakBins > maxPeakBins) {
+				maxPeakBins = vpAllMS2Scans.at(ii)->totalPeakBins;
+			}
+		}
+		MVH::initialLnTable(maxPeakBins);
 	}
 
 #pragma omp parallel for \
@@ -398,31 +446,6 @@ void MS2ScanVector::processPeptideArray(vector<Peptide*>& vpPeptideArray) {
 
 	//cout<<"calculating fragments of "<<vpPeptideArray.size()<<"  peptides"<<endl;
 
-	if (ProNovoConfig::bCometEnable) {
-//#pragma omp parallel
-		{
-			//MH: Must be equal to largest possible array
-			int iArraySize = (int) ((ProNovoConfig::dMaxPeptideMass + 100) * ProNovoConfig::dHighResInverseBinWidth);
-			bool *pbDuplFragment = new bool[iArraySize];
-			double *_pdAAforward = new double[MAX_PEPTIDE_LEN];
-			double *_pdAAreverse = new double[MAX_PEPTIDE_LEN];
-			struct BinnedIonMasses * _uiBinnedIonMasses = new struct BinnedIonMasses();
-//#pragma omp for schedule(dynamic)
-			for (int ii = 0; ii < iScanSize; ii++) {
-				size_t j = 0, iPeptideArrayPerScan = vpAllMS2Scans.at(ii)->vpPeptides.size();
-				for(j=0;j<iPeptideArrayPerScan;j++){
-					double dXcorr = 0;
-					CometSearch::ScorePeptides(vpAllMS2Scans.at(ii)->vpPeptides.at(j), pbDuplFragment, _pdAAforward,
-								_pdAAreverse, vpAllMS2Scans.at(ii), _uiBinnedIonMasses, dXcorr);
-				}
-			}
-			delete[] pbDuplFragment;
-			delete[] _pdAAforward;
-			delete[] _pdAAreverse;
-			delete _uiBinnedIonMasses;
-		}
-	}
-
 #pragma omp parallel for \
     shared(vpPeptideArray) private(i) \
     schedule(guided)
@@ -434,9 +457,93 @@ void MS2ScanVector::processPeptideArray(vector<Peptide*>& vpPeptideArray) {
 	//cout<<"scoring "<<vpPeptideArray.size()<<"  peptides"<<endl;
 	// every MS2 scans scores their matched peptides
 
+	if (ProNovoConfig::bCometEnable) {
+#pragma omp parallel
+		{
+			//MH: Must be equal to largest possible array
+			int iArraySize = (int) ((ProNovoConfig::dMaxPeptideMass + 100) * ProNovoConfig::dHighResInverseBinWidth);
+			bool *pbDuplFragment;
+			double *_pdAAforward;
+			double *_pdAAreverse;
+			unsigned int *** _uiBinnedIonMasses;
+			try {
+				pbDuplFragment = new bool[iArraySize]();
+				_pdAAforward = new double[MAX_PEPTIDE_LEN]();
+				_pdAAreverse = new double[MAX_PEPTIDE_LEN]();
+				_uiBinnedIonMasses = new unsigned int**[ProNovoConfig::iMaxPercusorCharge + 1]();
+				for (int ii = 0; ii < ProNovoConfig::iMaxPercusorCharge + 1; ii++) {
+					_uiBinnedIonMasses[ii] = new unsigned int*[9]();
+					for (int j = 0; j < 9; j++) {
+						_uiBinnedIonMasses[ii][j] = new unsigned int[MAX_PEPTIDE_LEN]();
+					}
+				}
+			} catch (std::bad_alloc& ba) {
+				char szErrorMsg[256];
+				sprintf(szErrorMsg, " Error - new(pd[%d]). bad_alloc: %s.\n", iArraySize, ba.what());
+				sprintf(szErrorMsg + strlen(szErrorMsg),
+						"Comet ran out of memory. Look into \"spectrum_batch_size\"\n");
+				sprintf(szErrorMsg + strlen(szErrorMsg), "parameters to address mitigate memory use.\n");
+				string strErrorMsg(szErrorMsg);
+				logerr(szErrorMsg);
+				exit(1);
+			}
+#pragma omp for schedule(dynamic)
+			for (int ii = 0; ii < iScanSize; ii++) {
+				size_t j = 0, iPeptideArrayPerScan = vpAllMS2Scans.at(ii)->vpPeptides.size();
+				for (j = 0; j < iPeptideArrayPerScan; j++) {
+					double dXcorr = 0;
+					CometSearch::ScorePeptides(vpAllMS2Scans.at(ii)->vpPeptides.at(j), pbDuplFragment, _pdAAforward,
+							_pdAAreverse, vpAllMS2Scans.at(ii), _uiBinnedIonMasses, dXcorr, iArraySize);
+					vpAllMS2Scans.at(ii)->saveScore(dXcorr, vpAllMS2Scans.at(ii)->vpPeptides.at(j),
+							vpAllMS2Scans.at(ii)->vpWeightSumTopPeptides, vpAllMS2Scans.at(ii)->vdWeightSumAllScores,
+							"Comet");
+				}
+				vpAllMS2Scans.at(ii)->vpPeptides.clear();
+			}
+			delete[] pbDuplFragment;
+			delete[] _pdAAforward;
+			delete[] _pdAAreverse;
+			for (int ii = 0; ii < ProNovoConfig::iMaxPercusorCharge + 1; ii++) {
+				for (int j = 0; j < 9; j++) {
+					delete[] _uiBinnedIonMasses[ii][j];
+				}
+				delete[] _uiBinnedIonMasses[ii];
+			}
+			delete _uiBinnedIonMasses;
+		}
+	}
+
+	if (ProNovoConfig::bMvhEnable) {
+#pragma omp parallel
+		{
+			double * _pdAAforward = new double[MAX_PEPTIDE_LEN]();
+			double * _pdAAreverse = new double[MAX_PEPTIDE_LEN]();
+			vector<double>* sequenceIonMasses = new vector<double>();
+#pragma omp for schedule(dynamic)
+			for (int ii = 0; ii < iScanSize; ii++) {
+				size_t j = 0, iPeptideArrayPerScan = vpAllMS2Scans.at(ii)->vpPeptides.size();
+				for (j = 0; j < iPeptideArrayPerScan; j++) {
+					//cout << ii << ", " << j << endl;
+					double dMvh = 0;
+					if (MVH::ScoreSequenceVsSpectrum(vpAllMS2Scans.at(ii)->vpPeptides.at(j), vpAllMS2Scans.at(ii),
+							sequenceIonMasses, _pdAAforward, _pdAAreverse, dMvh)) {
+						vpAllMS2Scans.at(ii)->saveScore(dMvh, vpAllMS2Scans.at(ii)->vpPeptides.at(j),
+								vpAllMS2Scans.at(ii)->vpWeightSumTopPeptides,
+								vpAllMS2Scans.at(ii)->vdWeightSumAllScores, "MVH");
+					}
+				}
+				vpAllMS2Scans.at(ii)->vpPeptides.clear();
+			}
+			delete[] _pdAAforward;
+			delete[] _pdAAreverse;
+			sequenceIonMasses->clear();
+			delete sequenceIonMasses;
+		}
+	}
+
 #pragma omp parallel for schedule(guided)
 	for (i = 0; i < iScanSize; i++) {
-		vpAllMS2Scans[i]->scorePeptides();
+		//vpAllMS2Scans[i]->scorePeptides();
 	}
 
 	// free memory of all peptide objects
@@ -463,7 +570,7 @@ void MS2ScanVector::searchDatabase() {
 			if (assignPeptides2Scans(currentPeptide)) {
 				// save the new peptide to the array
 				vpPeptideArray.push_back(currentPeptide);
-				if(currentPeptide->getPeptideMass()>ProNovoConfig::dMaxPeptideMass){
+				if (currentPeptide->getPeptideMass() > ProNovoConfig::dMaxPeptideMass) {
 					ProNovoConfig::dMaxPeptideMass = currentPeptide->getPeptideMass();
 				}
 			} else {
@@ -485,6 +592,9 @@ void MS2ScanVector::searchDatabase() {
 		if (!vpPeptideArray.empty()) {
 			processPeptideArray(vpPeptideArray);
 		}
+	}
+	if (ProNovoConfig::bMvhEnable) {
+		MVH::destroyLnTable();
 	}
 }
 
@@ -580,7 +690,7 @@ void MS2ScanVector::writeOutput() {
 
 				outputFile << vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->sScoringFunction << "\t";
 				outputFile << (j + 1) << "\t";
-				outputFile << setiosflags(ios::fixed) << setprecision(2)
+				outputFile << setiosflags(ios::fixed) << setprecision(4)
 						<< vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->dScore << "\t";
 				//outputFile<<((vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->dScore-dcurrentMeanWeightSum)/dcurrentDeviationWeightSum)<<"\t";
 

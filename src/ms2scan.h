@@ -16,6 +16,8 @@ struct Query;
 #define ZERO            0.00000001
 #define SMALLINCREMENT  0.00000001 // to solve the incorrect cut off 
 
+#define WeightSum 1
+
 using namespace std;
 
 class ProductIon // for each ion
@@ -130,7 +132,6 @@ class MS2Scan {
 	void preprocessLowMS2();
 	void preprocessHighMS2();
 	void initialPreprocess();
-	void sortPeakList(); // bubble sort the peak list by MZ in ascending order
 	int getMaxValueIndex(const vector<double> & vdData);
 	void normalizeMS2scan();
 	void setIntensityThreshold();
@@ -138,8 +139,6 @@ class MS2Scan {
 	static bool mygreater(double i, double j);
 	void binCalculation();
 	void binCalculation2D(); // replace binCalculation();
-	void saveScore(const double & dScore, const Peptide * currentPeptide, vector<PeptideUnit *> & vpTopPeptides,
-			vector<double> & vdAllScores, string sScoreFunction = "WeightSum");
 	static bool GreaterScore(PeptideUnit * p1, PeptideUnit * p2);
 	void WeightCompare(const string & sPeptide, vector<bool> & vbFragmentZ2);
 	bool searchMZ(const double & dTarget, int & iIndex4Found); // corresponds to binCalculation()
@@ -206,13 +205,15 @@ public:
 	void scorePeptides();
 	void scorePeptidesLowMS2();
 	void scorePeptidesHighMS2();
-
+	void saveScore(const double & dScore, const Peptide * currentPeptide, vector<PeptideUnit *> & vpTopPeptides,
+			vector<double> & vdAllScores, string sScoreFunction = "WeightSum");
 	// scoring functions
 	void scoreWeightSum(Peptide * currentPeptide);
 	void scoreRankSum(Peptide * currentPeptide);
 	//void scoreRankSum_test(Peptide * currentPeptide);
 	void scoreWeightSumHighMS2(Peptide * currentPeptide);
 	void scoreRankSumHighMS2(Peptide * currentPeptide);
+	void sortPeakList(); // bubble sort the peak list by MZ in ascending order
 	// normalize raw scores
 	void postprocess();
 	double CalculateRankSum(double r1, double n1, double n2);
@@ -229,6 +230,15 @@ public:
 	//-----------Comet Begin-------------
 	struct Query * pQuery;
 	//-----------Comet End---------------
+	//-----------Myrimatch Begin-------------
+	bool bSkip;
+	map<double, char> * peakData;
+	vector<int> * intenClassCounts;
+	double mvh;
+	size_t totalPeakBins;
+	double mzLowerBound;
+	double mzUpperBound;
+	//-----------Myrimatch End---------------
 
 };
 

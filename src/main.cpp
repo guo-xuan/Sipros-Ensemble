@@ -98,15 +98,17 @@ void handleScan(const string & sFT2filename, const string & sOutputDirectory, co
 	MS2ScanVector * pMainMS2ScanVector = new MS2ScanVector(sFT2filename, sOutputDirectory, sConfigFilename,
 			bScreenOutput);
 
-	if (bScreenOutput)
+	if (bScreenOutput) {
 		cout << "Reading MS2 scan file " << sFT2filename << endl;
+	}
 
-	if (!pMainMS2ScanVector->loadFT2file())
+	if (!pMainMS2ScanVector->loadFT2file()) {
 		cerr << "Error: Failed to load file: " << sFT2filename << endl;
-	else {
+	} else {
 		// search all MS2 scans and write output to a file
 		pMainMS2ScanVector->startProcessing();
 	}
+
 	delete pMainMS2ScanVector; //free memory of vpAllMS2Scans
 }
 

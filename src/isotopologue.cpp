@@ -235,6 +235,9 @@ bool Isotopologue::setupIsotopologue(const string & sTable, const string & AtomN
 	//dOH2fragment + PROTON_MASS
 	ProNovoConfig::precalcMasses.dCtermOH2Proton = PROTON_MASS + ProNovoConfig::pdAAMassFragment.find("o")->second
 			+ ProNovoConfig::pdAAMassFragment.find("h")->second * 2;
+	//dOH2fragment + PROTON_MASS
+	ProNovoConfig::precalcMasses.dCtermOH2 = ProNovoConfig::pdAAMassFragment.find("o")->second
+			+ ProNovoConfig::pdAAMassFragment.find("h")->second * 2;
 	ProNovoConfig::precalcMasses.dCO = ProNovoConfig::pdAAMassFragment.find("o")->second
 			+ ProNovoConfig::pdAAMassFragment.find("c")->second;
 	ProNovoConfig::precalcMasses.dNH2 = ProNovoConfig::pdAAMassFragment.find("n")->second

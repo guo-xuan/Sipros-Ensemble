@@ -49,7 +49,7 @@ vector<pair<string, string> > ProNovoConfig::vpNeutralLossList;
 bool ProNovoConfig::bSnpFeature = true;
 
 //---------------Comet Begin---------------------
-bool ProNovoConfig::bCometEnable = true;
+bool ProNovoConfig::bCometEnable = false;
 Options ProNovoConfig::options;
 double ProNovoConfig::dInverseBinWidth = 0;    // this is used in BIN() many times so use inverse binWidth to do multiply vs. divide
 double ProNovoConfig::dOneMinusBinOffset = 0;  // this is used in BIN() many times so calculate once
@@ -67,8 +67,19 @@ double ProNovoConfig::dHighResInverseBinWidth = 1.0 /ProNovoConfig::dHighResFrag
 double ProNovoConfig::dLowResInverseBinWidth = 1.0 /ProNovoConfig::dLowResFragmentBinSize;
 double ProNovoConfig::dHighResOneMinusBinOffset = 1.0 - ProNovoConfig::dHighResFragmentBinStartOffset;
 double ProNovoConfig::dLowResOneMinusBinOffset = 1.0 - ProNovoConfig::dLowResFragmentBinStartOffset;
+int ProNovoConfig::iMaxPercusorCharge = 0;
 //---------------Comet End-----------------------
 
+
+//---------------Myrimatch Begin-----------------
+bool ProNovoConfig::bMvhEnable = true;
+double ProNovoConfig::ClassSizeMultiplier = 2;
+int ProNovoConfig::NumIntensityClasses = 3;
+int ProNovoConfig::minIntensityClassCount = int( ( pow( ClassSizeMultiplier, NumIntensityClasses ) - 1 ) / ( ClassSizeMultiplier - 1 ) );
+double ProNovoConfig::ticCutoffPercentage = 0.98;
+int ProNovoConfig::MaxPeakCount = 300;
+int ProNovoConfig::MinMatchedFragments = 5;
+//---------------Myrimatch End-------------------
 
 ProNovoConfig::ProNovoConfig() {
 }

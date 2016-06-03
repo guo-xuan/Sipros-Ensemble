@@ -13,6 +13,7 @@
 #include "proNovoConfig.h"
 #include "proteindatabase.h"
 #include "./Scores/CometSearch.h"
+#include "./Scores/MVH.h"
 
 #define ZERO            0.00000001
 #define PEPTIDE_ARRAY_SIZE  100000

@@ -125,6 +125,11 @@ struct BinnedIonMasses {
 	unsigned int _uiBinnedIonMasses[MAX_FRAGMENT_CHARGE + 1][9][MAX_PEPTIDE_LEN];
 };
 
+struct IonSeriesStruct         // defines which fragment ion series are considered
+{
+	int bPreviousMatch[8];
+};
+
 class CometSearch {
 public:
 	CometSearch();
@@ -145,9 +150,13 @@ public:
 	static void print(struct Query *pScoring);
 
 	static bool ScorePeptides(Peptide * currentPeptide, bool *pbDuplFragment, double* _pdAAforward,
-			double * _pdAAreverse, MS2Scan * mstSpectrum, struct BinnedIonMasses * _uiBinnedIonMasses, double & dXcorr);
+			double * _pdAAreverse, MS2Scan * mstSpectrum, unsigned int *** _uiBinnedIonMasses, double & dXcorr,
+			int test);
 	static double GetFragmentIonMass(int iWhichIonSeries, int i, int ctCharge, double *_pdAAforward,
 			double *_pdAAreverse);
+
+	static bool CalculateSP(double & fScoreSp, double* _pdAAforward, double * _pdAAreverse, MS2Scan * mstSpectrum, int iLenPeptide);
+	static double FindSpScore(Query *pQuery, int bin);
 };
 
 #endif /* SCORES_COMETSEARCH_H_ */
