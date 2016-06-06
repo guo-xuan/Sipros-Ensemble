@@ -446,9 +446,7 @@ void MS2ScanVector::processPeptideArray(vector<Peptide*>& vpPeptideArray) {
 
 	//cout<<"calculating fragments of "<<vpPeptideArray.size()<<"  peptides"<<endl;
 
-#pragma omp parallel for \
-    shared(vpPeptideArray) private(i) \
-    schedule(guided)
+#pragma omp parallel for shared(vpPeptideArray) private(i) schedule(guided)
 	for (i = 0; i < iPeptideArraySize; i++) {
 		vpPeptideArray[i]->preprocessing(vpAllMS2Scans.at(0)->isMS2HighRes, mapResidueMass);
 	}
@@ -541,9 +539,11 @@ void MS2ScanVector::processPeptideArray(vector<Peptide*>& vpPeptideArray) {
 		}
 	}
 
-#pragma omp parallel for schedule(guided)
-	for (i = 0; i < iScanSize; i++) {
-		//vpAllMS2Scans[i]->scorePeptides();
+	if (ProNovoConfig::bSiprosEnable) {
+#pragma omp parallel for schedule(dynamic)
+		for (i = 0; i < iScanSize; i++) {
+			vpAllMS2Scans[i]->scorePeptides();
+		}
 	}
 
 	// free memory of all peptide objects

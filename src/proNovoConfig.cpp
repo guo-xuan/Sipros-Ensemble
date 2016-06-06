@@ -72,7 +72,7 @@ int ProNovoConfig::iMaxPercusorCharge = 0;
 
 
 //---------------Myrimatch Begin-----------------
-bool ProNovoConfig::bMvhEnable = true;
+bool ProNovoConfig::bMvhEnable = false;
 double ProNovoConfig::ClassSizeMultiplier = 2;
 int ProNovoConfig::NumIntensityClasses = 3;
 int ProNovoConfig::minIntensityClassCount = int( ( pow( ClassSizeMultiplier, NumIntensityClasses ) - 1 ) / ( ClassSizeMultiplier - 1 ) );
@@ -80,6 +80,11 @@ double ProNovoConfig::ticCutoffPercentage = 0.98;
 int ProNovoConfig::MaxPeakCount = 300;
 int ProNovoConfig::MinMatchedFragments = 5;
 //---------------Myrimatch End-------------------
+
+//---------------Sipros Score--------------------
+bool ProNovoConfig::bSiprosEnable = true;
+bool ProNovoConfig::bSiprosImprove = true;
+//---------------Sipros Score--------------------
 
 ProNovoConfig::ProNovoConfig() {
 }

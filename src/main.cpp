@@ -71,6 +71,26 @@ void initializeArguments(int argc, char **argv, vector<string> & vsFT2Filenames,
 			cout << "-o output directory. If not specified, it is the same as that of the input scan file," << endl;
 			cout << "-s silence all standard output." << endl;
 			exit(0);
+		} else if (vsArguments[i] == "-1") {
+			ProNovoConfig::bSiprosEnable = true;
+			ProNovoConfig::bSiprosImprove = false;
+			ProNovoConfig::bCometEnable = false;
+			ProNovoConfig::bMvhEnable = false;
+		} else if (vsArguments[i] == "-2") {
+			ProNovoConfig::bSiprosEnable = true;
+			ProNovoConfig::bSiprosImprove = true;
+			ProNovoConfig::bCometEnable = false;
+			ProNovoConfig::bMvhEnable = false;
+		} else if (vsArguments[i] == "-3") {
+			ProNovoConfig::bSiprosEnable = false;
+			ProNovoConfig::bSiprosImprove = false;
+			ProNovoConfig::bCometEnable = true;
+			ProNovoConfig::bMvhEnable = false;
+		} else if (vsArguments[i] == "-4") {
+			ProNovoConfig::bSiprosEnable = false;
+			ProNovoConfig::bSiprosImprove = false;
+			ProNovoConfig::bCometEnable = false;
+			ProNovoConfig::bMvhEnable = true;
 		} else {
 			cerr << "Unknown option " << vsArguments[i] << endl << endl;
 			exit(1);

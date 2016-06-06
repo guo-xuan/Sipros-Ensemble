@@ -281,6 +281,11 @@ public:
 	static int MinMatchedFragments;
 	//---------------Myrimatch End-------------------
 
+	//---------------Sipros Score Begin--------------
+	static bool bSiprosEnable;
+	static bool bSiprosImprove;
+	//---------------Sipros Score End----------------
+
 protected:
 	ProNovoConfig();
 

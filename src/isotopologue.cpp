@@ -501,6 +501,85 @@ bool Isotopologue::computeIsotopicDistribution4(string sSequence, IsotopeDistrib
 
 }
 
+bool trimProbability(vector<vector<double> > & vvdYionMass, vector<vector<double> > & vvdYionProb,
+		vector<vector<double> > & vvdBionMass, vector<vector<double> > & vvdBionProb, double _dProbabilityThreshold) {
+	size_t n;
+	vector<double>::iterator iteMass;
+	vector<double>::iterator iteProbability;
+	for (n = 0; n < vvdYionMass.size(); ++n) {
+		iteMass = vvdYionMass.at(n).begin();
+		iteProbability = vvdYionProb.at(n).begin();
+		for (; iteProbability != vvdYionProb.at(n).end();) {
+			if (*iteProbability < _dProbabilityThreshold) {
+				iteProbability = vvdYionProb.at(n).erase(iteProbability);
+				iteMass = vvdYionMass.at(n).erase(iteMass);
+			} else {
+				++iteProbability;
+				++iteMass;
+			}
+		}
+	}
+
+	for (n = 0; n < vvdBionMass.size(); ++n) {
+		iteMass = vvdBionMass.at(n).begin();
+		iteProbability = vvdBionProb.at(n).begin();
+		for (; iteProbability != vvdBionProb.at(n).end();) {
+			if (*iteProbability < _dProbabilityThreshold) {
+				iteProbability = vvdBionProb.at(n).erase(iteProbability);
+				iteMass = vvdBionMass.at(n).erase(iteMass);
+			} else {
+				++iteProbability;
+				++iteMass;
+			}
+		}
+	}
+	return true;
+}
+
+bool trimProbability(size_t _iTopNum, vector<vector<double> > & vvdYionMass, vector<vector<double> > & vvdYionProb,
+		vector<vector<double> > & vvdBionMass, vector<vector<double> > & vvdBionProb) {
+	size_t n, m, i;
+	double temp;
+	for (n = 0; n < vvdYionProb.size(); ++n) {
+		if (vvdYionProb.at(n).size() > _iTopNum) {
+			for (m = _iTopNum; m < vvdYionProb.at(n).size(); m++) {
+				for (i = 0; i < _iTopNum; i++) {
+					if (vvdYionProb.at(n).at(m) > vvdYionProb.at(n).at(i)) {
+						temp = vvdYionProb.at(n).at(i);
+						vvdYionProb.at(n).at(i) = vvdYionProb.at(n).at(m);
+						vvdYionProb.at(n).at(m) = temp;
+						temp = vvdYionMass.at(n).at(i);
+						vvdYionMass.at(n).at(i) = vvdYionMass.at(n).at(m);
+						vvdYionMass.at(n).at(m) = temp;
+					}
+				}
+			}
+			vvdYionProb.at(n).erase(vvdYionProb.at(n).begin() + _iTopNum, vvdYionProb.at(n).end());
+			vvdYionMass.at(n).erase(vvdYionMass.at(n).begin() + _iTopNum, vvdYionMass.at(n).end());
+		}
+	}
+	for (n = 0; n < vvdBionProb.size(); ++n) {
+		if (vvdBionProb.at(n).size() > _iTopNum) {
+			for (m = _iTopNum; m < vvdBionProb.at(n).size(); m++) {
+				for (i = 0; i < _iTopNum; i++) {
+					if (vvdBionProb.at(n).at(m) > vvdBionProb.at(n).at(i)) {
+						temp = vvdBionProb.at(n).at(i);
+						vvdBionProb.at(n).at(i) = vvdBionProb.at(n).at(m);
+						vvdBionProb.at(n).at(m) = temp;
+						temp = vvdBionMass.at(n).at(i);
+						vvdBionMass.at(n).at(i) = vvdBionMass.at(n).at(m);
+						vvdBionMass.at(n).at(m) = temp;
+					}
+				}
+			}
+			vvdBionProb.at(n).erase(vvdBionProb.at(n).begin() + _iTopNum, vvdBionProb.at(n).end());
+			vvdBionMass.at(n).erase(vvdBionMass.at(n).begin() + _iTopNum, vvdBionMass.at(n).end());
+		}
+	}
+
+	return true;
+}
+
 bool Isotopologue::computeProductIon(const string & sSequence, vector<vector<double> > & vvdYionMass,
 		vector<vector<double> > & vvdYionProb, vector<vector<double> > & vvdBionMass,
 		vector<vector<double> > & vvdBionProb) {
@@ -690,6 +769,10 @@ bool Isotopologue::computeProductIon(const string & sSequence, vector<vector<dou
 		for (m = 0; m < vvdBionMass[n].size(); ++m) {
 			vvdBionMass[n][m] -= dProtonMass;
 		}
+	}
+
+	if (ProNovoConfig::bSiprosImprove) {
+		trimProbability(5, vvdYionMass, vvdYionProb, vvdBionMass, vvdBionProb);
 	}
 
 	return true;
@@ -932,35 +1015,55 @@ IsotopeDistribution Isotopologue::sum(const IsotopeDistribution & distribution0,
 	vector<double>::iterator iteProb = sumDistribution.vProb.begin();
 	vector<double>::iterator iteMass = sumDistribution.vMass.begin();
 	while (iteProb != sumDistribution.vProb.end()) {
-		if ((*iteProb) > ProbabilityCutoff)
+		if ((*iteProb) > ProbabilityCutoff) {
 			break;
+		}
 		iteProb++;
 		iteMass++;
 	}
-	sumDistribution.vProb.erase(sumDistribution.vProb.begin(), iteProb);
-	sumDistribution.vMass.erase(sumDistribution.vMass.begin(), iteMass);
-
-	while (1) {
-		if (sumDistribution.vProb.size() == 0)
-			break;
-		if (sumDistribution.vProb.back() > ProbabilityCutoff)
-			break;
-		sumDistribution.vProb.pop_back();
-		sumDistribution.vMass.pop_back();
+	if (iteProb != sumDistribution.vProb.begin()) {
+		sumDistribution.vProb.erase(sumDistribution.vProb.begin(), iteProb);
+		sumDistribution.vMass.erase(sumDistribution.vMass.begin(), iteMass);
 	}
+
+	iteProb = sumDistribution.vProb.end() - 1;
+	iteMass = sumDistribution.vMass.end() - 1;
+	while (iteProb != sumDistribution.vProb.begin()) {
+		if ((*iteProb) > ProbabilityCutoff) {
+			break;
+		}
+		iteProb--;
+		iteMass--;
+	}
+	if (iteProb != sumDistribution.vProb.end() - 1) {
+		sumDistribution.vProb.erase(iteProb, sumDistribution.vProb.end());
+		sumDistribution.vMass.erase(iteMass, sumDistribution.vMass.end());
+	}
+
+	/*while (1) {
+	 if (sumDistribution.vProb.size() == 0)
+	 break;
+	 if (sumDistribution.vProb.back() > ProbabilityCutoff)
+	 break;
+	 sumDistribution.vProb.pop_back();
+	 sumDistribution.vMass.pop_back();
+	 }*/
 
 	// normalize the probability space to 1
 	double sumProb = 0;
 	iSizeSumDistribution = sumDistribution.vMass.size();
-	for (i = 0; i < iSizeSumDistribution; ++i)
+	for (i = 0; i < iSizeSumDistribution; ++i) {
 		sumProb += sumDistribution.vProb[i];
+	}
 
-	if (sumProb <= 0)
+	if (sumProb <= 0) {
+		cerr << "Error: Sum of distribution is zero" << endl;
 		return sumDistribution;
+	}
 
-	for (i = 0; i < iSizeSumDistribution; ++i)
+	for (i = 0; i < iSizeSumDistribution; ++i) {
 		sumDistribution.vProb[i] = sumDistribution.vProb[i] / sumProb;
-
+	}
 	/*//debug begin
 	 IsotopeDistribution temp = sum2(distribution0, distribution1);
 	 //sort the mass and also the probability in ascending order
