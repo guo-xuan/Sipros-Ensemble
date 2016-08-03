@@ -11,7 +11,7 @@ struct Query;
 
 #define BIN_RES         1000
 #define LOW_BIN_RES     10
-#define TOP_N           5
+//#define TOP_N           5
 #define TOPPICKNUM      20
 #define ZERO            0.00000001
 #define SMALLINCREMENT  0.00000001 // to solve the incorrect cut off 
@@ -104,7 +104,18 @@ public:
 	char cIdentifySuffix;
 	char cOriginalPrefix;
 	char cOriginalSuffix;
+	double dPepMass;
+	int iPepLen;
+	int iEnzInt;
 
+	vector<double> vdScores;
+	static size_t iNumScores;
+	vector<double> vdRank;
+	vector<double> vdFraction;
+
+	bool addXcorr(double dScore);
+	int getNumProtein();
+	bool isDecoy(string & _sDecoyPrefix);
 	void setPeptideUnitInfo(const Peptide * currentPeptide, const double & dScore, string sScoringFunction);
 };
 
@@ -144,8 +155,6 @@ class MS2Scan {
 	bool searchMZ(const double & dTarget, int & iIndex4Found); // corresponds to binCalculation()
 	bool searchMZ2D(const double & dTarget, int & iIndex4Found); // corresponds to binCalculation2D()
 	bool searchMZ2D(const double & dTarget, const double & dErrRange, int & iIndex4Found);
-	//merge same peptide. If no same peptide return false, otherwise, return true
-	bool mergePeptide(vector<PeptideUnit*>& vpTopPeptides, const string & sPeptide, const string & sProteinName);
 	void sortPreprocessedIntensity(); //sort preprocessed Intensity;
 
 	void cleanup();
@@ -197,6 +206,8 @@ public:
 	vector<Peptide *> vpPeptides;      //current set of peptides to be scored
 	bool bSetMS2Flag; // false when preprocess fail on bad data
 
+	//merge same peptide. If no same peptide return false, otherwise, return true
+	bool mergePeptide(vector<PeptideUnit*>& vpTopPeptides, const string & sPeptide, const string & sProteinName);
 	// preprocess this scan, including
 	// (1) remove noise peaks
 	// (2) normalize intensity
@@ -209,9 +220,13 @@ public:
 			vector<double> & vdAllScores, string sScoreFunction = "WeightSum");
 	// scoring functions
 	void scoreWeightSum(Peptide * currentPeptide);
+	double scoreWeightSum(string * currentPeptide, vector<double> * pvdYionMass, vector<double> * pvdBionMass);
 	void scoreRankSum(Peptide * currentPeptide);
 	//void scoreRankSum_test(Peptide * currentPeptide);
 	void scoreWeightSumHighMS2(Peptide * currentPeptide);
+	double scoreWeightSumHighMS2(string * currentPeptide, vector<vector<double> > * vvdYionMass,
+			vector<vector<double> > * vvdYionProb, vector<vector<double> > * vvdBionMass,
+			vector<vector<double> > * vvdBionProb);
 	void scoreRankSumHighMS2(Peptide * currentPeptide);
 	void sortPeakList(); // bubble sort the peak list by MZ in ascending order
 	// normalize raw scores
@@ -235,10 +250,19 @@ public:
 	map<double, char> * peakData;
 	vector<int> * intenClassCounts;
 	double mvh;
-	size_t totalPeakBins;
+	int totalPeakBins;
 	double mzLowerBound;
 	double mzUpperBound;
 	//-----------Myrimatch End---------------
+	//-----------Features--------------------
+	double dSumIntensity;
+	double dMaxIntensity;
+	void sumIntensity();
+	void scoreFeatureCalculation();
+	int iNumPeptideAssigned;
+	int getMaxNumProteinPsm();
+	bool isAnyScoreInTopN(size_t _iIndexPeptide, double _dLogRank);
+	//-----------Features End----------------
 
 };
 

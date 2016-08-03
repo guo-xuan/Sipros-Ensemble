@@ -93,36 +93,41 @@ struct Query {
 
 	~Query() {
 		int i;
-		for (i = 0; i < iSpScoreData; i++) {
-			if (ppfSparseSpScoreData[i] != NULL)
-				delete[] ppfSparseSpScoreData[i];
+		if (ppfSparseSpScoreData != NULL) {
+			for (i = 0; i < iSpScoreData; i++) {
+				if (ppfSparseSpScoreData[i] != NULL)
+					delete[] ppfSparseSpScoreData[i];
+			}
+			delete[] ppfSparseSpScoreData;
+			ppfSparseSpScoreData = NULL;
+			iSpScoreData = 0;
 		}
-		delete[] ppfSparseSpScoreData;
-		ppfSparseSpScoreData = NULL;
 
-		for (i = 0; i < iFastXcorrData; i++) {
-			if (ppfSparseFastXcorrData[i] != NULL)
-				delete[] ppfSparseFastXcorrData[i];
+		if (ppfSparseFastXcorrData != NULL) {
+			for (i = 0; i < iFastXcorrData; i++) {
+				if (ppfSparseFastXcorrData[i] != NULL)
+					delete[] ppfSparseFastXcorrData[i];
+			}
+			delete[] ppfSparseFastXcorrData;
+			ppfSparseFastXcorrData = NULL;
+			iFastXcorrData = 0;
 		}
-		delete[] ppfSparseFastXcorrData;
-		ppfSparseFastXcorrData = NULL;
 
 		if (ProNovoConfig::ionInformation.bUseNeutralLoss
 				&& (ProNovoConfig::ionInformation.iIonVal[ION_SERIES_A]
 						|| ProNovoConfig::ionInformation.iIonVal[ION_SERIES_B]
 						|| ProNovoConfig::ionInformation.iIonVal[ION_SERIES_Y])) {
-			for (i = 0; i < iFastXcorrDataNL; i++) {
-				if (ppfSparseFastXcorrDataNL[i] != NULL)
-					delete[] ppfSparseFastXcorrDataNL[i];
+			if (ppfSparseFastXcorrDataNL != NULL) {
+				for (i = 0; i < iFastXcorrDataNL; i++) {
+					if (ppfSparseFastXcorrDataNL[i] != NULL)
+						delete[] ppfSparseFastXcorrDataNL[i];
+				}
+				delete[] ppfSparseFastXcorrDataNL;
+				ppfSparseFastXcorrDataNL = NULL;
+				iFastXcorrDataNL = 0;
 			}
-			delete[] ppfSparseFastXcorrDataNL;
-			ppfSparseFastXcorrDataNL = NULL;
 		}
 	}
-};
-
-struct BinnedIonMasses {
-	unsigned int _uiBinnedIonMasses[MAX_FRAGMENT_CHARGE + 1][9][MAX_PEPTIDE_LEN];
 };
 
 struct IonSeriesStruct         // defines which fragment ion series are considered
@@ -132,6 +137,13 @@ struct IonSeriesStruct         // defines which fragment ion series are consider
 
 class CometSearch {
 public:
+
+	static int iArraySizePreprocess;
+	static int iArraySizeScore;
+	static int iMaxPercusorCharge;
+	static int iDimesion2;
+	static int iMAX_PEPTIDE_LEN;
+
 	CometSearch();
 	~CometSearch();
 
@@ -149,13 +161,17 @@ public:
 	static void StairStep(struct msdata *pTmpSpData, double dFragmentBinSize);
 	static void print(struct Query *pScoring);
 
-	static bool ScorePeptides(Peptide * currentPeptide, bool *pbDuplFragment, double* _pdAAforward,
+	/*static bool ScorePeptides(Peptide * currentPeptide, bool *pbDuplFragment, double* _pdAAforward,
+			double * _pdAAreverse, MS2Scan * mstSpectrum, unsigned int *** _uiBinnedIonMasses, double & dXcorr,
+			int test);*/
+	static bool ScorePeptides(string * currentPeptide, bool *pbDuplFragment, double* _pdAAforward,
 			double * _pdAAreverse, MS2Scan * mstSpectrum, unsigned int *** _uiBinnedIonMasses, double & dXcorr,
 			int test);
 	static double GetFragmentIonMass(int iWhichIonSeries, int i, int ctCharge, double *_pdAAforward,
 			double *_pdAAreverse);
 
-	static bool CalculateSP(double & fScoreSp, double* _pdAAforward, double * _pdAAreverse, MS2Scan * mstSpectrum, int iLenPeptide);
+	static bool CalculateSP(double & fScoreSp, double* _pdAAforward, double * _pdAAreverse, MS2Scan * mstSpectrum,
+			int iLenPeptide);
 	static double FindSpScore(Query *pQuery, int bin);
 };
 

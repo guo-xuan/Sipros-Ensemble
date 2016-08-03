@@ -5,11 +5,9 @@
 #include "directoryStructure.h"
 #include "proNovoConfig.h"
 #include "ms2scanvector.h"
-#include <gperftools/profiler.h>
+//#include <gperftools/profiler.h>
 
 using namespace std;
-
-void debug();
 
 void searchFT2Files(vector<string> & vsFT2Filenames, const string & sWorkingDirectory, bool bScreenOutput) {
 	int i, iFileNum;
@@ -31,6 +29,24 @@ void searchFT2Files(vector<string> & vsFT2Filenames, const string & sWorkingDire
 		vsFT2Filenames.at(i) = sWorkingDirectory + ProNovoConfig::getSeparator() + vsFT2Filenames.at(i);
 }
 
+void searchConfigureFiles(vector<string> & vsConfigureFilenames, const string & sConfigFileDirectory,
+		bool bScreenOutput) {
+	int i, iFileNum;
+	DirectoryStructure working_dir(sConfigFileDirectory);
+	working_dir.setPattern(".cfg");
+	working_dir.getFiles(vsConfigureFilenames);
+	working_dir.setPattern(".CFG");
+	working_dir.getFiles(vsConfigureFilenames);
+
+	iFileNum = (int) vsConfigureFilenames.size();
+	if (iFileNum == 0) {
+		cerr << "no configure file in the directory" << endl;
+		exit(1);
+	}
+	for (i = 0; i < iFileNum; i++)
+		vsConfigureFilenames.at(i) = sConfigFileDirectory + ProNovoConfig::getSeparator() + vsConfigureFilenames.at(i);
+}
+
 /* 
  * Parse command line arguments
  * Populate vsFT2Filenames
@@ -38,7 +54,8 @@ void searchFT2Files(vector<string> & vsFT2Filenames, const string & sWorkingDire
  */
 
 void initializeArguments(int argc, char **argv, vector<string> & vsFT2Filenames, string & sWorkingDirectory,
-		string & sConfigFilename, string & sSingleWorkingFile, string & sOutputDirectory, bool & bScreenOutput) {
+		string & sConfigFilename, string & sSingleWorkingFile, string & sOutputDirectory, bool & bScreenOutput,
+		vector<string> & vsConfigureFilenames) {
 	int i;
 	// Grab command line arguments
 	vector<string> vsArguments;
@@ -49,6 +66,9 @@ void initializeArguments(int argc, char **argv, vector<string> & vsFT2Filenames,
 	sOutputDirectory = "";
 	bScreenOutput = true;
 
+	string sConfigFileDirectory;
+	sConfigFileDirectory = "";
+
 	while (argc--)
 		vsArguments.push_back(*argv++);
 	for (i = 1; i <= (int) vsArguments.size() - 1; i++)
@@ -56,6 +76,8 @@ void initializeArguments(int argc, char **argv, vector<string> & vsFT2Filenames,
 			sWorkingDirectory = vsArguments[++i];
 		else if (vsArguments[i] == "-c")
 			sConfigFilename = vsArguments[++i];
+		else if (vsArguments[i] == "-g")
+			sConfigFileDirectory = vsArguments[++i];
 		else if (vsArguments[i] == "-f")
 			sSingleWorkingFile = vsArguments[++i];
 		else if (vsArguments[i] == "-o")
@@ -72,25 +94,27 @@ void initializeArguments(int argc, char **argv, vector<string> & vsFT2Filenames,
 			cout << "-s silence all standard output." << endl;
 			exit(0);
 		} else if (vsArguments[i] == "-1") {
-			ProNovoConfig::bSiprosEnable = true;
-			ProNovoConfig::bSiprosImprove = false;
-			ProNovoConfig::bCometEnable = false;
+			ProNovoConfig::bWeightDotSumEnable = true;
+			ProNovoConfig::bLessIsotopicDistribution = false;
+			ProNovoConfig::bXcorrEnable = false;
 			ProNovoConfig::bMvhEnable = false;
 		} else if (vsArguments[i] == "-2") {
-			ProNovoConfig::bSiprosEnable = true;
-			ProNovoConfig::bSiprosImprove = true;
-			ProNovoConfig::bCometEnable = false;
+			ProNovoConfig::bWeightDotSumEnable = true;
+			ProNovoConfig::bLessIsotopicDistribution = true;
+			ProNovoConfig::bXcorrEnable = false;
 			ProNovoConfig::bMvhEnable = false;
 		} else if (vsArguments[i] == "-3") {
-			ProNovoConfig::bSiprosEnable = false;
-			ProNovoConfig::bSiprosImprove = false;
-			ProNovoConfig::bCometEnable = true;
+			ProNovoConfig::bWeightDotSumEnable = false;
+			ProNovoConfig::bLessIsotopicDistribution = false;
+			ProNovoConfig::bXcorrEnable = true;
 			ProNovoConfig::bMvhEnable = false;
 		} else if (vsArguments[i] == "-4") {
-			ProNovoConfig::bSiprosEnable = false;
-			ProNovoConfig::bSiprosImprove = false;
-			ProNovoConfig::bCometEnable = false;
+			ProNovoConfig::bWeightDotSumEnable = false;
+			ProNovoConfig::bLessIsotopicDistribution = false;
+			ProNovoConfig::bXcorrEnable = false;
 			ProNovoConfig::bMvhEnable = true;
+		} else if (vsArguments[i] == "-5") {
+			ProNovoConfig::bMultiScores = false;
 		} else {
 			cerr << "Unknown option " << vsArguments[i] << endl << endl;
 			exit(1);
@@ -111,6 +135,8 @@ void initializeArguments(int argc, char **argv, vector<string> & vsFT2Filenames,
 	if ((sOutputDirectory == "") && (sWorkingDirectory != ""))
 		sOutputDirectory = sWorkingDirectory;
 
+	if (sConfigFileDirectory != "")
+		searchConfigureFiles(vsConfigureFilenames, sConfigFileDirectory, bScreenOutput);
 }
 
 void handleScan(const string & sFT2filename, const string & sOutputDirectory, const string & sConfigFilename,
@@ -136,83 +162,32 @@ int main(int argc, char **argv) {
 	// A list of FT2/MS2 files to be searched
 	double begin = omp_get_wtime();
 	vector<string> vsFT2Filenames;
+	// A list of configure files
+	vector<string> vsConfigureFilenames;
+	vsConfigureFilenames.clear();
 	bool bScreenOutput;
 	string sWorkingDirectory, sConfigFilename, sSingleWorkingFile, sOutputDirectory;
 	initializeArguments(argc, argv, vsFT2Filenames, sWorkingDirectory, sConfigFilename, sSingleWorkingFile,
-			sOutputDirectory, bScreenOutput);
-	// Load config file
-	if (!ProNovoConfig::setFilename(sConfigFilename)) {
-		cerr << "Could not load config file " << sConfigFilename << endl;
-		return 0;
+			sOutputDirectory, bScreenOutput, vsConfigureFilenames);
+	if (vsConfigureFilenames.empty()) {
+		vsConfigureFilenames.push_back(sConfigFilename);
+	}
+	for (size_t j = 0; j < vsConfigureFilenames.size(); j++) {
+		// Load config file
+		if (!ProNovoConfig::setFilename(vsConfigureFilenames.at(j))) {
+			cerr << "Could not load config file " << sConfigFilename << endl;
+			return 0;
+		}
+
+		// Process one FT2 file at a time
+		for (size_t i = 0; i < vsFT2Filenames.size(); i++) {
+			cout << "FT2 name:\t" << vsFT2Filenames.at(i) << "\nCfg:\t" << vsConfigureFilenames.at(j) << endl;
+			handleScan(vsFT2Filenames.at(i), sOutputDirectory, vsConfigureFilenames.at(j), bScreenOutput);
+		}
 	}
 
-	if (0) {
-		ProfilerStart("Sipros5_openmp.prof");
-		debug();
-		ProfilerStop();
-		return 0;
-	}
-
-	// Process one FT2 file at a time
-
-	for (int i = 0; i < (int) vsFT2Filenames.size(); i++) {
-		handleScan(vsFT2Filenames[i], sOutputDirectory, sConfigFilename, bScreenOutput);
-	}
 	double end = omp_get_wtime();
 	cout << endl;
 	cout << "Total time:\t" << double(end - begin) << " Seconds." << endl << endl;
 	return 0;
-}
-
-void debug() {
-	string xxx = "N!CYDDFESSIGTTSQHM~RYR";
-	string zzz = "CHONPS";
-	vector<int> viComposition(6);
-	map<string, vector<int> >::iterator ResidueIter;
-	for (size_t i = 0; i < xxx.length(); i++) {
-		ResidueIter = ProNovoConfig::configIsotopologue.mResidueAtomicComposition.find(xxx.substr(i, 1));
-		if (ResidueIter == ProNovoConfig::configIsotopologue.mResidueAtomicComposition.end()) {
-			cout << "error" << endl;
-		} else {
-			for (size_t j = 0; j < 6; j++) {
-				viComposition.at(j) += ResidueIter->second.at(j);
-			}
-		}
-
-	}
-	ResidueIter = ProNovoConfig::configIsotopologue.mResidueAtomicComposition.find("Nterm");
-	if (ResidueIter == ProNovoConfig::configIsotopologue.mResidueAtomicComposition.end()) {
-		cout << "error" << endl;
-	} else {
-		for (size_t j = 0; j < 6; j++) {
-			viComposition.at(j) += ResidueIter->second.at(j);
-		}
-	}
-	ResidueIter = ProNovoConfig::configIsotopologue.mResidueAtomicComposition.find("Cterm");
-	if (ResidueIter == ProNovoConfig::configIsotopologue.mResidueAtomicComposition.end()) {
-		cout << "error" << endl;
-	} else {
-		for (size_t j = 0; j < 6; j++) {
-			viComposition.at(j) += ResidueIter->second.at(j);
-		}
-	}
-	for (size_t i = 0; i < 6; i++) {
-		cout << zzz.at(i) << viComposition.at(i);
-	}
-	cout << endl;
-	IsotopeDistribution yyy;
-	double begin = omp_get_wtime();
-#pragma omp parallel for schedule(guided)
-	for (int i = 0; i < 1000000; i++) {
-		ProNovoConfig::configIsotopologue.computeIsotopicDistribution2(xxx, yyy);
-	}
-	double end = omp_get_wtime();
-	cout << "1:\t" << double(end - begin) << " Seconds." << endl << endl;
-	begin = omp_get_wtime();
-	for (int i = 0; i < 1000000; i++) {
-		ProNovoConfig::configIsotopologue.computeIsotopicDistribution3(xxx, yyy);
-	}
-	end = omp_get_wtime();
-	cout << "2:\t" << double(end - begin) << " Seconds." << endl << endl;
-	//yyy.print();
 }

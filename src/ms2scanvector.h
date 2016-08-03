@@ -16,7 +16,7 @@
 #include "./Scores/MVH.h"
 
 #define ZERO            0.00000001
-#define PEPTIDE_ARRAY_SIZE  100000
+#define PEPTIDE_ARRAY_SIZE  1000000
 
 using namespace std;
 
@@ -57,6 +57,9 @@ class MS2ScanVector {
 	void setOutputFile(const string & sFT2FilenameInput,
 			const string & sOutputDirectory);
 	void writeOutput();
+	void writeOutputMultiScoresPin();
+	void writeOutputMultiScoresSip();
+	void writeOutputMultiScoresSpectrum2MutiPep();
 	//calculate mean and standard deviation of scores of a ms2 scan
 	void calculateMeanAndDeviation(int inumberScore, double dScoreSum,
 			double dScoreSquareSum, double & dMean, double & dDeviation);
@@ -77,6 +80,8 @@ public:
 	bool loadFT2file();
 	bool ReadFT2File();    //Read FT2 files
 	void startProcessing(); // start functions to process the loaded FT2 file
+
+	size_t iMaxNumProteins;
 };
 
 #endif // MS2SCANVECTOR_H

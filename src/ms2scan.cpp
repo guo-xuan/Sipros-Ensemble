@@ -15,6 +15,21 @@ MS2Scan::MS2Scan() {
 	totalPeakBins = 0;
 	mzLowerBound = 0;
 	mzUpperBound = 0;
+	dSumIntensity = 0;
+	iScanId = 0;
+	bSetMS2Flag = true;
+	dParentMZ = 0;
+	iMinMZ = 0;
+	iParentChargeState = 0;
+	dParentMass = 0;
+	isMS2HighRes = false;
+	bSkip = true;
+	iMaxMZ = 0;
+	dParentNeutralMass = 0;
+	isMS1HighRes = false;
+	bin_res = 0;
+	iNumPeptideAssigned = 0;
+	dMaxIntensity = 0;
 }
 
 MS2Scan::~MS2Scan() {
@@ -22,15 +37,15 @@ MS2Scan::~MS2Scan() {
 	for (i = 0; i < (int) vpWeightSumTopPeptides.size(); i++)
 		delete vpWeightSumTopPeptides.at(i);
 
-	if (pQuery) {
+	if (pQuery!=NULL) {
 		delete pQuery;
 	}
 
-	if(peakData){
+	if (peakData!=NULL) {
 		delete peakData;
 	}
 
-	if(intenClassCounts){
+	if (intenClassCounts!=NULL) {
 		delete intenClassCounts;
 	}
 }
@@ -43,22 +58,26 @@ bool MS2Scan::mergePeptide(vector<PeptideUnit*>& vpTopPeptides, const string & s
 	int i;
 	bool bReVal = false, bNewProtein;
 	size_t iPosition;
-	if (!vpTopPeptides.empty())
-		for (i = 0; i < (int) vpTopPeptides.size(); i++)
+	if (!vpTopPeptides.empty()) {
+		for (i = 0; i < (int) vpTopPeptides.size(); i++) {
 			if (vpTopPeptides.at(i)->sIdentifiedPeptide == sPeptide) {
 				bNewProtein = true; // True: sProteinName doesn't appear in vpTopPeptides.at(i)->sProteinNames
-				if (sProteinName == vpTopPeptides.at(i)->sProteinNames)
+				if (sProteinName == vpTopPeptides.at(i)->sProteinNames) {
 					bNewProtein = false;
-				else {
+				} else {
 					iPosition = vpTopPeptides.at(i)->sProteinNames.find("," + sProteinName);
-					if (iPosition != string::npos)
+					if (iPosition != string::npos) {
 						bNewProtein = false;
+					}
 				}
-				if (bNewProtein)
+				if (bNewProtein) {
 					vpTopPeptides.at(i)->sProteinNames += "," + sProteinName;
+				}
 				bReVal = true;
 				break;
 			}
+		}
+	}
 	return bReVal;
 }
 
@@ -90,8 +109,10 @@ void MS2Scan::cleanup() {
 	vector<double>().swap(vdMaxMzIntensity);
 	vector<double>().swap(vdMzIntensity);
 	vector<double>().swap(vdHighIntensity);
-	vector<double>().swap(vdMZ);
-	vector<double>().swap(vdIntensity);
+	if (!ProNovoConfig::bMultiScores) {
+		vector<double>().swap(vdMZ);
+		vector<double>().swap(vdIntensity);
+	}
 	vector<int>().swap(viCharge);
 	// vdMaxMzIntensity.clear();
 	//   vdMzIntensity.clear();
@@ -179,6 +200,98 @@ void MS2Scan::scoreWeightSum(Peptide* currentPeptide) {
 	}
 	// save score
 	saveScore(dScore, currentPeptide, vpWeightSumTopPeptides, vdWeightSumAllScores);
+}
+
+double MS2Scan::scoreWeightSum(string * currentPeptide, vector<double> * pvdYionMasses,
+		vector<double> * pvdBionMasses) {
+	double dScore = 0;
+	// calculate score
+	vector<bool> vbFragmentZ2; //true: y side gets the +2; false: b ion gets +2, only calculated for +3 peptides
+	int iNumFragments = 0, n, iIndex4MostAbundunt = 0;
+	double dBweight = 0, dYweight = 0, dExpectedMZ, dExYweight = 0, dExBweight = 0;
+	int iExYreward = 0, iExBreward = 0, iCurrentYreward, iCurrentBreward;
+
+	if (iParentChargeState >= 3) {
+		WeightCompare((*currentPeptide), vbFragmentZ2);
+	}
+	iNumFragments = pvdYionMasses->size();
+	for (n = 0; n < iNumFragments; ++n) {
+		dYweight = 0;
+		dBweight = 0;
+		dExpectedMZ = (*pvdYionMasses)[n] + ProNovoConfig::getProtonMass();
+		if (searchMZ2D(dExpectedMZ, iIndex4MostAbundunt)) {
+			dYweight = ProNovoConfig::scoreError(fabs(vdpreprocessedMZ[iIndex4MostAbundunt] - dExpectedMZ))
+					+ vdpreprocessedIntensity[iIndex4MostAbundunt];
+		}
+		dExpectedMZ = (*pvdBionMasses)[iNumFragments - n - 1] + ProNovoConfig::getProtonMass();
+		if (searchMZ2D(dExpectedMZ, iIndex4MostAbundunt)) {
+			dBweight = ProNovoConfig::scoreError(fabs(vdpreprocessedMZ[iIndex4MostAbundunt] - dExpectedMZ))
+					+ vdpreprocessedIntensity[iIndex4MostAbundunt];
+		}
+		if (iParentChargeState >= 3) {
+			if (vbFragmentZ2[n]) {
+				dExpectedMZ = ((*pvdYionMasses)[n] + ProNovoConfig::getProtonMass() * 2) / 2;
+				if (searchMZ2D(dExpectedMZ, iIndex4MostAbundunt)) {
+					dYweight += ProNovoConfig::scoreError(fabs(vdpreprocessedMZ[iIndex4MostAbundunt] - dExpectedMZ))
+							+ vdpreprocessedIntensity[iIndex4MostAbundunt];
+				}
+			} else {
+				dExpectedMZ = ((*pvdBionMasses)[iNumFragments - n - 1] + ProNovoConfig::getProtonMass() * 2) / 2;
+				if (searchMZ2D(dExpectedMZ, iIndex4MostAbundunt)) {
+					dBweight += ProNovoConfig::scoreError(fabs(vdpreprocessedMZ[iIndex4MostAbundunt] - dExpectedMZ))
+							+ vdpreprocessedIntensity[iIndex4MostAbundunt];
+				}
+			}
+		}
+
+		//bouns
+		if (dYweight > ZERO && dBweight > ZERO) {
+			dScore = dScore + (dYweight + dBweight) * 2;
+			if (dExYweight > ZERO) {
+				dScore += dYweight;
+				iCurrentYreward = 3;
+				if (iExYreward < 3) {
+					dScore += dExYweight;
+				}
+			} else {
+				iCurrentYreward = 2;
+			}
+			if (dExBweight > ZERO) {
+				dScore += dBweight;
+				iCurrentBreward = 3;
+				if (iExBreward < 3) {
+					dScore += dExBweight;
+				}
+			} else {
+				iCurrentBreward = 2;
+			}
+		} else {
+			dScore = dScore + (dYweight + dBweight);
+			if (dExYweight > ZERO) {
+				dScore += dYweight;
+				iCurrentYreward = 2;
+				if (iExYreward < 3) {
+					dScore += dExYweight;
+				}
+			} else {
+				iCurrentYreward = 0;
+			}
+			if (dExBweight > ZERO) {
+				dScore += dBweight;
+				iCurrentBreward = 2;
+				if (iExBreward < 3) {
+					dScore += dExBweight;
+				}
+			} else {
+				iCurrentBreward = 0;
+			}
+		}
+		dExYweight = dYweight;
+		dExBweight = dBweight;
+		iExYreward = iCurrentYreward;
+		iExBreward = iCurrentBreward;
+	}
+	return dScore;
 }
 
 /*
@@ -590,9 +703,8 @@ void MS2Scan::saveScore(const double & dScore, const Peptide * currentPeptide, v
 		dsumofSquareWeightSumScore += dScore * dScore;
 	}
 
-	//vdAllScores.push_back(dScore);
-
-	if ((int) vpTopPeptides.size() < TOP_N) {
+	size_t TOP_N = ProNovoConfig::TOP_N;
+	if (vpTopPeptides.size() < TOP_N) {
 		copyPeptide = new PeptideUnit;
 		copyPeptide->setPeptideUnitInfo(currentPeptide, dScore, sScoreFunction);
 		vpTopPeptides.push_back(copyPeptide);
@@ -604,6 +716,7 @@ void MS2Scan::saveScore(const double & dScore, const Peptide * currentPeptide, v
 		vpTopPeptides.at(TOP_N - 1) = copyPeptide;
 		sort(vpTopPeptides.begin(), vpTopPeptides.end(), GreaterScore);
 	}
+
 }
 
 bool MS2Scan::GreaterScore(PeptideUnit * p1, PeptideUnit * p2) {
@@ -708,19 +821,21 @@ void MS2Scan::filterMS2scan() {
 		vipreprocessedCharge = viCharge;
 	}
 	for (i = 0; i < (int) vdIntensity.size(); ++i)
-		if (isMS2HighRes)
+		if (isMS2HighRes) {
 			vdpreprocessedIntensity[i] = vdpreprocessedIntensity[i]
 					/ vdMaxMzIntensity[(int) (vdMZ[i] + SMALLINCREMENT)];
-		else if (vdpreprocessedIntensity[i] >= vdHighIntensity[(int) (vdMZ[i] + SMALLINCREMENT)]) {
+		} else if (vdpreprocessedIntensity[i] >= vdHighIntensity[(int) (vdMZ[i] + SMALLINCREMENT)]) {
 			vdpreprocessedMZ.push_back(vdMZ[i]);
 			vdpreprocessedIntensity[i] = vdpreprocessedIntensity[i]
 					/ vdMaxMzIntensity[(int) (vdMZ[i] + SMALLINCREMENT)];
 			vipreprocessedCharge.push_back(viCharge[i]);
-		} else
+		} else {
 			lowpeak.push_back(i);
+		}
 	if (!isMS2HighRes)
-		for (i = (int) lowpeak.size() - 1; i >= 0; i--)
+		for (i = (int) lowpeak.size() - 1; i >= 0; i--) {
 			vdpreprocessedIntensity.erase(vdpreprocessedIntensity.begin() + lowpeak.at(i));
+		}
 	if (vdpreprocessedMZ.front() <= 0) {
 		cerr << "ERROR: negative MZ value = " << vdpreprocessedMZ.front() << endl;
 		bSetMS2Flag = false;
@@ -766,38 +881,40 @@ void MS2Scan::normalizeMS2scan() {
 	double dMaxInt;
 	// change intensity to relative intensity
 	dMaxInt = vdIntensity[getMaxValueIndex(vdIntensity)];
-	for (i = 0; i < (int) vdIntensity.size(); ++i)
+	for (i = 0; i < (int) vdIntensity.size(); ++i) {
 		vdpreprocessedIntensity.push_back((vdIntensity[i] / dMaxInt) * 100);
+	}
 //    for (i = 0; i < (int)vdIntensity.size(); ++i)
 //	cout<<vdpreprocessedIntensity.at(i)<<endl;
 	vdMzIntensity.clear();
 	vdMzIntensity.resize(5000);
 	fill(vdMzIntensity.begin(), vdMzIntensity.end(), 0.0);
-	for (i = 0; i < (int) vdMZ.size(); ++i)
+	for (i = 0; i < (int) vdMZ.size(); ++i) {
 		// if there are multiple peaks in this M/Z bin, use the intensity of the highest peaks
-		if (vdpreprocessedIntensity[i] > vdMzIntensity[(int) vdMZ[i]]) //purpose of MzIntensity is for quickly getting the maximum
+		if (vdpreprocessedIntensity[i] > vdMzIntensity[(int) vdMZ[i]]) { //purpose of MzIntensity is for quickly getting the maximum
 			vdMzIntensity[(int) vdMZ[i]] = vdpreprocessedIntensity[i];
+		}
+	}
 }
 
 void MS2Scan::initialPreprocess() {
 	vdpreprocessedMZ.clear();
-	;
 	vdpreprocessedIntensity.clear();
 	vipreprocessedCharge.clear();
 
-	if (isMS2HighRes)
+	if (isMS2HighRes) {
 		bin_res = BIN_RES;
-	else
+	} else {
 		bin_res = LOW_BIN_RES;
+	}
 	if ((int) vdMZ.size() == 0 || vdMZ.size() != vdIntensity.size() || vdMZ.size() != viCharge.size()) {
 		cerr << "ERROR: Problem with the input mass spectrum" << endl;
 		bSetMS2Flag = false;
 	} else {
 		bSetMS2Flag = true;
 		sortPeakList();
-		iMaxMZ = (int) min(vdMZ[vdMZ.size() - 1], dParentMZ * iParentChargeState);
-		iMinMZ = (int) vdMZ[0];
-
+		iMaxMZ = (int) min(vdMZ.at(vdMZ.size() - 1), dParentMZ * iParentChargeState);
+		iMinMZ = (int) vdMZ.at(0);
 	}
 }
 
@@ -814,27 +931,31 @@ int MS2Scan::getMaxValueIndex(const std::vector<double>& vdData) {
 }
 
 void MS2Scan::sortPeakList() {
-	int iPeakCount = (int) vdMZ.size();
-	int pass, i;
+	size_t iPeakCount = vdMZ.size();
+	if (iPeakCount < 2) {
+		return;
+	}
+	size_t pass, i;
 	double dCurrentMZ;
 	double dCurrentInt;
 	int iCurrentZ;
-	for (pass = 1; pass < iPeakCount; pass++) {  // count how many times
-												 // This next loop becomes shorter and shorter
+	// count how many times
+	// This next loop becomes shorter and shorter
+	for (pass = 1; pass < iPeakCount; pass++) {
 		for (i = 0; i < iPeakCount - pass; i++) {
-			if (vdMZ[i] > vdMZ[i + 1]) {
+			if (vdMZ.at(i) > vdMZ.at(i + 1)) {
 				// exchange
-				dCurrentMZ = vdMZ[i];
-				dCurrentInt = vdIntensity[i];
-				iCurrentZ = viCharge[i];
+				dCurrentMZ = vdMZ.at(i);
+				dCurrentInt = vdIntensity.at(i);
+				iCurrentZ = viCharge.at(i);
 
-				vdMZ[i] = vdMZ[i + 1];
-				vdIntensity[i] = vdIntensity[i + 1];
-				viCharge[i] = viCharge[i + 1];
+				vdMZ.at(i) = vdMZ.at(i + 1);
+				vdIntensity.at(i) = vdIntensity.at(i + 1);
+				viCharge.at(i) = viCharge.at(i + 1);
 
-				vdMZ[i + 1] = dCurrentMZ;
-				vdIntensity[i + 1] = dCurrentInt;
-				viCharge[i + 1] = iCurrentZ;
+				vdMZ.at(i + 1) = dCurrentMZ;
+				vdIntensity.at(i + 1) = dCurrentInt;
+				viCharge.at(i + 1) = iCurrentZ;
 			}
 		}
 	}
@@ -879,6 +1000,68 @@ double MS2Scan::CalculateRankSum(double dUvalue, double n1, double n2) {
 	return dZscore;
 }
 
+void MS2Scan::sumIntensity() {
+	dSumIntensity = 0;
+	dMaxIntensity = 0;
+	for (size_t i = 0; i < vdIntensity.size(); i++) {
+		dSumIntensity += vdIntensity.at(i);
+		if (dMaxIntensity < vdIntensity.at(i)) {
+			dMaxIntensity = vdIntensity.at(i);
+		}
+	}
+}
+
+bool scoreSort(pair<double, int> _a, pair<double, int> _b) {
+	return _a.first > _b.first;
+}
+
+void MS2Scan::scoreFeatureCalculation() {
+	vector<pair<double, int> > vp;
+	double dMax, dDiff;
+	if (vpWeightSumTopPeptides.size() <= 0) {
+		return;
+	}
+	for (size_t i = 0; i < PeptideUnit::iNumScores; i++) {
+		vp.clear();
+		for (size_t j = 0; j < vpWeightSumTopPeptides.size(); j++) {
+			vp.push_back(make_pair(vpWeightSumTopPeptides.at(j)->vdScores.at(i), j));
+		}
+		sort(vp.begin(), vp.end(), scoreSort);
+		dMax = vp.at(0).first;
+		if (vp.size() == 1) {
+			vpWeightSumTopPeptides.at(0)->vdRank.push_back(log(1));
+			vpWeightSumTopPeptides.at(0)->vdFraction.push_back(1.0);
+		} else {
+			for (size_t j = 0; j < vpWeightSumTopPeptides.size(); j++) {
+				vpWeightSumTopPeptides.at(vp.at(j).second)->vdRank.push_back(log(j + 1));
+				dDiff = vp.at(j).first - vp.at(1).first;
+				vpWeightSumTopPeptides.at(vp.at(j).second)->vdFraction.push_back((dDiff / dMax));
+			}
+		}
+
+	}
+}
+
+int MS2Scan::getMaxNumProteinPsm() {
+	int n = 0, temp = 0;
+	for (size_t j = 0; j < vpWeightSumTopPeptides.size(); j++) {
+		temp = vpWeightSumTopPeptides.at(j)->getNumProtein();
+		if (n < temp) {
+			n = temp;
+		}
+	}
+	return n;
+}
+
+bool MS2Scan::isAnyScoreInTopN(size_t _iIndexPeptide, double _dLogRank) {
+	for (size_t k = 0; k < vpWeightSumTopPeptides.at(_iIndexPeptide)->vdScores.size(); k++) {
+		if (vpWeightSumTopPeptides.at(_iIndexPeptide)->vdRank.at(k) <= _dLogRank) {
+			return true;
+		}
+	}
+	return false;
+}
+
 void MS2Scan::preprocess() {
 	if (isMS2HighRes) {
 		preprocessHighMS2();
@@ -897,11 +1080,11 @@ bool MS2Scan::findProductIon(const vector<double> & vdIonMass, const vector<doub
 	dScoreWeight = 1.0;
 	dAverageMZError = dMassTolerance;
 
-	// search for the most abundant peak
+// search for the most abundant peak
 	if (!searchMZ2D(dMaxIntExpectedMZ, iIndex4SelectedFound)) {
 		return false;
 	}
-	// test whether the iCharge is consistant with viZinput
+// test whether the iCharge is consistant with viZinput
 	if (vipreprocessedCharge[iIndex4SelectedFound] != 0) {
 		if (vipreprocessedCharge[iIndex4SelectedFound] != iCharge) {
 			return false;
@@ -913,7 +1096,7 @@ bool MS2Scan::findProductIon(const vector<double> & vdIonMass, const vector<doub
 	double dMostAbundantObservedIntensity = vdpreprocessedIntensity[iIndex4SelectedFound];
 	double dMostAbundantMZError = dMostAbundantObservedMZ - dMaxIntExpectedMZ;
 
-	// compute expected MZ and intensity for this product ion
+// compute expected MZ and intensity for this product ion
 	int iIsotopicEnvelopeSize = vdIonProb.size();
 	vector<bool> vbObserved(iIsotopicEnvelopeSize, false);
 	vector<double> vdObservedMZ(iIsotopicEnvelopeSize, 0);
@@ -921,14 +1104,14 @@ bool MS2Scan::findProductIon(const vector<double> & vdIonMass, const vector<doub
 	vector<double> vdMZError(iIsotopicEnvelopeSize, dMassTolerance);
 	vector<double> vdExpectedMZ(iIsotopicEnvelopeSize, 0);
 	vector<double> vdExpectedRelativeInt(iIsotopicEnvelopeSize, 0);
-	// a expected ion have to exceed dMinRelativeExpectedInt to be considered
+// a expected ion have to exceed dMinRelativeExpectedInt to be considered
 	int i;
 	for (i = 0; i < iIsotopicEnvelopeSize; ++i) {
 		vdExpectedMZ[i] = vdIonMass[i] / (double) iCharge + dProtonMass;
 		vdExpectedRelativeInt[i] = vdIonProb[i] / vdIonProb[iIndex4MaxInt];
 	}
 
-	// set max int value
+// set max int value
 	vbObserved[iIndex4MaxInt] = true;
 	vdObservedMZ[iIndex4MaxInt] = dMostAbundantObservedMZ;
 	vdMZError[iIndex4MaxInt] = dMostAbundantMZError;
@@ -941,7 +1124,7 @@ bool MS2Scan::findProductIon(const vector<double> & vdIonMass, const vector<doub
 		return true;
 	}
 
-	// search for other less abundant peaks ions 
+// search for other less abundant peaks ions
 	int iIndex4MostAbundunt;
 	double dShiftedExpectedMZ;
 	for (i = 0; i < iIsotopicEnvelopeSize; ++i) {
@@ -957,9 +1140,9 @@ bool MS2Scan::findProductIon(const vector<double> & vdIonMass, const vector<doub
 		}
 	}
 
-	// dScoreWeight is a variant of cross correlation 
-	// between vdObservedRelativeInt and vdExpectedRelativeInt
-	// assume means of both is 0
+// dScoreWeight is a variant of cross correlation
+// between vdObservedRelativeInt and vdExpectedRelativeInt
+// assume means of both is 0
 	double dXY = 0;
 	for (i = 0; i < iIsotopicEnvelopeSize; ++i) {
 		dXY = dXY + vdExpectedRelativeInt[i] * vdObservedRelativeInt[i];
@@ -980,7 +1163,7 @@ bool MS2Scan::findProductIon(const vector<double> & vdIonMass, const vector<doub
 
 	dScoreWeight = dScoreWeight + 1.0;
 
-	// calculate average mass error for this product ion
+// calculate average mass error for this product ion
 	double dTotalRelativeIntensity = 0;
 	double dTotalMZError = 0;
 	for (i = 0; i < (int) vdMZError.size(); ++i) {
@@ -1005,7 +1188,7 @@ bool MS2Scan::findProductIonSIP(const vector<double> & vdIonMass, const vector<d
 	dScoreWeight = 0;
 	dAverageMZError = dMassTolerance;
 
-	// search for the most abundant peak
+// search for the most abundant peak
 	if (!searchMZ2D(dMaxIntExpectedMZ, iIndex4SelectedFound)) {
 		return false;
 	}
@@ -1014,21 +1197,21 @@ bool MS2Scan::findProductIonSIP(const vector<double> & vdIonMass, const vector<d
 	double dMostAbundantObservedIntensity = vdpreprocessedIntensity[iIndex4SelectedFound];
 	double dMostAbundantMZError = dMostAbundantObservedMZ - dMaxIntExpectedMZ;
 
-	// compute expected MZ and intensity for this product ion
+// compute expected MZ and intensity for this product ion
 	vector<bool> vbObserved(vdIonProb.size(), false);
 	vector<double> vdObservedMZ(vdIonProb.size(), 0);
 	vector<double> vdObservedRelativeInt(vdIonProb.size(), 0);
 	vector<double> vdMZError(vdIonProb.size(), dMassTolerance);
 	vector<double> vdExpectedMZ(vdIonProb.size(), 0);
 	vector<double> vdExpectedRelativeInt(vdIonProb.size(), 0);
-	// a expected ion have to exceed dMinRelativeExpectedInt to be considered
+// a expected ion have to exceed dMinRelativeExpectedInt to be considered
 	int i;
 	for (i = 0; i < (int) vdIonProb.size(); ++i) {
 		vdExpectedMZ[i] = vdIonMass[i] / (double) iCharge + dProtonMass;
 		vdExpectedRelativeInt[i] = vdIonProb[i] / vdIonProb[iIndex4MaxInt];
 	}
 
-	// set max int value
+// set max int value
 	vbObserved[iIndex4MaxInt] = true;
 	vdObservedMZ[iIndex4MaxInt] = dMostAbundantObservedMZ;
 	vdMZError[iIndex4MaxInt] = dMostAbundantMZError;
@@ -1041,7 +1224,7 @@ bool MS2Scan::findProductIonSIP(const vector<double> & vdIonMass, const vector<d
 		return true;
 	}
 
-	// search for  ions on the left of the most abundant peak
+// search for  ions on the left of the most abundant peak
 	vector<int> viIndex4Found;
 	double dShiftedExpectedMZ;
 	unsigned int j;
@@ -1070,8 +1253,8 @@ bool MS2Scan::findProductIonSIP(const vector<double> & vdIonMass, const vector<d
 		} else
 			break;
 	}
-	// search for ions on the left of the most abundant peak
-	// identical to the above function except the index
+// search for ions on the left of the most abundant peak
+// identical to the above function except the index
 	for (i = iIndex4MaxInt - 1; i >= 0; --i) {
 		// shift expected MZ by the error of the most abundant ion and search for it
 		dShiftedExpectedMZ = vdExpectedMZ[i] + dMostAbundantMZError;
@@ -1098,8 +1281,8 @@ bool MS2Scan::findProductIonSIP(const vector<double> & vdIonMass, const vector<d
 			break;
 	}
 
-	// calculate score weight for this product ion
-	// this formula is still very ad hoc empirical
+// calculate score weight for this product ion
+// this formula is still very ad hoc empirical
 	dScoreWeight = 0;
 	vector<double> vdTempExpectedRelativeInt = vdExpectedRelativeInt;
 	vdTempExpectedRelativeInt[iIndex4MaxInt] = 0;
@@ -1120,15 +1303,15 @@ bool MS2Scan::findProductIonSIP(const vector<double> & vdIonMass, const vector<d
 		}
 	}
 
-	// test whether the iCharge is consistant with viZinput
-	// if not, lower the dScoreWeight
+// test whether the iCharge is consistant with viZinput
+// if not, lower the dScoreWeight
 	if (vipreprocessedCharge[iMostAbundantPeakIndex] != 0) {
 		if (vipreprocessedCharge[iMostAbundantPeakIndex] != iCharge) {
 			dScoreWeight = dScoreWeight / 2;
 		}
 	}
 
-	// calculate average mass error for this product ion
+// calculate average mass error for this product ion
 	double dTotalRelativeIntensity = 0;
 	double dTotalMZError = 0;
 	for (i = 0; i < (int) vdMZError.size(); ++i) {
@@ -1144,9 +1327,7 @@ bool MS2Scan::findProductIonSIP(const vector<double> & vdIonMass, const vector<d
 }
 
 void MS2Scan::scoreWeightSumHighMS2(Peptide* currentPeptide) {	//it's primaryScorePetide in the previous version
-	/*if (this->iScanId == 28 && currentPeptide->getPeptideSeq() == "[ALTGALIVLIIIR]") {
-	 cout << "check" << endl;
-	 }*/
+
 	double dScore = 0;
 	int iPeptideLength = currentPeptide->getPeptideLength(), i, j, iMostAbundantPeakIndex = 0;
 	int n; // Ion number starting from one
@@ -1154,9 +1335,8 @@ void MS2Scan::scoreWeightSumHighMS2(Peptide* currentPeptide) {	//it's primarySco
 	vector<ProductIon> vFoundIons;
 	double dScoreWeight = 0, dMZError = 1, dMostAbundantObservedMZ = 0, dAverageMZError = 0,
 			dBonus4ComplementaryFragmentObserved = 1.0;
-	//string sPeptide = currentPeptide->getPeptideSeq();
-//    cout<<currentPeptide->vvdYionMass.size()<<endl;
-	for (n = 0; n < (int) currentPeptide->vvdYionMass.size(); ++n)
+
+	for (n = 0; n < (int) currentPeptide->vvdYionMass.size(); ++n) {
 		for (z = 1; z <= iParentChargeState; ++z) {
 			ProductIon currentIon;
 			currentIon.setProductIon('y', n + 1, z);
@@ -1174,8 +1354,9 @@ void MS2Scan::scoreWeightSumHighMS2(Peptide* currentPeptide) {	//it's primarySco
 				}
 			}
 		}
+	}
 
-	for (n = 0; n < (int) currentPeptide->vvdBionMass.size(); ++n)
+	for (n = 0; n < (int) currentPeptide->vvdBionMass.size(); ++n) {
 		for (z = 1; z <= iParentChargeState; ++z) {
 			ProductIon currentIon;
 			currentIon.setProductIon('b', n + 1, z);
@@ -1193,55 +1374,143 @@ void MS2Scan::scoreWeightSumHighMS2(Peptide* currentPeptide) {	//it's primarySco
 				}
 			}
 		}
-
-	for (i = 0; i < (int) vFoundIons.size(); ++i)
+	}
+	for (i = 0; i < (int) vFoundIons.size(); ++i) {
 		vFoundIons[i].setComplementaryFragmentObserved(false);
-
-	for (i = 0; i < (int) vFoundIons.size(); ++i)
-		for (j = i + 1; j < (int) vFoundIons.size(); ++j)
-			if (vFoundIons[i].getIonNumber() + vFoundIons[j].getIonNumber() == iPeptideLength)
+	}
+	for (i = 0; i < (int) vFoundIons.size(); ++i) {
+		for (j = i + 1; j < (int) vFoundIons.size(); ++j) {
+			if (vFoundIons[i].getIonNumber() + vFoundIons[j].getIonNumber() == iPeptideLength) {
 				if ((vFoundIons[i].getIonType() == 'y' && vFoundIons[j].getIonType() == 'b')
 						|| (vFoundIons[i].getIonType() == 'b' && vFoundIons[j].getIonType() == 'y')) {
 					vFoundIons[i].setComplementaryFragmentObserved(true);
 					vFoundIons[j].setComplementaryFragmentObserved(true);
 				}
+			}
+		}
+	}
 	for (i = 0; i < (int) vFoundIons.size(); ++i) {
 		dAverageMZError += vFoundIons[i].getMZError();
 		//cout<<vFoundIons[i].getMZError()<<endl;
 	}
 	dAverageMZError = dAverageMZError / (double) vFoundIons.size();
 
-	//   cout<<vFoundIons.size()<<endl;
-
 	for (i = 0; i < (int) vFoundIons.size(); ++i) {
-		if (vFoundIons[i].getComplementaryFragmentObserved())
+		if (vFoundIons[i].getComplementaryFragmentObserved()) {
 			dBonus4ComplementaryFragmentObserved = 2.0;
-		else
+		} else {
 			dBonus4ComplementaryFragmentObserved = 1.0;
-		if (ProNovoConfig::getSearchType() == "SIP")
+		}
+		if (ProNovoConfig::getSearchType() == "SIP") {
 			dScore += ProNovoConfig::scoreError(fabs(vFoundIons[i].getMZError() - dAverageMZError))
 					* vFoundIons[i].getScoreWeight() * dBonus4ComplementaryFragmentObserved;
-		else
+		} else {
 			// no mass error calibration
 			dScore += ProNovoConfig::scoreError(fabs(vFoundIons[i].getMZError())) * vFoundIons[i].getScoreWeight()
 					* dBonus4ComplementaryFragmentObserved;
-
-		//cout<<dScore<<endl;
+		}
 	}
 
 	saveScore(dScore, currentPeptide, vpWeightSumTopPeptides, vdWeightSumAllScores);
-	/*if (this->iScanId == 28 && currentPeptide->getPeptideSeq() == "[ALTGALIVLIIIR]") {
-	 cout << "check" << endl;
-	 for (size_t i = 0; i < vFoundIons.size(); i++) {
-	 cout << "IonNumber\t" << vFoundIons.at(i).getIonNumber() << endl;
-	 cout << "MostAbundantPeakIndex\t" << vFoundIons.at(i).getMostAbundantPeakIndex() << endl;
-	 cout << "ScoreWeight\t" << vFoundIons.at(i).getScoreWeight() << endl;
-	 cout << "MostAbundantMass\t" << vFoundIons.at(i).getMostAbundantMass() << endl;
-	 cout << "MZError\t" << vFoundIons.at(i).getMZError() << endl;
-	 cout << "MassError\t" << vFoundIons.at(i).getMassError() << endl;
-	 }
-	 exit(EXIT_FAILURE);
-	 }*/
+
+	if (false) {
+		cout << "check" << endl;
+	}
+}
+
+double MS2Scan::scoreWeightSumHighMS2(string * currentPeptide, vector<vector<double> > * vvdYionMass,
+		vector<vector<double> > * vvdYionProb, vector<vector<double> > * vvdBionMass,
+		vector<vector<double> > * vvdBionProb) {
+
+	double dScore = 0;
+	int iPeptideLength = 0;
+	for (int i = 0; i < (int) currentPeptide->length(); ++i) {
+		if (isalpha((*currentPeptide)[i])) {
+			iPeptideLength = iPeptideLength + 1;
+		}
+	}
+	int i, j, iMostAbundantPeakIndex = 0;
+	int n; // Ion number starting from one
+	int z; // charge state
+	vector<ProductIon> vFoundIons;
+	double dScoreWeight = 0, dMZError = 1, dMostAbundantObservedMZ = 0, dAverageMZError = 0,
+			dBonus4ComplementaryFragmentObserved = 1.0;
+
+	for (n = 0; n < (int) vvdYionMass->size(); ++n) {
+		for (z = 1; z <= iParentChargeState; ++z) {
+			ProductIon currentIon;
+			currentIon.setProductIon('y', n + 1, z);
+			if (ProNovoConfig::getSearchType() == "SIP") {
+				if (findProductIonSIP((*vvdYionMass)[n], (*vvdYionProb)[n], z, dScoreWeight, dMZError,
+						dMostAbundantObservedMZ, iMostAbundantPeakIndex)) {
+					currentIon.setObservedInfo(dMZError, dScoreWeight, dMostAbundantObservedMZ, iMostAbundantPeakIndex);
+					vFoundIons.push_back(currentIon);
+				}
+			} else {
+				if (findProductIon((*vvdYionMass)[n], (*vvdYionProb)[n], z, dScoreWeight, dMZError,
+						dMostAbundantObservedMZ, iMostAbundantPeakIndex)) {
+					currentIon.setObservedInfo(dMZError, dScoreWeight, dMostAbundantObservedMZ, iMostAbundantPeakIndex);
+					vFoundIons.push_back(currentIon);
+				}
+			}
+		}
+	}
+
+	for (n = 0; n < (int) vvdBionMass->size(); ++n) {
+		for (z = 1; z <= iParentChargeState; ++z) {
+			ProductIon currentIon;
+			currentIon.setProductIon('b', n + 1, z);
+			if (ProNovoConfig::getSearchType() == "SIP") {
+				if (findProductIonSIP((*vvdBionMass)[n], (*vvdBionProb)[n], z, dScoreWeight, dMZError,
+						dMostAbundantObservedMZ, iMostAbundantPeakIndex)) {
+					currentIon.setObservedInfo(dMZError, dScoreWeight, dMostAbundantObservedMZ, iMostAbundantPeakIndex);
+					vFoundIons.push_back(currentIon);
+				}
+			} else {
+				if (findProductIon((*vvdBionMass)[n], (*vvdBionProb)[n], z, dScoreWeight, dMZError,
+						dMostAbundantObservedMZ, iMostAbundantPeakIndex)) {
+					currentIon.setObservedInfo(dMZError, dScoreWeight, dMostAbundantObservedMZ, iMostAbundantPeakIndex);
+					vFoundIons.push_back(currentIon);
+				}
+			}
+		}
+	}
+
+	for (i = 0; i < (int) vFoundIons.size(); ++i) {
+		vFoundIons[i].setComplementaryFragmentObserved(false);
+	}
+
+	for (i = 0; i < (int) vFoundIons.size(); ++i) {
+		for (j = i + 1; j < (int) vFoundIons.size(); ++j) {
+			if (vFoundIons[i].getIonNumber() + vFoundIons[j].getIonNumber() == iPeptideLength) {
+				if ((vFoundIons[i].getIonType() == 'y' && vFoundIons[j].getIonType() == 'b')
+						|| (vFoundIons[i].getIonType() == 'b' && vFoundIons[j].getIonType() == 'y')) {
+					vFoundIons[i].setComplementaryFragmentObserved(true);
+					vFoundIons[j].setComplementaryFragmentObserved(true);
+				}
+			}
+		}
+	}
+	for (i = 0; i < (int) vFoundIons.size(); ++i) {
+		dAverageMZError += vFoundIons[i].getMZError();
+	}
+	dAverageMZError = dAverageMZError / (double) vFoundIons.size();
+
+	for (i = 0; i < (int) vFoundIons.size(); ++i) {
+		if (vFoundIons[i].getComplementaryFragmentObserved()) {
+			dBonus4ComplementaryFragmentObserved = 2.0;
+		} else {
+			dBonus4ComplementaryFragmentObserved = 1.0;
+		}
+		if (ProNovoConfig::getSearchType() == "SIP") {
+			dScore += ProNovoConfig::scoreError(fabs(vFoundIons[i].getMZError() - dAverageMZError))
+					* vFoundIons[i].getScoreWeight() * dBonus4ComplementaryFragmentObserved;
+		} else {	// no mass error calibration
+			dScore += ProNovoConfig::scoreError(fabs(vFoundIons[i].getMZError())) * vFoundIons[i].getScoreWeight()
+					* dBonus4ComplementaryFragmentObserved;
+		}
+	}
+	return dScore;
 }
 
 bool MS2Scan::binarySearch(const double& dTarget, const vector<double>& vdList, const double& dTolerance,
@@ -1291,6 +1560,7 @@ ProductIon::ProductIon() {
 	dMassError = 0;
 	dScoreWeight = 1.0;
 	bComplementaryFragmentObserved = false;
+	iMostAbundantPeakIndex = 0;
 }
 
 ProductIon::~ProductIon() {
@@ -1318,6 +1588,44 @@ void ProductIon::setComplementaryFragmentObserved(bool bComplementaryFragmentObs
 	bComplementaryFragmentObserved = bComplementaryFragmentObservedInput;
 }
 
+size_t PeptideUnit::iNumScores = 0;
+
+bool PeptideUnit::addXcorr(double dScore) {
+	vdScores.push_back(dScore);
+	return true;
+}
+
+int PeptideUnit::getNumProtein() {
+	int n = 1;
+	for (size_t i = 0; i < sProteinNames.length(); i++) {
+		if (sProteinNames.at(i) == ',') {
+			n++;
+		}
+	}
+	return n;
+}
+
+bool PeptideUnit::isDecoy(string & _sDecoyPrefix) {
+	size_t found = sProteinNames.find(_sDecoyPrefix);
+	size_t iDecoyPrefix = 0, iProteins = 0;
+	if (found != 0) {
+		return false;
+	} else {
+		do {
+			++iDecoyPrefix;
+			found = sProteinNames.find(_sDecoyPrefix, found + 1);
+		} while (found != string::npos);
+		do {
+			++iProteins;
+			found = sProteinNames.find(',', found + 1);
+		} while (found != string::npos);
+		if (iProteins > iDecoyPrefix) {
+			return false;
+		}
+	}
+	return true;
+}
+
 void PeptideUnit::setPeptideUnitInfo(const Peptide* currentPeptide, const double & dScore, string sScoringFunction) {
 	dCalculatedParentMass = currentPeptide->getPeptideMass();
 	sIdentifiedPeptide = currentPeptide->getPeptideSeq();
@@ -1330,4 +1638,9 @@ void PeptideUnit::setPeptideUnitInfo(const Peptide* currentPeptide, const double
 
 	this->dScore = dScore;
 	this->sScoringFunction = sScoringFunction;
+
+	this->vdScores.push_back(dScore);
+	this->dPepMass = currentPeptide->getPeptideMass();
+	this->iPepLen = currentPeptide->getPeptideLength();
+	iEnzInt = currentPeptide->getEnzInt();
 }

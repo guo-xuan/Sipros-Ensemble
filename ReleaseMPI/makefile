@@ -9,6 +9,7 @@ CC := /home/xgo/local/bin/mpiCC
 
 # All of the sources participating in the build are defined here
 -include sources.mk
+-include src/Scores/subdir.mk
 -include src/subdir.mk
 -include subdir.mk
 -include objects.mk
@@ -39,20 +40,20 @@ endif
 # Add inputs and outputs from these tool invocations to the build variables 
 
 # All Target
-all: Sipros5_mpi
+all: Sipros5
 
 # Tool invocations
-Sipros5_mpi: $(OBJS) $(USER_OBJS)
+Sipros5: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
-	@echo 'Invoking: GCC C++ Linker'
-	$(CC) -fopenmp  -o "Sipros5_mpi" $(OBJS) $(USER_OBJS) $(LIBS)
-	-$(RM) $(OBJS)$(C++_DEPS)$(C_DEPS)$(CC_DEPS)$(CPP_DEPS)$(EXECUTABLES)$(CXX_DEPS)$(C_UPPER_DEPS)
+	@echo 'Invoking: mpiCC Linker'
+	$(CC) -fopenmp -L/home/xgo/local/lib -o "Sipros5" $(OBJS) $(USER_OBJS) $(LIBS)
+	$(RM) $(OBJS)$(C++_DEPS)$(C_DEPS)$(CC_DEPS)$(CPP_DEPS)$(EXECUTABLES)$(CXX_DEPS)$(C_UPPER_DEPS) 
 	@echo 'Finished building target: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) $(OBJS)$(C++_DEPS)$(C_DEPS)$(CC_DEPS)$(CPP_DEPS)$(EXECUTABLES)$(CXX_DEPS)$(C_UPPER_DEPS) Sipros5_mpi
+	-$(RM) $(OBJS)$(C++_DEPS)$(C_DEPS)$(CC_DEPS)$(CPP_DEPS)$(EXECUTABLES)$(CXX_DEPS)$(C_UPPER_DEPS) Sipros5
 	-@echo ' '
 
 .PHONY: all clean dependents

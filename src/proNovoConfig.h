@@ -11,17 +11,47 @@
 #include <math.h>
 #include <stdio.h>
 #include "isotopologue.h"
-#include "TableIsotopeDistribution.h"
 #include "directoryStructure.h"
 #include "omp.h"
 
 using namespace std;
 
+//define CLOCKSTART clock_t begin = clock(); cout<<"Currently in file: " << __FILE__ << " Function: "<< __FUNCTION__ << "()" << endl;
+//define CLOCKSTOP clock_t end = clock(); cout << "Function " << __FUNCTION__ << "() finished in " << double(end - begin) / CLOCKS_PER_SEC<< " Seconds." << endl << endl;
 #define CLOCKSTART double begin = omp_get_wtime(); cout<<"Currently in file: " << __FILE__ << " Function: "<< __FUNCTION__ << "()" << endl;
 #define CLOCKSTOP double end = omp_get_wtime(); cout << "Function " << __FUNCTION__ << "() finished in " << double(end - begin) << " Seconds." << endl << endl;
 
+#define CURTIME time_t curr=time(0);cout << "current time is: " << ctime(&curr) <<endl;
+#define CURMEM INT64 mem = checkMemoryUsage();cout<<"Memory used: " << mem <<  " MB."<< endl;
+
+// To keep time information of functions.
+#define MEMORYSTART INT64 mem_start = checkMemoryUsage(); cout<<"Currently in file: " << __FILE__ << " Function: "<< __FUNCTION__ << "()" << endl;
+#define MEMORYSTOP INT64 mem_end = checkMemoryUsage(); cout << "Function " << __FUNCTION__ << "() finished. " << "Memory used: " << mem_end << " - " <<  mem_start << " = "<< mem_end - mem_start << " MB."<< endl;
+
+// Get the memory usage with a Linux kernel.
+inline unsigned int checkMemoryUsage() {
+	// get KB memory into count
+	unsigned int count = 0;
+
+#if defined(__linux__)
+	ifstream f("/proc/self/status"); // read the linux file
+	while (!f.eof()) {
+		string key;
+		f >> key;
+		if (key == "VmData:") {     // size of data
+			f >> count;
+			break;
+		}
+
+	}
+	f.close();
+#endif
+
+	// return MBs memory (size of data)
+	return (count / 1024);
+}
+
 class Isotopologue;
-class TableIsotopeDistribution;
 
 //--------------Comet------------
 #define PROTON_MASS 1.00727646688
@@ -39,7 +69,7 @@ class TableIsotopeDistribution;
 #define FLOAT_ZERO                  1e-6     // 0.000001
 
 #define MAX_FRAGMENT_CHARGE         5
-#define MAX_PEPTIDE_LEN             75       // max # of AA for a peptide
+#define MAX_PEPTIDE_LEN             150       // max # of AA for a peptide
 
 struct Options             // output parameters
 {
@@ -104,8 +134,6 @@ public:
 	 * Sets up sessionwide configuration
 	 * the configurations are loaded in to memory as static variables
 	 */
-
-	static TableIsotopeDistribution* tid;
 
 	static bool setFilename(const string & sConfigFileName);
 
@@ -250,7 +278,7 @@ public:
 	}
 
 	//---------------Comet Begin---------------------
-	static bool bCometEnable;
+	static bool bXcorrEnable;
 	static Options options;
 	static double dInverseBinWidth; // this is used in BIN() many times so use inverse binWidth to do multiply vs. divide
 	static double dOneMinusBinOffset;  // this is used in BIN() many times so calculate once
@@ -259,7 +287,7 @@ public:
 	static PrecalcMasses precalcMasses;
 	static double dMaxMS2ScanMass;
 	static double dMaxPeptideMass;
-	static map<string, double> pdAAMassFragment;
+	static map<char, double> pdAAMassFragment;
 	static double dHighResFragmentBinSize;
 	static double dHighResFragmentBinStartOffset;
 	static double dLowResFragmentBinSize;
@@ -282,9 +310,16 @@ public:
 	//---------------Myrimatch End-------------------
 
 	//---------------Sipros Score Begin--------------
-	static bool bSiprosEnable;
-	static bool bSiprosImprove;
+	static bool bWeightDotSumEnable;
+	static bool bLessIsotopicDistribution;
+	static bool bMultiScores;
+	static string sDecoyPrefix;
+	static size_t TOP_N; // the top n PSM for calculation of other two scores
+	static double Log_TOP_N_Output; // the logarithm value of the top n PSM written in the output
+	static int iRank;
 	//---------------Sipros Score End----------------
+	static string sCleavageAfterResidues;
+	static string sCleavageBeforeResidues;
 
 protected:
 	ProNovoConfig();
@@ -317,8 +352,6 @@ private:
 	static int iMinPeptideLength;
 	static int iMaxPeptideLength;
 
-	static string sCleavageAfterResidues;
-	static string sCleavageBeforeResidues;
 	static int iMaxMissedCleavages;
 	static bool bTestStartRemoval;
 

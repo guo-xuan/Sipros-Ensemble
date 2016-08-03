@@ -1,15 +1,11 @@
-CC := /home/xgo/local/bin/mpiCC
-
 ################################################################################
 # Automatically-generated file. Do not edit!
 ################################################################################
 
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
-../src/TableIsotopeDistribution.cpp \
 ../src/directoryStructure.cpp \
 ../src/isotopologue.cpp \
-../src/main.cpp \
 ../src/mpimain.cpp \
 ../src/ms2scan.cpp \
 ../src/ms2scanvector.cpp \
@@ -20,7 +16,6 @@ CPP_SRCS += \
 ../src/tokenvector.cpp 
 
 OBJS += \
-./src/TableIsotopeDistribution.o \
 ./src/directoryStructure.o \
 ./src/isotopologue.o \
 ./src/mpimain.o \
@@ -33,10 +28,8 @@ OBJS += \
 ./src/tokenvector.o 
 
 CPP_DEPS += \
-./src/TableIsotopeDistribution.d \
 ./src/directoryStructure.d \
 ./src/isotopologue.d \
-./src/main.d \
 ./src/mpimain.d \
 ./src/ms2scan.d \
 ./src/ms2scanvector.d \
@@ -51,7 +44,7 @@ CPP_DEPS += \
 src/%.o: ../src/%.cpp
 	@echo 'Building file: $<'
 	@echo 'Invoking: GCC C++ Compiler'
-	$(CC) -fopenmp -O3 -Wall -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+	/home/xgo/local/bin/mpiCC -fopenmp -O3 -Wall -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 

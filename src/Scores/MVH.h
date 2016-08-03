@@ -45,6 +45,7 @@ public:
 	}
 
 	~lnFactorialTable() {
+		m_table.clear();
 	}
 
 	double operator[](size_t index) {
@@ -52,12 +53,12 @@ public:
 		size_t maxIndex = m_table.size() - 1;
 		if (index > maxIndex) {
 			while (index > maxIndex) {
-				m_table.push_back(m_table[maxIndex] + log((float) m_table.size()));
+				m_table.push_back(m_table.at(maxIndex) + log((float) m_table.size()));
 				++maxIndex;
 			}
 		}
 
-		return m_table[index];
+		return m_table.at(index);
 	}
 
 	void resize(size_t maxIndex) {
@@ -78,14 +79,15 @@ public:
 	static lnFactorialTable * lnTable;
 
 	static bool CalculateSequenceIons(Peptide * currentPeptide, int maxIonCharge, bool useSmartPlusThreeModel,
-			vector<double>* sequenceIonMasses, double* _pdAAforward, double * _pdAAreverse);
+			vector<double>* sequenceIonMasses, vector<double> * _pdAAforward, vector<double> * _pdAAreverse);
 	static bool destroyLnTable();
 	static multimap<double, char>::iterator findNear(map<double, char> * peakData, double mz, double tolerance);
 	static bool initialLnTable(size_t maxPeakBins);
 	static double lnCombin(int n, int k);
-	static bool Preprocess(MS2Scan * Spectrum, multimap<double, double> * IntenSortedPeakPreData, double minObservedMz, double maxObservedMz);
+	static bool Preprocess(MS2Scan * Spectrum, multimap<double, double> * IntenSortedPeakPreData, double minObservedMz,
+			double maxObservedMz);
 	static bool ScoreSequenceVsSpectrum(Peptide * currentPeptide, MS2Scan * Spectrum, vector<double>* sequenceIonMasses,
-			double* _pdAAforward, double * _pdAAreverse, double & dMvh);
+			vector<double> * _pdAAforward, vector<double> * _pdAAreverse, double & dMvh);
 };
 
 #endif /* SCORES_MVH_H_ */

@@ -78,6 +78,7 @@ double IsotopeDistribution::getLowestMass() {
 
 Isotopologue::Isotopologue() :
 		MassPrecision(0.01), ProbabilityCutoff(PROBOBILITYACCURACY) {
+	AtomNumber = 0;
 }
 
 Isotopologue::~Isotopologue() {
@@ -119,6 +120,7 @@ bool Isotopologue::setupIsotopologue(const string & sTable, const string & AtomN
 	}
 
 	// push 6 empty IsotopeDistributions into vAtomIsotopicDistribution
+	vAtomIsotopicDistribution.clear();
 	vAtomIsotopicDistribution.reserve(AtomNumber);
 	for (i = 0; i < (AtomNumber); ++i) {
 		IsotopeDistribution TempDistribution;
@@ -181,51 +183,74 @@ bool Isotopologue::setupIsotopologue(const string & sTable, const string & AtomN
 	}
 
 	//-----Comet Begin--------
-	map<string, double>::iterator iterAtomMonoMass;
+	map<char, double>::iterator iterAtomMonoMass;
+	ProNovoConfig::pdAAMassFragment.clear();
+	char cAtom = 0;
 	double dProb = 0;
 	double dMass = 0;
 	for (i = 0; i < AtomName.size(); ++i) {
 		dProb = 0;
 		for (size_t j = 0; j < vAtomIsotopicDistribution.at(i).vProb.size(); j++) {
-			if (dProb < vAtomIsotopicDistribution[i].vProb.at(j)) {
-				dProb = vAtomIsotopicDistribution[i].vProb.at(j);
-				dMass = vAtomIsotopicDistribution[i].vMass.at(j);
+			if (dProb < vAtomIsotopicDistribution.at(i).vProb.at(j)) {
+				dProb = vAtomIsotopicDistribution.at(i).vProb.at(j);
+				dMass = vAtomIsotopicDistribution.at(i).vMass.at(j);
 			}
 		}
 		string sTemp = AtomName.substr(i, 1);
 		std::transform(sTemp.begin(), sTemp.end(), sTemp.begin(), ::tolower);
-		iterAtomMonoMass = ProNovoConfig::pdAAMassFragment.find(sTemp);
+		cAtom = sTemp.at(0);
+		iterAtomMonoMass = ProNovoConfig::pdAAMassFragment.find(cAtom);
 		if (iterAtomMonoMass == ProNovoConfig::pdAAMassFragment.end()) {
-			ProNovoConfig::pdAAMassFragment[sTemp] = dMass;
+			ProNovoConfig::pdAAMassFragment[cAtom] = dMass;
 		} else {
 			cout << "error: duplicate symbols" << endl;
+			exit(1);
 		}
 	}
-	map<string, IsotopeDistribution>::iterator iterResidueMonoMass;
-	for (iterResidueMonoMass = vResidueIsotopicDistribution.begin();
-			iterResidueMonoMass != vResidueIsotopicDistribution.end(); iterResidueMonoMass++) {
+	map<string, IsotopeDistribution>::iterator iterResidueIsotopicDistribution;
+	map<char, double>::iterator iterResidueMonoMass;
+	char cResidue = 0;
+	for (iterResidueIsotopicDistribution = vResidueIsotopicDistribution.begin();
+			iterResidueIsotopicDistribution != vResidueIsotopicDistribution.end(); iterResidueIsotopicDistribution++) {
 		dProb = 0;
-		for (size_t j = 0; j < iterResidueMonoMass->second.vProb.size(); j++) {
-			if (dProb < iterResidueMonoMass->second.vProb.at(j)) {
-				dProb = iterResidueMonoMass->second.vProb.at(j);
-				dMass = iterResidueMonoMass->second.vMass.at(j);
+		for (size_t j = 0; j < iterResidueIsotopicDistribution->second.vProb.size(); j++) {
+			if (dProb < iterResidueIsotopicDistribution->second.vProb.at(j)) {
+				dProb = iterResidueIsotopicDistribution->second.vProb.at(j);
+				dMass = iterResidueIsotopicDistribution->second.vMass.at(j);
 			}
 		}
-		iterAtomMonoMass = ProNovoConfig::pdAAMassFragment.find(iterResidueMonoMass->first);
-		if (iterAtomMonoMass == ProNovoConfig::pdAAMassFragment.end()) {
-			ProNovoConfig::pdAAMassFragment[iterResidueMonoMass->first] = dMass;
+		if(iterResidueIsotopicDistribution->first.size()>1){
+			continue;
+		}
+		cResidue = iterResidueIsotopicDistribution->first.at(0);
+		iterResidueMonoMass = ProNovoConfig::pdAAMassFragment.find(cResidue);
+		if (iterResidueMonoMass == ProNovoConfig::pdAAMassFragment.end()) {
+			ProNovoConfig::pdAAMassFragment[cResidue] = dMass;
 		} else {
 			cout << "error: duplicate symbols" << endl;
+			exit(1);
 		}
 	}
+	if (ProNovoConfig::pdAAMassFragment.find('h') == ProNovoConfig::pdAAMassFragment.end()) {
+		cout << "Error 70" << endl;
+	}
+	if (ProNovoConfig::pdAAMassFragment.find('c') == ProNovoConfig::pdAAMassFragment.end()) {
+		cout << "Error 71" << endl;
+	}
+	if (ProNovoConfig::pdAAMassFragment.find('o') == ProNovoConfig::pdAAMassFragment.end()) {
+		cout << "Error 72" << endl;
+	}
+	if (ProNovoConfig::pdAAMassFragment.find('n') == ProNovoConfig::pdAAMassFragment.end()) {
+		cout << "Error 73" << endl;
+	}
 	//H2O
-	dMass = ProNovoConfig::pdAAMassFragment.find("h")->second * 2 + ProNovoConfig::pdAAMassFragment.find("o")->second;
+	dMass = ProNovoConfig::pdAAMassFragment.find('h')->second * 2 + ProNovoConfig::pdAAMassFragment.find('o')->second;
 	ProNovoConfig::precalcMasses.iMinus17LowRes = (int) (dMass * ProNovoConfig::dLowResInverseBinWidth
 			+ ProNovoConfig::dLowResOneMinusBinOffset);
 	ProNovoConfig::precalcMasses.iMinus17HighRes = (int) (dMass * ProNovoConfig::dHighResInverseBinWidth
 			+ ProNovoConfig::dHighResOneMinusBinOffset);
 	//NH3
-	dMass = ProNovoConfig::pdAAMassFragment.find("h")->second * 3 + ProNovoConfig::pdAAMassFragment.find("n")->second;
+	dMass = ProNovoConfig::pdAAMassFragment.find('h')->second * 3 + ProNovoConfig::pdAAMassFragment.find('n')->second;
 	ProNovoConfig::precalcMasses.iMinus18LowRes = (int) (dMass * ProNovoConfig::dLowResInverseBinWidth
 			+ ProNovoConfig::dLowResOneMinusBinOffset);
 	ProNovoConfig::precalcMasses.iMinus18HighRes = (int) (dMass * ProNovoConfig::dHighResInverseBinWidth
@@ -233,19 +258,19 @@ bool Isotopologue::setupIsotopologue(const string & sTable, const string & AtomN
 	//PROTON_MASS
 	ProNovoConfig::precalcMasses.dNtermProton = PROTON_MASS;
 	//dOH2fragment + PROTON_MASS
-	ProNovoConfig::precalcMasses.dCtermOH2Proton = PROTON_MASS + ProNovoConfig::pdAAMassFragment.find("o")->second
-			+ ProNovoConfig::pdAAMassFragment.find("h")->second * 2;
+	ProNovoConfig::precalcMasses.dCtermOH2Proton = PROTON_MASS + ProNovoConfig::pdAAMassFragment.find('o')->second
+			+ ProNovoConfig::pdAAMassFragment.find('h')->second * 2;
 	//dOH2fragment + PROTON_MASS
-	ProNovoConfig::precalcMasses.dCtermOH2 = ProNovoConfig::pdAAMassFragment.find("o")->second
-			+ ProNovoConfig::pdAAMassFragment.find("h")->second * 2;
-	ProNovoConfig::precalcMasses.dCO = ProNovoConfig::pdAAMassFragment.find("o")->second
-			+ ProNovoConfig::pdAAMassFragment.find("c")->second;
-	ProNovoConfig::precalcMasses.dNH2 = ProNovoConfig::pdAAMassFragment.find("n")->second
-			+ ProNovoConfig::pdAAMassFragment.find("h")->second * 2;
-	ProNovoConfig::precalcMasses.dNH3 = ProNovoConfig::pdAAMassFragment.find("n")->second
-			+ ProNovoConfig::pdAAMassFragment.find("h")->second * 3;
+	ProNovoConfig::precalcMasses.dCtermOH2 = ProNovoConfig::pdAAMassFragment.find('o')->second
+			+ ProNovoConfig::pdAAMassFragment.find('h')->second * 2;
+	ProNovoConfig::precalcMasses.dCO = ProNovoConfig::pdAAMassFragment.find('o')->second
+			+ ProNovoConfig::pdAAMassFragment.find('c')->second;
+	ProNovoConfig::precalcMasses.dNH2 = ProNovoConfig::pdAAMassFragment.find('n')->second
+			+ ProNovoConfig::pdAAMassFragment.find('h')->second * 2;
+	ProNovoConfig::precalcMasses.dNH3 = ProNovoConfig::pdAAMassFragment.find('n')->second
+			+ ProNovoConfig::pdAAMassFragment.find('h')->second * 3;
 	ProNovoConfig::precalcMasses.dCOminusH2 = ProNovoConfig::precalcMasses.dCO
-			- (ProNovoConfig::pdAAMassFragment.find("h")->second * 2);
+			- (ProNovoConfig::pdAAMassFragment.find('h')->second * 2);
 	//-----Comet End----------
 
 	return true;
@@ -296,7 +321,7 @@ bool Isotopologue::getSingleResidueMostAbundantMasses(vector<string> & vsResidue
 		if (sCurrentResidue.size() == 1) {
 			vsResidues.push_back(sCurrentResidue);
 			vdMostAbundantMasses.push_back(dCurrentMostAbundantMasses);
-//			cout << sCurrentResidue << "  " << dCurrentMostAbundantMasses << endl;
+			// cout << sCurrentResidue << "  " << dCurrentMostAbundantMasses << endl;
 		} else if (sCurrentResidue == "NTerm" || sCurrentResidue == "Nterm") {
 			dTerminusMassN = dCurrentMostAbundantMasses;
 		} else if (sCurrentResidue == "CTerm" || sCurrentResidue == "Cterm") {
@@ -307,25 +332,25 @@ bool Isotopologue::getSingleResidueMostAbundantMasses(vector<string> & vsResidue
 
 	}
 
-	unsigned int i;
+	size_t i;
 
 	// bubble sort the list by mass
-	unsigned int n = vsResidues.size();
-	unsigned int pass;
+	size_t n = vsResidues.size();
+	size_t pass;
 	double dCurrentMass;
 	for (pass = 1; pass < n; pass++) {  // count how many times
 		// This next loop becomes shorter and shorter
 		for (i = 0; i < n - pass; i++) {
-			if (vdMostAbundantMasses[i] > vdMostAbundantMasses[i + 1]) {
+			if (vdMostAbundantMasses.at(i) > vdMostAbundantMasses.at(i + 1)) {
 				// exchange
-				dCurrentMass = vdMostAbundantMasses[i];
-				sCurrentResidue = vsResidues[i];
+				dCurrentMass = vdMostAbundantMasses.at(i);
+				sCurrentResidue = vsResidues.at(i);
 
-				vdMostAbundantMasses[i] = vdMostAbundantMasses[i + 1];
-				vsResidues[i] = vsResidues[i + 1];
+				vdMostAbundantMasses.at(i) = vdMostAbundantMasses.at(i + 1);
+				vsResidues.at(i) = vsResidues.at(i + 1);
 
-				vdMostAbundantMasses[i + 1] = dCurrentMass;
-				vsResidues[i + 1] = sCurrentResidue;
+				vdMostAbundantMasses.at(i + 1) = dCurrentMass;
+				vsResidues.at(i + 1) = sCurrentResidue;
 			}
 		}
 	}
@@ -363,132 +388,6 @@ bool Isotopologue::computeIsotopicDistribution(string sSequence, IsotopeDistribu
 		if (ResidueIter != vResidueIsotopicDistribution.end()) {
 			currentDistribution = ResidueIter->second;
 			sumDistribution = sum(currentDistribution, sumDistribution);
-		} else {
-			cerr << "ERROR: can't find the residue " << currentResidue << endl;
-			return false;
-		}
-	}
-
-	myIsotopeDistribution = sumDistribution;
-
-	return true;
-
-}
-
-bool Isotopologue::computeIsotopicDistribution2(string sSequence, IsotopeDistribution & myIsotopeDistribution) {
-	IsotopeDistribution sumDistribution;
-	IsotopeDistribution currentDistribution;
-	map<string, IsotopeDistribution>::iterator ResidueIter;
-
-	ResidueIter = vResidueIsotopicDistribution.find("Nterm");
-	if (ResidueIter != vResidueIsotopicDistribution.end()) {
-		currentDistribution = ResidueIter->second;
-		sumDistribution = currentDistribution;
-	} else {
-		cerr << "ERROR: can't find the N-terminus" << endl;
-		return false;
-	}
-
-	ResidueIter = vResidueIsotopicDistribution.find("Cterm");
-	if (ResidueIter != vResidueIsotopicDistribution.end()) {
-		currentDistribution = ResidueIter->second;
-		sumDistribution = sum2(currentDistribution, sumDistribution);
-	} else {
-		cerr << "ERROR: can't find the C-terminus" << endl;
-		return false;
-	}
-
-	// add up all residues's isotopic distribution
-	for (unsigned int j = 0; j < sSequence.length(); j++) {
-		string currentResidue = sSequence.substr(j, 1);
-		ResidueIter = vResidueIsotopicDistribution.find(currentResidue);
-		if (ResidueIter != vResidueIsotopicDistribution.end()) {
-			currentDistribution = ResidueIter->second;
-			sumDistribution = sum2(currentDistribution, sumDistribution);
-		} else {
-			cerr << "ERROR: can't find the residue " << currentResidue << endl;
-			return false;
-		}
-	}
-
-	myIsotopeDistribution = sumDistribution;
-
-	return true;
-
-}
-
-bool Isotopologue::computeIsotopicDistribution3(string sSequence, IsotopeDistribution & myIsotopeDistribution) {
-	IsotopeDistribution sumDistribution;
-	IsotopeDistribution currentDistribution;
-	map<string, IsotopeDistribution>::iterator ResidueIter;
-
-	ResidueIter = vResidueIsotopicDistribution.find("Nterm");
-	if (ResidueIter != vResidueIsotopicDistribution.end()) {
-		currentDistribution = ResidueIter->second;
-		sumDistribution = currentDistribution;
-	} else {
-		cerr << "ERROR: can't find the N-terminus" << endl;
-		return false;
-	}
-
-	ResidueIter = vResidueIsotopicDistribution.find("Cterm");
-	if (ResidueIter != vResidueIsotopicDistribution.end()) {
-		currentDistribution = ResidueIter->second;
-		sumDistribution = sum3(currentDistribution, sumDistribution);
-	} else {
-		cerr << "ERROR: can't find the C-terminus" << endl;
-		return false;
-	}
-
-	// add up all residues's isotopic distribution
-	for (unsigned int j = 0; j < sSequence.length(); j++) {
-		string currentResidue = sSequence.substr(j, 1);
-		ResidueIter = vResidueIsotopicDistribution.find(currentResidue);
-		if (ResidueIter != vResidueIsotopicDistribution.end()) {
-			currentDistribution = ResidueIter->second;
-			sumDistribution = sum3(currentDistribution, sumDistribution);
-		} else {
-			cerr << "ERROR: can't find the residue " << currentResidue << endl;
-			return false;
-		}
-	}
-
-	myIsotopeDistribution = sumDistribution;
-
-	return true;
-
-}
-
-bool Isotopologue::computeIsotopicDistribution4(string sSequence, IsotopeDistribution & myIsotopeDistribution) {
-	IsotopeDistribution sumDistribution;
-	IsotopeDistribution currentDistribution;
-	map<string, IsotopeDistribution>::iterator ResidueIter;
-
-	ResidueIter = vResidueIsotopicDistribution.find("Nterm");
-	if (ResidueIter != vResidueIsotopicDistribution.end()) {
-		currentDistribution = ResidueIter->second;
-		sumDistribution = currentDistribution;
-	} else {
-		cerr << "ERROR: can't find the N-terminus" << endl;
-		return false;
-	}
-
-	ResidueIter = vResidueIsotopicDistribution.find("Cterm");
-	if (ResidueIter != vResidueIsotopicDistribution.end()) {
-		currentDistribution = ResidueIter->second;
-		sumDistribution = sum2(currentDistribution, sumDistribution);
-	} else {
-		cerr << "ERROR: can't find the C-terminus" << endl;
-		return false;
-	}
-
-	// add up all residues's isotopic distribution
-	for (unsigned int j = 0; j < sSequence.length(); j++) {
-		string currentResidue = sSequence.substr(j, 1);
-		ResidueIter = vResidueIsotopicDistribution.find(currentResidue);
-		if (ResidueIter != vResidueIsotopicDistribution.end()) {
-			currentDistribution = ResidueIter->second;
-			sumDistribution = sum2(currentDistribution, sumDistribution);
 		} else {
 			cerr << "ERROR: can't find the residue " << currentResidue << endl;
 			return false;
@@ -585,7 +484,7 @@ bool Isotopologue::computeProductIon(const string & sSequence, vector<vector<dou
 		vector<vector<double> > & vvdBionProb) {
 	// get the mass for a proton
 	double dProtonMass = ProNovoConfig::getProtonMass();
-	unsigned int i = 0;
+	size_t i = 0;
 
 //	if(!isalpha(sSequence[0]))
 //	{
@@ -771,7 +670,7 @@ bool Isotopologue::computeProductIon(const string & sSequence, vector<vector<dou
 		}
 	}
 
-	if (ProNovoConfig::bSiprosImprove) {
+	if (ProNovoConfig::bLessIsotopicDistribution) {
 		trimProbability(5, vvdYionMass, vvdYionProb, vvdBionMass, vvdBionProb);
 	}
 
@@ -842,6 +741,9 @@ bool Isotopologue::computeAtomicComposition(string sSequence, vector<int> & myAt
 
 }
 
+/**
+ * old way
+ */
 IsotopeDistribution Isotopologue::sum2(const IsotopeDistribution & distribution0,
 		const IsotopeDistribution & distribution1) {
 
@@ -858,8 +760,8 @@ IsotopeDistribution Isotopologue::sum2(const IsotopeDistribution & distribution0
 	for (i = 0; i < iSizeDistribution0; ++i) {
 		for (j = 0; j < iSizeDistribution1; ++j) {
 			// combine one isotopologue from distribution0 with one isotopologue distribution1
-			currentMass = (distribution0.vMass[i] + distribution1.vMass[j]);
-			currentProb = (distribution0.vProb[i] * distribution1.vProb[j]);
+			currentMass = (distribution0.vMass.at(i) + distribution1.vMass.at(j));
+			currentProb = (distribution0.vProb.at(i) * distribution1.vProb.at(j));
 			if ((currentProb > ProbabilityCutoff)) {
 				iSizeSumDistribution = sumDistribution.vMass.size();
 				// push back the first peak
@@ -870,13 +772,13 @@ IsotopeDistribution Isotopologue::sum2(const IsotopeDistribution & distribution0
 					bIsMerged = false;
 					// check if the combined isotopologue can be merged with the existing isotopologues
 					for (k = 0; k < iSizeSumDistribution; ++k) {
-						if (fabs(currentMass - sumDistribution.vMass[k]) < MassPrecision) {
+						if (fabs(currentMass - sumDistribution.vMass.at(k)) < MassPrecision) {
 							// average Mass
-							sumDistribution.vMass[k] = (currentMass * currentProb
-									+ sumDistribution.vMass[k] * sumDistribution.vProb[k])
-									/ (currentProb + sumDistribution.vProb[k]);
+							sumDistribution.vMass.at(k) = (currentMass * currentProb
+									+ sumDistribution.vMass.at(k) * sumDistribution.vProb.at(k))
+									/ (currentProb + sumDistribution.vProb.at(k));
 							// sum Prob
-							sumDistribution.vProb[k] = currentProb + sumDistribution.vProb[k];
+							sumDistribution.vProb.at(k) = currentProb + sumDistribution.vProb.at(k);
 							bIsMerged = true;
 							break;
 						}
@@ -894,77 +796,13 @@ IsotopeDistribution Isotopologue::sum2(const IsotopeDistribution & distribution0
 	double sumProb = 0;
 	iSizeSumDistribution = sumDistribution.vMass.size();
 	for (i = 0; i < iSizeSumDistribution; ++i)
-		sumProb += sumDistribution.vProb[i];
+		sumProb += sumDistribution.vProb.at(i);
 
 	if (sumProb <= 0)
 		return sumDistribution;
 
 	for (i = 0; i < iSizeSumDistribution; ++i)
-		sumDistribution.vProb[i] = sumDistribution.vProb[i] / sumProb;
-
-	return sumDistribution;
-
-}
-
-IsotopeDistribution Isotopologue::sum3(const IsotopeDistribution & distribution0,
-		const IsotopeDistribution & distribution1) {
-
-	IsotopeDistribution sumDistribution;
-	double currentMass;
-	double currentProb;
-	bool bIsMerged;
-	int iSizeDistribution0 = distribution0.vMass.size();
-	int iSizeDistribution1 = distribution1.vMass.size();
-	int iSizeSumDistribution;
-	int i;
-	int j;
-	int k;
-	for (i = 0; i < iSizeDistribution0; ++i) {
-		for (j = 0; j < iSizeDistribution1; ++j) {
-			// combine one isotopologue from distribution0 with one isotopologue distribution1
-			currentMass = (distribution0.vMass[i] + distribution1.vMass[j]);
-			currentProb = (distribution0.vProb[i] * distribution1.vProb[j]);
-			if ((currentProb > ProbabilityCutoff)) {
-				iSizeSumDistribution = sumDistribution.vMass.size();
-				// push back the first peak
-				if (iSizeSumDistribution == 0) {
-					sumDistribution.vMass.push_back(currentMass);
-					sumDistribution.vProb.push_back(currentProb);
-				} else {
-					bIsMerged = false;
-					// check if the combined isotopologue can be merged with the existing isotopologues
-					for (k = 0; k < iSizeSumDistribution; ++k) {
-						if (fabs(currentMass - sumDistribution.vMass[k]) < MassPrecision) {
-							// average Mass
-							sumDistribution.vMass[k] = (currentMass * currentProb
-									+ sumDistribution.vMass[k] * sumDistribution.vProb[k])
-									/ (currentProb + sumDistribution.vProb[k]);
-							// sum Prob
-							sumDistribution.vProb[k] = currentProb + sumDistribution.vProb[k];
-							bIsMerged = true;
-							break;
-						}
-					}
-					if (!bIsMerged) {
-						sumDistribution.vMass.push_back(currentMass);
-						sumDistribution.vProb.push_back(currentProb);
-					}
-				}
-			}
-		}
-	}
-
-	// normalize the probability space to 1
-	double sumProb = 0;
-	iSizeSumDistribution = sumDistribution.vMass.size();
-	for (i = 0; i < iSizeSumDistribution; ++i)
-		sumProb += sumDistribution.vProb[i];
-
-	if (sumProb <= 0)
-		return sumDistribution;
-
-	for (i = 0; i < iSizeSumDistribution; ++i)
-		sumDistribution.vProb[i] = sumDistribution.vProb[i] / sumProb;
+		sumDistribution.vProb.at(i) = sumDistribution.vProb.at(i) / sumProb;
 
 	return sumDistribution;
 
@@ -998,8 +836,8 @@ IsotopeDistribution Isotopologue::sum(const IsotopeDistribution & distribution0,
 		size_t start = k < (iSizeDistribution1 - 1) ? 0 : k - iSizeDistribution1 + 1; // max(0, k-f_n+1)
 		size_t end = k < (iSizeDistribution0 - 1) ? k : iSizeDistribution0 - 1; // min(g_n - 1, k)
 		for (size_t i = start; i <= end; i++) {
-			double weight = distribution0.vProb[i] * distribution1.vProb[k - i];
-			double mass = distribution0.vMass[i] + distribution1.vMass[k - i];
+			double weight = distribution0.vProb.at(i) * distribution1.vProb.at(k - i);
+			double mass = distribution0.vMass.at(i) + distribution1.vMass.at(k - i);
 			sumweight += weight;
 			summass += weight * mass;
 		}
@@ -1008,8 +846,8 @@ IsotopeDistribution Isotopologue::sum(const IsotopeDistribution & distribution0,
 		sumDistribution.vMass.push_back(currentMass);
 		sumDistribution.vProb.push_back(currentProb);
 	}
-	int iSizeSumDistribution;
-	int i;
+	size_t iSizeSumDistribution;
+	size_t i;
 
 	//prune small probabilities
 	vector<double>::iterator iteProb = sumDistribution.vProb.begin();
@@ -1036,8 +874,8 @@ IsotopeDistribution Isotopologue::sum(const IsotopeDistribution & distribution0,
 		iteMass--;
 	}
 	if (iteProb != sumDistribution.vProb.end() - 1) {
-		sumDistribution.vProb.erase(iteProb, sumDistribution.vProb.end());
-		sumDistribution.vMass.erase(iteMass, sumDistribution.vMass.end());
+		sumDistribution.vProb.erase(iteProb + 1, sumDistribution.vProb.end());
+		sumDistribution.vMass.erase(iteMass + 1, sumDistribution.vMass.end());
 	}
 
 	/*while (1) {
@@ -1053,7 +891,7 @@ IsotopeDistribution Isotopologue::sum(const IsotopeDistribution & distribution0,
 	double sumProb = 0;
 	iSizeSumDistribution = sumDistribution.vMass.size();
 	for (i = 0; i < iSizeSumDistribution; ++i) {
-		sumProb += sumDistribution.vProb[i];
+		sumProb += sumDistribution.vProb.at(i);
 	}
 
 	if (sumProb <= 0) {
@@ -1062,7 +900,7 @@ IsotopeDistribution Isotopologue::sum(const IsotopeDistribution & distribution0,
 	}
 
 	for (i = 0; i < iSizeSumDistribution; ++i) {
-		sumDistribution.vProb[i] = sumDistribution.vProb[i] / sumProb;
+		sumDistribution.vProb.at(i) = sumDistribution.vProb.at(i) / sumProb;
 	}
 	/*//debug begin
 	 IsotopeDistribution temp = sum2(distribution0, distribution1);

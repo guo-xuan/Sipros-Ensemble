@@ -10,15 +10,21 @@ MS2ScanVector::MS2ScanVector(const string & sFT2FilenameInput, const string & sO
 	//mass_w = ProNovoConfig::getParentMassWindows();
 	setOutputFile(sFT2FilenameInput, sOutputDirectory);
 	this->bScreenOutput = bScreenOutput;
-	for (n = 0; n < vsSingleResidueNames.size(); ++n)
+	for (n = 0; n < vsSingleResidueNames.size(); ++n) {
 		mapResidueMass[vsSingleResidueNames[n][0]] = vdSingleResidueMasses[n];
+	}
+	iMaxNumProteins = 0;
 }
 
 MS2ScanVector::~MS2ScanVector() {
-// the destructors will free memory from vpAllMS2Scans
-	vector<MS2Scan *>::iterator it;
-	for (it = vpAllMS2Scans.begin(); it < vpAllMS2Scans.end(); it++)
-		delete *it;
+	// the destructor will free memory from vpAllMS2Scans
+	for (size_t i = 0; i < vpAllMS2Scans.size(); i++) {
+		delete vpAllMS2Scans.at(i);
+	}
+	/*vector<MS2Scan *>::iterator it;
+	 for (it = vpAllMS2Scans.begin(); it < vpAllMS2Scans.end(); it++){
+	 delete *it;
+	 }*/
 	vpAllMS2Scans.clear();
 	vpPrecursorMasses.clear();
 }
@@ -51,7 +57,7 @@ bool MS2ScanVector::ReadFT2File() {
 	bool bReVal, flag_1stScan = true; //flag_1stScan true indicates pMS2Scan is empty
 	string sline;
 	istringstream input;
-	MS2Scan * pMS2Scan;
+	MS2Scan * pMS2Scan = NULL;
 	ifstream ft2_stream(sFT2Filename.c_str());
 	int tmp_charge;
 	double tmp_mz, tmp_intensity;
@@ -66,7 +72,9 @@ bool MS2ScanVector::ReadFT2File() {
 			if (sline == "")
 				continue;
 			if ((sline.at(0) >= '0') && (sline.at(0) <= '9')) {
-				TokenVector words(sline, " \t\n\r");
+				//TokenVector words(sline, " \t\n\r");
+				vector<string> words;
+				TokenVector::Parse(sline, " \r\t\n", words);
 				if (words.size() < 6) {
 					// The judgement of MS scan resolution here will be overwritten,
 					// we still keep the related codes here for future possible usuage
@@ -89,6 +97,7 @@ bool MS2ScanVector::ReadFT2File() {
 				input >> tmp_intensity;
 				input.clear();
 				pMS2Scan->vdIntensity.push_back(tmp_intensity);
+				words.clear();
 			} else if (sline.at(0) == 'S') {
 				if (flag_1stScan)
 					flag_1stScan = false;
@@ -103,20 +112,25 @@ bool MS2ScanVector::ReadFT2File() {
 				}
 				pMS2Scan = new MS2Scan;
 				pMS2Scan->sFT2Filename = sFT2Filename;
-				TokenVector words(sline, " \r\t\n");
+				vector<string> words;
+				TokenVector::Parse(sline, " \r\t\n", words);
+				//TokenVector words(sline, " \r\t\n");
 				input.clear();
-				input.str(words[1]);
+				input.str(words.at(1));
 				input >> pMS2Scan->iScanId;
 				input.clear();
-				input.str(words[3]);
+				input.str(words.at(3));
 				input >> pMS2Scan->dParentMZ;
 				input.clear();
-				pMS2Scan->isMS1HighRes = isMS1HighRes(words[3]);
+				pMS2Scan->isMS1HighRes = isMS1HighRes(words.at(3));
 				// in case no Z Line
 				pMS2Scan->iParentChargeState = 0;
 				pMS2Scan->dParentNeutralMass = 0;
+				words.clear();
 			} else if (sline.at(0) == 'Z') {
-				TokenVector words(sline, " \r\t\n");
+				vector<string> words;
+				TokenVector::Parse(sline, " \r\t\n", words);
+				//TokenVector words(sline, " \r\t\n");
 				input.clear();
 				input.str(words[1]);
 				input >> pMS2Scan->iParentChargeState;
@@ -124,10 +138,14 @@ bool MS2ScanVector::ReadFT2File() {
 				//input.str(words[2]);
 				//input >> pMS2Scan->dParentNeutralMass;
 				//input.clear();
+				words.clear();
 			} else if (sline.at(0) == 'I') {
-				TokenVector words(sline, " \r\t\n");
-				if (words[1] == "ScanType")
-					pMS2Scan->setScanType(words[2] + words[5] + words[6]);
+				vector<string> words;
+				TokenVector::Parse(sline, " \r\t\n", words);
+				//TokenVector words(sline, " \r\t\n");
+				if (words.at(1) == "ScanType")
+					pMS2Scan->setScanType(words.at(2) + words.at(5) + words.at(6));
+				words.clear();
 			}
 		}
 		ft2_stream.clear();
@@ -155,8 +173,9 @@ bool MS2ScanVector::loadFT2file() {
 	bReVal = ReadFT2File();
 	if (bReVal) {
 		sort(vpAllMS2Scans.begin(), vpAllMS2Scans.end(), myless);
-		for (it = vpAllMS2Scans.begin(); it < vpAllMS2Scans.end(); it++)
+		for (it = vpAllMS2Scans.begin(); it < vpAllMS2Scans.end(); it++) {
 			vpPrecursorMasses.push_back((*it)->dParentNeutralMass);
+		}
 	}
 
 	return bReVal;
@@ -206,10 +225,9 @@ void MS2ScanVector::saveScan(MS2Scan * pMS2Scan) { //parentChargeState > 0, save
 					- pMS2newScan->iParentChargeState * ProNovoConfig::getProtonMass();
 			pMS2newScan->dParentMass = (pMS2newScan->dParentMZ) * (pMS2newScan->iParentChargeState);
 			vpAllMS2Scans.push_back(pMS2newScan);
-		} else
-		// if the charge state is not +1, it could be greater than +3,
-		// but current we just try +2 and +3.
-		{
+		} else {
+			// if the charge state is not +1, it could be greater than +3,
+			// but current we just try +2 and +3.
 			for (j = 2; j <= 3; j++) {
 				pMS2newScan = new MS2Scan;
 				*pMS2newScan = *pMS2Scan;
@@ -238,12 +256,14 @@ void MS2ScanVector::saveScan(MS2Scan * pMS2Scan) { //parentChargeState > 0, save
 }
 
 void MS2ScanVector::preProcessAllMS2() {
-	int i, iScanSize;
-	iScanSize = (int) vpAllMS2Scans.size();
-	if (bScreenOutput)
-		cout << "Preprocessing " << vpAllMS2Scans.size() << " scans " << endl;
+	//MEMORYSTART
+	size_t i, iScanSize;
+	iScanSize = vpAllMS2Scans.size();
+	if (bScreenOutput) {
+		cout << "Preprocessing " << vpAllMS2Scans.size() << " scans. " << endl;
+	}
 
-	if (ProNovoConfig::bCometEnable) {
+	if (ProNovoConfig::bXcorrEnable) {
 #pragma omp parallel
 		{
 			//MH: Must be equal to largest possible array
@@ -270,7 +290,7 @@ void MS2ScanVector::preProcessAllMS2() {
 				exit(1);
 			}
 #pragma omp for schedule(dynamic)
-			for (int ii = 0; ii < iScanSize; ii++) {
+			for (size_t ii = 0; ii < iScanSize; ii++) {
 				struct Query * pQuery = new Query();
 				if (!CometSearch::Preprocess(pQuery, vpAllMS2Scans.at(ii), pdTmpRawData, pdTmpFastXcorrData,
 						pdTmpCorrelationData, pdTmpSmoothedSpectrum, pdTmpPeakExtracted)) {
@@ -285,43 +305,73 @@ void MS2ScanVector::preProcessAllMS2() {
 			delete[] pdTmpSmoothedSpectrum;
 			delete[] pdTmpPeakExtracted;
 		}
-	}
+	} //if (ProNovoConfig::bXcorrEnable)
 
+	cout << "Rank " << ProNovoConfig::iRank << ":\tMvh preprocess begin" << endl;
 	if (ProNovoConfig::bMvhEnable) {
+		cout << "Rank " << ProNovoConfig::iRank << ":\tMvh preprocess sorting begin" << endl;
+		{
 #pragma omp for schedule(dynamic)
-		for (int ii = 0; ii < iScanSize; ii++) {
-			vpAllMS2Scans.at(ii)->sortPeakList();
+			for (size_t ii = 0; ii < iScanSize; ii++) {
+				vpAllMS2Scans.at(ii)->sortPeakList();
+			}
 		}
+		cout << "Rank " << ProNovoConfig::iRank << ":\tMvh preprocess sorting end" << endl;
 		double minObservedMz = numeric_limits<double>::max();
 		double maxObservedMz = 0;
-		for (int ii = 0; ii < iScanSize; ii++) {
+		for (size_t ii = 0; ii < iScanSize; ii++) {
 			minObservedMz = min(minObservedMz, vpAllMS2Scans.at(ii)->vdMZ.front());
 			maxObservedMz = max(maxObservedMz, vpAllMS2Scans.at(ii)->vdMZ.back());
 		}
+
 #pragma omp parallel
 		{
 			multimap<double, double> * IntenSortedPeakPreData = new multimap<double, double>();
 #pragma omp for schedule(dynamic)
-			for (int ii = 0; ii < iScanSize; ii++) {
+			for (size_t ii = 0; ii < iScanSize; ii++) {
+				vpAllMS2Scans.at(ii)->peakData = new map<double, char>();
+				vpAllMS2Scans.at(ii)->peakData->clear();
+				vpAllMS2Scans.at(ii)->intenClassCounts = new vector<int>();
+				vpAllMS2Scans.at(ii)->intenClassCounts->clear();
 				MVH::Preprocess(vpAllMS2Scans.at(ii), IntenSortedPeakPreData, minObservedMz, maxObservedMz);
 			}
 			delete IntenSortedPeakPreData;
+			IntenSortedPeakPreData = NULL;
 		}
-		size_t maxPeakBins = 0;
-		for (int ii = 0; ii < iScanSize; ii++) {
+		int maxPeakBins = 0;
+		for (size_t ii = 0; ii < iScanSize; ii++) {
 			if (vpAllMS2Scans.at(ii)->totalPeakBins > maxPeakBins) {
 				maxPeakBins = vpAllMS2Scans.at(ii)->totalPeakBins;
 			}
 		}
-		MVH::initialLnTable(maxPeakBins);
-	}
+		cout << "Rank " << ProNovoConfig::iRank << ":\tMvh preprocess creating table begin" << endl;
+		MVH::initialLnTable(((size_t) maxPeakBins));
+		cout << "Rank " << ProNovoConfig::iRank << ":\tMvh preprocess creating table end" << endl;
+	} // if (ProNovoConfig::bMvhEnable) {
+	cout << "Rank " << ProNovoConfig::iRank << ":\tMvh preprocess end" << endl;
 
-#pragma omp parallel for \
-    schedule(guided)
+	cout << "Rank " << ProNovoConfig::iRank << ":\tScan preprocess begin" << endl;
+#pragma omp parallel for schedule(guided)
 	for (i = 0; i < iScanSize; i++) {
 		vpAllMS2Scans.at(i)->preprocess();
 	}
+	cout << "Rank " << ProNovoConfig::iRank << ":\tScan preprocess end" << endl;
 
+	cout << "Rank " << ProNovoConfig::iRank << ":\tMultiscore preprocess begin" << endl;
+	if (ProNovoConfig::bMultiScores) {
+		for (i = 0; i < iScanSize; i++) {
+			if (vpAllMS2Scans.at(i)->iParentChargeState > ProNovoConfig::iMaxPercusorCharge) {
+				ProNovoConfig::iMaxPercusorCharge = vpAllMS2Scans.at(i)->iParentChargeState;
+			}
+		}
+		ProNovoConfig::TOP_N = 50;
+#pragma omp parallel for schedule(guided)
+		for (i = 0; i < iScanSize; i++) {
+			vpAllMS2Scans.at(i)->sumIntensity();
+		}
+	}
+	cout << "Rank " << ProNovoConfig::iRank << ":\tMultiscore preprocess end" << endl;
+	//MEMORYSTOP
 }
 
 void MS2ScanVector::GetAllRangeFromMass(double dPeptideMass, vector<std::pair<int, int> >& vpPeptideMassRanges)
@@ -424,8 +474,10 @@ bool MS2ScanVector::assignPeptides2Scans(Peptide * currentPeptide) {
 	for (j = 0; j < (int) vpPeptideMassRanges.size(); j++) {
 		pairMS2Range = vpPeptideMassRanges.at(j);
 		if ((pairMS2Range.first > -1) && (pairMS2Range.second > -1)) {
-			for (i = pairMS2Range.first; i <= pairMS2Range.second; i++)
+			for (i = pairMS2Range.first; i <= pairMS2Range.second; i++) {
 				vpAllMS2Scans.at(i)->vpPeptides.push_back(currentPeptide);
+				vpAllMS2Scans.at(i)->iNumPeptideAssigned++;
+			}
 			bGetAssigned = true;
 		}
 	}
@@ -433,137 +485,145 @@ bool MS2ScanVector::assignPeptides2Scans(Peptide * currentPeptide) {
 }
 
 void MS2ScanVector::processPeptideArray(vector<Peptide*>& vpPeptideArray) {
-	int i, iPeptideArraySize, iScanSize;
-	iPeptideArraySize = (int) vpPeptideArray.size();
-	iScanSize = (int) vpAllMS2Scans.size();
-
-//    for (int i=0; i< (int) vpPeptideArray.size(); i++)
-//      cout<<vpPeptideArray.at(i)->getPeptideSeq() <<"\t"
-//	  <<vpPeptideArray.at(i)->getOriginalPeptideSeq()<<"\t"
-//	  <<vpPeptideArray.at(i)->getProteinName()<<"\t"
-//	  <<vpPeptideArray.at(i)->getBeginPosProtein()<<"\t"
-//	  <<vpPeptideArray.at(i)->getPeptideMass()<<endl;
-
-	//cout<<"calculating fragments of "<<vpPeptideArray.size()<<"  peptides"<<endl;
+	size_t i, iPeptideArraySize, iScanSize;
+	iPeptideArraySize = vpPeptideArray.size();
+	iScanSize = vpAllMS2Scans.size();
 
 #pragma omp parallel for shared(vpPeptideArray) private(i) schedule(guided)
 	for (i = 0; i < iPeptideArraySize; i++) {
-		vpPeptideArray[i]->preprocessing(vpAllMS2Scans.at(0)->isMS2HighRes, mapResidueMass);
+		vpPeptideArray.at(i)->preprocessing(vpAllMS2Scans.at(0)->isMS2HighRes, mapResidueMass);
 	}
-	//vpPeptideArray[i]->calculateExpectedFragments(mapResidueMass);
+	/*
 
-	//cout<<"scoring "<<vpPeptideArray.size()<<"  peptides"<<endl;
-	// every MS2 scans scores their matched peptides
-
-	if (ProNovoConfig::bCometEnable) {
-#pragma omp parallel
-		{
-			//MH: Must be equal to largest possible array
-			int iArraySize = (int) ((ProNovoConfig::dMaxPeptideMass + 100) * ProNovoConfig::dHighResInverseBinWidth);
-			bool *pbDuplFragment;
-			double *_pdAAforward;
-			double *_pdAAreverse;
-			unsigned int *** _uiBinnedIonMasses;
-			try {
-				pbDuplFragment = new bool[iArraySize]();
-				_pdAAforward = new double[MAX_PEPTIDE_LEN]();
-				_pdAAreverse = new double[MAX_PEPTIDE_LEN]();
-				_uiBinnedIonMasses = new unsigned int**[ProNovoConfig::iMaxPercusorCharge + 1]();
-				for (int ii = 0; ii < ProNovoConfig::iMaxPercusorCharge + 1; ii++) {
-					_uiBinnedIonMasses[ii] = new unsigned int*[9]();
-					for (int j = 0; j < 9; j++) {
-						_uiBinnedIonMasses[ii][j] = new unsigned int[MAX_PEPTIDE_LEN]();
-					}
-				}
-			} catch (std::bad_alloc& ba) {
-				char szErrorMsg[256];
-				sprintf(szErrorMsg, " Error - new(pd[%d]). bad_alloc: %s.\n", iArraySize, ba.what());
-				sprintf(szErrorMsg + strlen(szErrorMsg),
-						"Comet ran out of memory. Look into \"spectrum_batch_size\"\n");
-				sprintf(szErrorMsg + strlen(szErrorMsg), "parameters to address mitigate memory use.\n");
-				string strErrorMsg(szErrorMsg);
-				logerr(szErrorMsg);
-				exit(1);
-			}
-#pragma omp for schedule(dynamic)
-			for (int ii = 0; ii < iScanSize; ii++) {
-				size_t j = 0, iPeptideArrayPerScan = vpAllMS2Scans.at(ii)->vpPeptides.size();
-				for (j = 0; j < iPeptideArrayPerScan; j++) {
-					double dXcorr = 0;
-					CometSearch::ScorePeptides(vpAllMS2Scans.at(ii)->vpPeptides.at(j), pbDuplFragment, _pdAAforward,
-							_pdAAreverse, vpAllMS2Scans.at(ii), _uiBinnedIonMasses, dXcorr, iArraySize);
-					vpAllMS2Scans.at(ii)->saveScore(dXcorr, vpAllMS2Scans.at(ii)->vpPeptides.at(j),
-							vpAllMS2Scans.at(ii)->vpWeightSumTopPeptides, vpAllMS2Scans.at(ii)->vdWeightSumAllScores,
-							"Comet");
-				}
-				vpAllMS2Scans.at(ii)->vpPeptides.clear();
-			}
-			delete[] pbDuplFragment;
-			delete[] _pdAAforward;
-			delete[] _pdAAreverse;
-			for (int ii = 0; ii < ProNovoConfig::iMaxPercusorCharge + 1; ii++) {
-				for (int j = 0; j < 9; j++) {
-					delete[] _uiBinnedIonMasses[ii][j];
-				}
-				delete[] _uiBinnedIonMasses[ii];
-			}
-			delete _uiBinnedIonMasses;
-		}
-	}
+	 if (ProNovoConfig::bXcorrEnable) {
+	 #pragma omp parallel
+	 {
+	 //MH: Must be equal to largest possible array
+	 int iArraySize = (int) ((ProNovoConfig::dMaxPeptideMass + 100) * ProNovoConfig::dHighResInverseBinWidth);
+	 bool *pbDuplFragment;
+	 double *_pdAAforward;
+	 double *_pdAAreverse;
+	 unsigned int *** _uiBinnedIonMasses;
+	 try {
+	 pbDuplFragment = new bool[iArraySize]();
+	 _pdAAforward = new double[MAX_PEPTIDE_LEN]();
+	 _pdAAreverse = new double[MAX_PEPTIDE_LEN]();
+	 _uiBinnedIonMasses = new unsigned int**[ProNovoConfig::iMaxPercusorCharge + 1]();
+	 for (int ii = 0; ii < ProNovoConfig::iMaxPercusorCharge + 1; ii++) {
+	 _uiBinnedIonMasses[ii] = new unsigned int*[9]();
+	 for (int j = 0; j < 9; j++) {
+	 _uiBinnedIonMasses[ii][j] = new unsigned int[MAX_PEPTIDE_LEN]();
+	 }
+	 }
+	 } catch (std::bad_alloc& ba) {
+	 char szErrorMsg[256];
+	 sprintf(szErrorMsg, " Error - new(pd[%d]). bad_alloc: %s.\n", iArraySize, ba.what());
+	 sprintf(szErrorMsg + strlen(szErrorMsg),
+	 "Comet ran out of memory. Look into \"spectrum_batch_size\"\n");
+	 sprintf(szErrorMsg + strlen(szErrorMsg), "parameters to address mitigate memory use.\n");
+	 string strErrorMsg(szErrorMsg);
+	 logerr(szErrorMsg);
+	 exit(1);
+	 }
+	 #pragma omp for schedule(guided)
+	 for (size_t ii = 0; ii < iScanSize; ii++) {
+	 size_t j = 0, iPeptideArrayPerScan = vpAllMS2Scans.at(ii)->vpPeptides.size();
+	 for (j = 0; j < iPeptideArrayPerScan; j++) {
+	 if (!vpAllMS2Scans.at(ii)->mergePeptide(vpAllMS2Scans.at(ii)->vpWeightSumTopPeptides,
+	 vpAllMS2Scans.at(ii)->vpPeptides.at(j)->getPeptideSeq(),
+	 vpAllMS2Scans.at(ii)->vpPeptides.at(j)->getProteinName())) {
+	 double dXcorr = 0;
+	 CometSearch::ScorePeptides(vpAllMS2Scans.at(ii)->vpPeptides.at(j), pbDuplFragment, _pdAAforward,
+	 _pdAAreverse, vpAllMS2Scans.at(ii), _uiBinnedIonMasses, dXcorr, iArraySize);
+	 vpAllMS2Scans.at(ii)->saveScore(dXcorr, vpAllMS2Scans.at(ii)->vpPeptides.at(j),
+	 vpAllMS2Scans.at(ii)->vpWeightSumTopPeptides,
+	 vpAllMS2Scans.at(ii)->vdWeightSumAllScores, "Comet");
+	 }
+	 }
+	 vpAllMS2Scans.at(ii)->vpPeptides.clear();
+	 }
+	 delete[] pbDuplFragment;
+	 delete[] _pdAAforward;
+	 delete[] _pdAAreverse;
+	 for (int ii = 0; ii < ProNovoConfig::iMaxPercusorCharge + 1; ii++) {
+	 for (int j = 0; j < 9; j++) {
+	 delete[] _uiBinnedIonMasses[ii][j];
+	 }
+	 delete[] _uiBinnedIonMasses[ii];
+	 }
+	 delete[] _uiBinnedIonMasses;
+	 }
+	 } // if (ProNovoConfig::bXcorrEnable) {
+	 */
 
 	if (ProNovoConfig::bMvhEnable) {
 #pragma omp parallel
 		{
-			double * _pdAAforward = new double[MAX_PEPTIDE_LEN]();
-			double * _pdAAreverse = new double[MAX_PEPTIDE_LEN]();
-			vector<double>* sequenceIonMasses = new vector<double>();
-#pragma omp for schedule(dynamic)
-			for (int ii = 0; ii < iScanSize; ii++) {
+			//double * _pdAAforward = new double[MAX_PEPTIDE_LEN]();
+			//double * _pdAAreverse = new double[MAX_PEPTIDE_LEN]();
+			vector<double> * _pdAAforward = new vector<double>();
+			vector<double> * _pdAAreverse = new vector<double>();
+			vector<double> * sequenceIonMasses = new vector<double>();
+#pragma omp for schedule(guided)
+			for (size_t ii = 0; ii < iScanSize; ii++) {
+				if (vpAllMS2Scans.at(ii)->bSkip) {
+					vpAllMS2Scans.at(ii)->vpPeptides.clear();
+					continue;
+				}
 				size_t j = 0, iPeptideArrayPerScan = vpAllMS2Scans.at(ii)->vpPeptides.size();
 				for (j = 0; j < iPeptideArrayPerScan; j++) {
-					//cout << ii << ", " << j << endl;
 					double dMvh = 0;
-					if (MVH::ScoreSequenceVsSpectrum(vpAllMS2Scans.at(ii)->vpPeptides.at(j), vpAllMS2Scans.at(ii),
-							sequenceIonMasses, _pdAAforward, _pdAAreverse, dMvh)) {
-						vpAllMS2Scans.at(ii)->saveScore(dMvh, vpAllMS2Scans.at(ii)->vpPeptides.at(j),
-								vpAllMS2Scans.at(ii)->vpWeightSumTopPeptides,
-								vpAllMS2Scans.at(ii)->vdWeightSumAllScores, "MVH");
+					if (!vpAllMS2Scans.at(ii)->mergePeptide(vpAllMS2Scans.at(ii)->vpWeightSumTopPeptides,
+							vpAllMS2Scans.at(ii)->vpPeptides.at(j)->getPeptideSeq(),
+							vpAllMS2Scans.at(ii)->vpPeptides.at(j)->getProteinName())) {
+						if (MVH::ScoreSequenceVsSpectrum(vpAllMS2Scans.at(ii)->vpPeptides.at(j), vpAllMS2Scans.at(ii),
+								sequenceIonMasses, _pdAAforward, _pdAAreverse, dMvh)) {
+							vpAllMS2Scans.at(ii)->saveScore(dMvh, vpAllMS2Scans.at(ii)->vpPeptides.at(j),
+									vpAllMS2Scans.at(ii)->vpWeightSumTopPeptides,
+									vpAllMS2Scans.at(ii)->vdWeightSumAllScores, "MVH");
+						}
 					}
 				}
 				vpAllMS2Scans.at(ii)->vpPeptides.clear();
 			}
-			delete[] _pdAAforward;
-			delete[] _pdAAreverse;
+			_pdAAforward->clear();
+			delete _pdAAforward;
+			_pdAAforward = NULL;
+			_pdAAreverse->clear();
+			delete _pdAAreverse;
+			_pdAAreverse = NULL;
 			sequenceIonMasses->clear();
 			delete sequenceIonMasses;
+			sequenceIonMasses = NULL;
 		}
-	}
+	} // if (ProNovoConfig::bMvhEnable) {
 
-	if (ProNovoConfig::bSiprosEnable) {
-#pragma omp parallel for schedule(dynamic)
+	if (ProNovoConfig::bWeightDotSumEnable) {
+#pragma omp parallel for schedule(guided)
 		for (i = 0; i < iScanSize; i++) {
 			vpAllMS2Scans[i]->scorePeptides();
 		}
 	}
 
 	// free memory of all peptide objects
-	for (i = 0; i < (int) vpPeptideArray.size(); i++) {
-		delete vpPeptideArray[i];
+	for (i = 0; i < vpPeptideArray.size(); i++) {
+		delete vpPeptideArray.at(i);
 	}
 
 	// empty peptide array
 	vpPeptideArray.clear();
-
 }
 
 void MS2ScanVector::searchDatabase() {
+	//MEMORYSTART
 	ProteinDatabase myProteinDatabase(bScreenOutput);
 	vector<Peptide *> vpPeptideArray;
-	Peptide * currentPeptide;
+	Peptide * currentPeptide = NULL;
 	myProteinDatabase.loadDatabase();
 
+	cout << "Rank " << ProNovoConfig::iRank << ":\tSearch database begin" << endl;
 	if (myProteinDatabase.getFirstProtein()) {
-		currentPeptide = new Peptide;
+		currentPeptide = new Peptide();
 		// get one peptide from the database at a time, until there is no more peptide
 		while (myProteinDatabase.getNextPeptide(currentPeptide)) {
 			// save the new peptide to the array
@@ -575,31 +635,42 @@ void MS2ScanVector::searchDatabase() {
 				}
 			} else {
 				delete currentPeptide;
+				currentPeptide = NULL;
 			}
 			// create a new peptide for the next iteration
 			currentPeptide = new Peptide;
 			// when the vpPeptideArray is full
 			if (vpPeptideArray.size() >= PEPTIDE_ARRAY_SIZE) {
+				//cout << "Protein #" << myProteinDatabase.iProteinId << "." << endl;
 				processPeptideArray(vpPeptideArray);
 			}
 		}
-		// the last peptide object is an empty object and need to be deleted
-		delete currentPeptide;
+
 		// there are still unprocessed peptides in the vpPeptideArray
 		// need to process them in the same manner
 		// the following code is the same as inside if(vpPeptideArray.size() >= PEPTIDE_ARRAY_SIZE )
 		// cout<<vpPeptideArray.size()<<endl;
 		if (!vpPeptideArray.empty()) {
+			//cout << "Protein #" << myProteinDatabase.iProteinId << "." << endl;
 			processPeptideArray(vpPeptideArray);
 		}
 	}
+	// the last peptide object is an empty object and need to be deleted
+	if (currentPeptide != NULL) {
+		delete currentPeptide;
+	}
+	cout << "Rank " << ProNovoConfig::iRank << ":\tSearch database end" << endl;
+	cout << "Rank " << ProNovoConfig::iRank << ":\tdestroy mvh table begin" << endl;
 	if (ProNovoConfig::bMvhEnable) {
 		MVH::destroyLnTable();
 	}
+	cout << "Rank " << ProNovoConfig::iRank << ":\tdestroy mvh table end" << endl;
+	//MEMORYSTOP
 }
 
 void MS2ScanVector::startProcessing() {
-	// Preprocessing all MS2 scans by mult-threading
+
+	// Preprocessing all MS2 scans by multi-threading
 	preProcessAllMS2();
 
 	// Search all MS2 scans against the database by mult-threading
@@ -609,14 +680,180 @@ void MS2ScanVector::startProcessing() {
 	postProcessAllMS2();
 
 	// write results to a SIP file
-	writeOutput();
-
+	if (ProNovoConfig::bMultiScores) {
+		//writeOutputMultiScoresPin();
+		//writeOutputMultiScoresSip();
+		writeOutputMultiScoresSpectrum2MutiPep();
+	} else {
+		writeOutput();
+	}
 }
 
 void MS2ScanVector::postProcessAllMS2() {
-	int i;
-	for (i = 0; i < (int) vpAllMS2Scans.size(); i++)
-		vpAllMS2Scans.at(i)->postprocess();
+	//MEMORYSTART
+	size_t iScanSize = vpAllMS2Scans.size();
+	if (ProNovoConfig::bMultiScores) {
+		PeptideUnit::iNumScores = 1;
+
+		cout << "Rank " << ProNovoConfig::iRank << ":\tXcorr begin" << endl;
+		if (!ProNovoConfig::bXcorrEnable) {
+		//if (false) {
+			//MH: Must be equal to largest possible array
+			int iArraySizePreprocess = (int) ((ProNovoConfig::dMaxMS2ScanMass + 3 + 2.0)
+					* ProNovoConfig::dHighResInverseBinWidth);
+			//MH: Must be equal to largest possible array
+			int iArraySizeScore =
+					(int) ((ProNovoConfig::dMaxPeptideMass + 100) * ProNovoConfig::dHighResInverseBinWidth);
+			{
+				CometSearch::iArraySizePreprocess = iArraySizePreprocess;
+				CometSearch::iArraySizeScore = iArraySizeScore;
+				CometSearch::iDimesion2 = 9;
+				CometSearch::iMAX_PEPTIDE_LEN = MAX_PEPTIDE_LEN;
+				CometSearch::iMaxPercusorCharge = ProNovoConfig::iMaxPercusorCharge + 1;
+			}
+#pragma omp parallel
+			{
+				double * pdTmpRawData;
+				double * pdTmpFastXcorrData;
+				double * pdTmpCorrelationData;
+				double * pdTmpSmoothedSpectrum;
+				double * pdTmpPeakExtracted;
+				bool * pbDuplFragment;
+				double * _pdAAforward;
+				double * _pdAAreverse;
+				unsigned int *** _uiBinnedIonMasses;
+				try {
+					pdTmpRawData = new double[iArraySizePreprocess]();
+					pdTmpFastXcorrData = new double[iArraySizePreprocess]();
+					pdTmpCorrelationData = new double[iArraySizePreprocess]();
+					pdTmpSmoothedSpectrum = new double[iArraySizePreprocess]();
+					pdTmpPeakExtracted = new double[iArraySizePreprocess]();
+					pbDuplFragment = new bool[iArraySizeScore]();
+					_pdAAforward = new double[MAX_PEPTIDE_LEN]();
+					_pdAAreverse = new double[MAX_PEPTIDE_LEN]();
+					_uiBinnedIonMasses = new unsigned int**[ProNovoConfig::iMaxPercusorCharge + 1]();
+					for (int ii = 0; ii < ProNovoConfig::iMaxPercusorCharge + 1; ii++) {
+						_uiBinnedIonMasses[ii] = new unsigned int*[9]();
+						for (int j = 0; j < 9; j++) {
+							_uiBinnedIonMasses[ii][j] = new unsigned int[MAX_PEPTIDE_LEN]();
+						}
+					}
+				} catch (std::bad_alloc& ba) {
+					char szErrorMsg[256];
+					sprintf(szErrorMsg, " Error - new(pd[%d]). bad_alloc: %s.\n", iArraySizePreprocess, ba.what());
+					sprintf(szErrorMsg + strlen(szErrorMsg),
+							"Comet ran out of memory. Look into \"spectrum_batch_size\"\n");
+					sprintf(szErrorMsg + strlen(szErrorMsg), "parameters to address mitigate memory use.\n");
+					string strErrorMsg(szErrorMsg);
+					logerr(szErrorMsg);
+					exit(1);
+				}
+#pragma omp for schedule(guided)
+				for (size_t ii = 0; ii < iScanSize; ii++) {
+					struct Query * pQuery = new Query();
+					if (!CometSearch::Preprocess(pQuery, vpAllMS2Scans.at(ii), pdTmpRawData, pdTmpFastXcorrData,
+							pdTmpCorrelationData, pdTmpSmoothedSpectrum, pdTmpPeakExtracted)) {
+						cout << "Error" << endl;
+						exit(1);
+					} else {
+						vpAllMS2Scans.at(ii)->pQuery = pQuery;
+						for (size_t j = 0; j < vpAllMS2Scans.at(ii)->vpWeightSumTopPeptides.size(); j++) {
+							double dXcorr = 0;
+							CometSearch::ScorePeptides(
+									&(vpAllMS2Scans.at(ii)->vpWeightSumTopPeptides.at(j)->sIdentifiedPeptide),
+									pbDuplFragment, _pdAAforward, _pdAAreverse, vpAllMS2Scans.at(ii),
+									_uiBinnedIonMasses, dXcorr, iArraySizeScore);
+							vpAllMS2Scans.at(ii)->vpWeightSumTopPeptides.at(j)->addXcorr(dXcorr);
+						}
+						delete pQuery;
+						vpAllMS2Scans.at(ii)->pQuery = NULL;
+					}
+				}
+				delete[] pdTmpRawData;
+				delete[] pdTmpFastXcorrData;
+				delete[] pdTmpCorrelationData;
+				delete[] pdTmpSmoothedSpectrum;
+				delete[] pdTmpPeakExtracted;
+				delete[] pbDuplFragment;
+				delete[] _pdAAforward;
+				delete[] _pdAAreverse;
+				for (int ii = 0; ii < ProNovoConfig::iMaxPercusorCharge + 1; ii++) {
+					for (int j = 0; j < 9; j++) {
+						delete[] _uiBinnedIonMasses[ii][j];
+					}
+					delete[] _uiBinnedIonMasses[ii];
+				}
+				delete[] _uiBinnedIonMasses;
+				pdTmpRawData = NULL;
+				pdTmpFastXcorrData = NULL;
+				pdTmpCorrelationData = NULL;
+				pdTmpSmoothedSpectrum = NULL;
+				pdTmpPeakExtracted = NULL;
+				pbDuplFragment = NULL;
+				_pdAAforward = NULL;
+				_pdAAreverse = NULL;
+				_uiBinnedIonMasses = NULL;
+			}
+			++PeptideUnit::iNumScores;
+		}		//end comet score
+		cout << "Rank " << ProNovoConfig::iRank << ":\tXcorr end" << endl;
+
+		cout << "Rank " << ProNovoConfig::iRank << ":\tWDP begin" << endl;
+		if (!ProNovoConfig::bWeightDotSumEnable) {
+		//if (false) {
+			bool bHighRes = vpAllMS2Scans.at(0)->isMS2HighRes;
+#pragma omp parallel
+			{
+				vector<vector<double> > * pvvdYionMass = new vector<vector<double> >();
+				vector<vector<double> > * pvvdYionProb = new vector<vector<double> >();
+				vector<vector<double> > * pvvdBionMass = new vector<vector<double> >();
+				vector<vector<double> > * pvvdBionProb = new vector<vector<double> >();
+				vector<double> * pvdYionMass = new vector<double>();
+				vector<double> * pvdBionMass = new vector<double>();
+				//preprocess peptide
+#pragma omp for schedule(guided)
+				for (size_t ii = 0; ii < iScanSize; ii++) {
+					for (size_t j = 0; j < vpAllMS2Scans.at(ii)->vpWeightSumTopPeptides.size(); j++) {
+						Peptide::preprocessing(vpAllMS2Scans.at(ii)->vpWeightSumTopPeptides.at(j)->sIdentifiedPeptide,
+								bHighRes, mapResidueMass, pvvdYionMass, pvvdYionProb, pvvdBionMass, pvvdBionProb,
+								pvdYionMass, pvdBionMass);
+						double dWeightSum = 0;
+						if (bHighRes) {
+							dWeightSum = vpAllMS2Scans.at(ii)->scoreWeightSumHighMS2(
+									&(vpAllMS2Scans.at(ii)->vpWeightSumTopPeptides.at(j)->sIdentifiedPeptide),
+									pvvdYionMass, pvvdYionProb, pvvdBionMass, pvvdBionProb);
+						} else {
+							dWeightSum = vpAllMS2Scans.at(ii)->scoreWeightSum(
+									&(vpAllMS2Scans.at(ii)->vpWeightSumTopPeptides.at(j)->sIdentifiedPeptide),
+									pvdYionMass, pvdBionMass);
+						}
+						vpAllMS2Scans.at(ii)->vpWeightSumTopPeptides.at(j)->addXcorr(dWeightSum);
+					}
+				}
+
+				delete pvvdYionMass;
+				delete pvvdYionProb;
+				delete pvvdBionMass;
+				delete pvvdBionProb;
+				delete pvdYionMass;
+				delete pvdBionMass;
+				pvvdYionMass = NULL;
+				pvvdYionProb = NULL;
+				pvvdBionMass = NULL;
+				pvvdBionProb = NULL;
+				pvdYionMass = NULL;
+				pvdBionMass = NULL;
+			}
+			++PeptideUnit::iNumScores;
+		}		//end sipros score
+
+#pragma omp for schedule(guided)
+		for (size_t ii = 0; ii < iScanSize; ii++) {
+			vpAllMS2Scans.at(ii)->scoreFeatureCalculation();
+		}
+		cout << "Rank " << ProNovoConfig::iRank << ":\tWDP end" << endl;
+	}		// end multiple scores
+	//MEMORYSTOP
 }
 
 bool MS2ScanVector::mylessScanId(MS2Scan* pMS2Scan1, MS2Scan* pMS2Scan2) {
@@ -690,6 +927,7 @@ void MS2ScanVector::writeOutput() {
 
 				outputFile << vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->sScoringFunction << "\t";
 				outputFile << (j + 1) << "\t";
+
 				outputFile << setiosflags(ios::fixed) << setprecision(4)
 						<< vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->dScore << "\t";
 				//outputFile<<((vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->dScore-dcurrentMeanWeightSum)/dcurrentDeviationWeightSum)<<"\t";
@@ -716,15 +954,299 @@ void MS2ScanVector::writeOutput() {
 	outputFile.close();
 }
 
+void MS2ScanVector::writeOutputMultiScoresSip() {
+	int i, j;
+	ofstream outputFile;
+	ifstream configStream;
+	string sline, sTailFT2FileName;
+
+	double dcurrentMeanWeightSum, dcurrentDeviationWeightSum;
+
+	sTailFT2FileName = ParsePath(sFT2Filename);
+
+	sort(vpAllMS2Scans.begin(), vpAllMS2Scans.end(), mylessScanId);
+	outputFile.open(sOutputFile.c_str());
+
+	configStream.open(sConfigFile.c_str());
+	while (!configStream.eof()) {
+		sline.clear();
+		getline(configStream, sline);
+		outputFile << "#\t" << sline << endl;
+	}
+
+	outputFile << "Filename\tScanNumber\tParentCharge\tMeasuredParentMass\t";
+	outputFile << "CalculatedParentMass\tScanType\tSearchName\tRank\tMVH\tXcorr\tWeightDotSum\t";
+	outputFile << "IdentifiedPeptide\tOriginalPeptide\tProteinNames" << endl;
+	for (i = 0; i < (int) vpAllMS2Scans.size(); i++)
+		if (!vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.empty()) {
+			if (vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(0)->sScoringFunction == "WeightSum") {
+				calculateMeanAndDeviation(vpAllMS2Scans.at(i)->inumberofWeightSumScore,
+						vpAllMS2Scans.at(i)->dsumofWeightScore, vpAllMS2Scans.at(i)->dsumofSquareWeightSumScore,
+						dcurrentMeanWeightSum, dcurrentDeviationWeightSum);
+			}
+			for (j = 0; j < (int) vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.size(); j++) {
+				outputFile << sTailFT2FileName << "\t";
+				outputFile << vpAllMS2Scans.at(i)->iScanId << "\t";
+				outputFile << vpAllMS2Scans.at(i)->iParentChargeState << "\t";
+				outputFile << setiosflags(ios::fixed) << setprecision(5) << vpAllMS2Scans.at(i)->dParentNeutralMass
+						<< "\t";
+				outputFile << setiosflags(ios::fixed) << setprecision(5)
+						<< vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->dCalculatedParentMass << "\t";
+
+				outputFile << vpAllMS2Scans.at(i)->getScanType() << "\t";
+				outputFile << ProNovoConfig::getSearchName() << "\t";
+
+				//outputFile << vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->sScoringFunction << "\t";
+				outputFile << (j + 1) << "\t";
+				for (size_t k = 0; k < vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->vdScores.size(); k++) {
+					outputFile << setiosflags(ios::fixed) << setprecision(4)
+							<< vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->vdScores.at(k) << "\t";
+				}
+
+				if (vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->cIdentifyPrefix != '-')
+					outputFile << vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->cIdentifyPrefix;
+				outputFile << vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->sIdentifiedPeptide;
+				if (vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->cIdentifySuffix != '-')
+					outputFile << vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->cIdentifySuffix;
+				outputFile << "\t";
+
+				if (vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->cOriginalPrefix != '-')
+					outputFile << vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->cOriginalPrefix;
+				outputFile << vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->sOriginalPeptide;
+				if (vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->cOriginalSuffix != '-')
+					outputFile << vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->cOriginalSuffix;
+				outputFile << "\t";
+
+				outputFile << "{" << vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->sProteinNames << "}" << endl;
+			}
+		}
+	configStream.clear();
+	configStream.close();
+	outputFile.close();
+}
+
+void MS2ScanVector::writeOutputMultiScoresSpectrum2MutiPep() {
+	//MEMORYSTART
+	size_t i, j;
+	size_t k = 0;
+	ofstream outputFile;
+	ifstream configStream;
+	string sline, sTailFT2FileName;
+
+	sTailFT2FileName = ParsePath(sFT2Filename);
+
+	sort(vpAllMS2Scans.begin(), vpAllMS2Scans.end(), mylessScanId);
+
+	string sOutputFileTxt = sOutputFile.substr(0, sOutputFile.length() - 4);
+	sOutputFileTxt += "_Spe2Pep.txt";
+	outputFile.open(sOutputFileTxt.c_str());
+
+	configStream.open(sConfigFile.c_str());
+	while (!configStream.eof()) {
+		sline.clear();
+		getline(configStream, sline);
+		outputFile << "#\t" << sline << endl;
+	}
+
+	//Spectrum level head
+	outputFile << "+\tFilename\tScanNumber\tParentCharge\tMeasuredParentMass"
+			<< "\tScanType\tSearchName\tTotalIntensity\tMaxIntensity" << endl;
+	//PSM level head
+	outputFile << "*\tIdentifiedPeptide\tOriginalPeptide\tCalculatedParentMass " << "\tMVH\tXcorr\tWDP\tProteinNames"
+			<< endl;
+	cout << "Rank " << ProNovoConfig::iRank << ":\tWrite begin" << endl;
+	for (i = 0; i < vpAllMS2Scans.size(); i++) {
+		if (!vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.empty()) {
+			//Spectrum level information
+			outputFile << "+";
+			outputFile << "\t" << sTailFT2FileName;
+			outputFile << "\t" << vpAllMS2Scans.at(i)->iScanId;
+			outputFile << "\t" << vpAllMS2Scans.at(i)->iParentChargeState;
+			outputFile << "\t" << setiosflags(ios::fixed) << setprecision(5) << vpAllMS2Scans.at(i)->dParentNeutralMass;
+			outputFile << "\t" << vpAllMS2Scans.at(i)->getScanType();
+			outputFile << "\t" << ProNovoConfig::getSearchName();
+			//sInt sum of intensity
+			outputFile << "\t" << vpAllMS2Scans.at(i)->dSumIntensity;
+			//maxInt
+			outputFile << "\t" << vpAllMS2Scans.at(i)->dMaxIntensity;
+			outputFile << endl;
+			//PSM level head
+			for (j = 0; j < vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.size(); j++) {
+				if (!vpAllMS2Scans.at(i)->isAnyScoreInTopN(j, ProNovoConfig::Log_TOP_N_Output)) {
+					continue;
+				}
+				outputFile << "*\t";
+				//IdentifiedPeptide
+				if (vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->cIdentifyPrefix != '-') {
+					outputFile << vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->cIdentifyPrefix;
+				}
+				outputFile << vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->sIdentifiedPeptide;
+				if (vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->cIdentifySuffix != '-') {
+					outputFile << vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->cIdentifySuffix;
+				}
+				outputFile << "\t";
+				//OriginalPeptide
+				if (vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->cOriginalPrefix != '-') {
+					outputFile << vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->cOriginalPrefix;
+				}
+				outputFile << vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->sOriginalPeptide;
+				if (vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->cOriginalSuffix != '-') {
+					outputFile << vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->cOriginalSuffix;
+				}
+
+				//CalculatedParentMass
+				outputFile << "\t";
+				outputFile << setiosflags(ios::fixed) << setprecision(5)
+						<< vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->dPepMass << "\t";
+				//MVH, Xcorr, WDP
+				for (k = 0; k < vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->vdScores.size(); k++) {
+					outputFile << setiosflags(ios::fixed) << setprecision(4)
+							<< vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->vdScores.at(k) << "\t";
+				}
+				//ProteinNames
+				outputFile << "{" << vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->sProteinNames << "}" << endl;
+			}
+		}
+	}
+	cout << "Rank " << ProNovoConfig::iRank << ":\tWrite end" << endl;
+	configStream.clear();
+	configStream.close();
+	outputFile.close();
+	//MEMORYSTOP
+}
+
+void MS2ScanVector::writeOutputMultiScoresPin() {
+	size_t i, j, k;
+	ofstream outputFile;
+	ifstream configStream;
+	string sline, sTailFT2FileName;
+	double temp = 0;
+	sTailFT2FileName = ParsePath(sFT2Filename);
+
+	sort(vpAllMS2Scans.begin(), vpAllMS2Scans.end(), mylessScanId);
+	string sOutputFilePin = sOutputFile.substr(0, sOutputFile.length() - 4);
+	sOutputFilePin += ".pin";
+	outputFile.open(sOutputFilePin.c_str());
+
+	outputFile << "PSMId\tLabel\tScanNr\t";
+	for (i = 0; i < PeptideUnit::iNumScores; i++) {
+		outputFile << "Score" << (i + 1) << "\t";
+		outputFile << "Fraction" << (i + 1) << "\t";
+		outputFile << "Rank" << (i + 1) << "\t";
+	}
+	outputFile << "Mass\t";
+	outputFile << "dM\t";
+	outputFile << "absdM\t";
+	outputFile << "sInt\t";
+	outputFile << "maxInt\t";
+	outputFile << "pepLen\t";
+	outputFile << "charge1\t";
+	outputFile << "charge2\t";
+	outputFile << "charge3\t";
+	outputFile << "enzInt\t";
+	outputFile << "lnNumPep\t";
+	outputFile << "Peptide\t";
+	iMaxNumProteins = 0;
+	size_t iTemp = 0;
+	for (i = 0; i < vpAllMS2Scans.size(); i++) {
+		iTemp = vpAllMS2Scans.at(i)->getMaxNumProteinPsm();
+		if (iTemp > iMaxNumProteins) {
+			iMaxNumProteins = iTemp;
+		}
+	}
+	for (i = 0; i < iMaxNumProteins; i++) {
+		outputFile << "Proteins" << (i + 1) << "\t";
+	}
+	outputFile << endl;
+
+	for (i = 0; i < vpAllMS2Scans.size(); i++) {
+		if (!vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.empty()) {
+			for (j = 0; j < vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.size(); j++) {
+				outputFile << sTailFT2FileName << "_";
+				outputFile << vpAllMS2Scans.at(i)->iScanId << "_" << j << "\t";
+				if (vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->isDecoy(ProNovoConfig::sDecoyPrefix)) {
+					outputFile << "-1\t";
+				} else {
+					outputFile << "1\t";
+				}
+				outputFile << vpAllMS2Scans.at(i)->iScanId << "\t";
+				//scores and related features
+				for (k = 0; k < vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->vdScores.size(); k++) {
+					outputFile << setiosflags(ios::fixed) << setprecision(4)
+							<< vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->vdScores.at(k) << "\t";
+					outputFile << setiosflags(ios::fixed) << setprecision(4)
+							<< vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->vdFraction.at(k) << "\t";
+					outputFile << setiosflags(ios::fixed) << setprecision(4)
+							<< vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->vdRank.at(k) << "\t";
+				}
+				//Mass
+				outputFile << vpAllMS2Scans.at(i)->dParentMass << "\t";
+				//dM
+				temp = (vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->dPepMass - vpAllMS2Scans.at(i)->dParentMass);
+				outputFile << temp << "\t";
+				//absdM
+				outputFile << fabs(temp) << "\t";
+				//sInt sum of intensity
+				outputFile << vpAllMS2Scans.at(i)->dSumIntensity << "\t";
+				//maxInt
+				outputFile << vpAllMS2Scans.at(i)->dMaxIntensity << "\t";
+				//pepLen
+				outputFile << vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->iPepLen << "\t";
+				//charge
+				if (vpAllMS2Scans.at(i)->iParentChargeState == 1) {
+					outputFile << "1" << "\t";
+				} else {
+					outputFile << "0" << "\t";
+				}
+				if (vpAllMS2Scans.at(i)->iParentChargeState == 2) {
+					outputFile << "1" << "\t";
+				} else {
+					outputFile << "0" << "\t";
+				}
+				if (vpAllMS2Scans.at(i)->iParentChargeState >= 3) {
+					outputFile << "1" << "\t";
+				} else {
+					outputFile << "0" << "\t";
+				}
+				//enzInt
+				outputFile << vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->iEnzInt << "\t";
+				//lnNumPep
+				outputFile << (log(vpAllMS2Scans.at(i)->iNumPeptideAssigned)) << "\t";
+				//Peptide
+				outputFile << vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->cIdentifyPrefix;
+				outputFile << ".";
+				outputFile
+						<< vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->sIdentifiedPeptide.substr(1,
+								vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->sIdentifiedPeptide.length() - 2);
+				outputFile << ".";
+				outputFile << vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->cIdentifySuffix;
+				outputFile << "\t";
+				//Proteins
+				istringstream ss(vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->sProteinNames);
+				string token;
+				while (std::getline(ss, token, ',')) {
+					outputFile << token << '\t';
+				}
+				outputFile << endl;
+			}
+		}
+	}
+	configStream.clear();
+	configStream.close();
+	outputFile.close();
+}
+
 void MS2ScanVector::calculateMeanAndDeviation(int inumberScore, double dScoreSum, double dScoreSquareSum, double& dMean,
 		double& dDeviation) {
 	dMean = dScoreSum / inumberScore;
 	//dDeviation is sample standard deviation
 
-	if (inumberScore > 1)
+	if (inumberScore > 1) {
 		dDeviation = sqrt((dScoreSquareSum - dMean * dMean) * inumberScore / (inumberScore - 1));
+	}
 
-	if ((inumberScore == 1) || (dDeviation < ZERO))
+	if ((inumberScore == 1) || (dDeviation < ZERO)) {
 		dDeviation = ZERO;
+	}
 }
 

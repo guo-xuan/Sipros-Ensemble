@@ -18,8 +18,7 @@ struct unit_of_workload_t {
 	string sOutputDirectory;
 };
 
-void searchFT2Files(vector<string> & vsFT2Filenames, const string & sWorkingDirectory,
-		bool bScreenOutput) {
+void searchFT2Files(vector<string> & vsFT2Filenames, const string & sWorkingDirectory, bool bScreenOutput) {
 	int i, iFileNum;
 	DirectoryStructure working_dir(sWorkingDirectory);
 	working_dir.setPattern(".ft2");
@@ -36,12 +35,11 @@ void searchFT2Files(vector<string> & vsFT2Filenames, const string & sWorkingDire
 		exit(1);
 	}
 	for (i = 0; i < iFileNum; i++)
-		vsFT2Filenames.at(i) = sWorkingDirectory + ProNovoConfig::getSeparator()
-				+ vsFT2Filenames.at(i);
+		vsFT2Filenames.at(i) = sWorkingDirectory + ProNovoConfig::getSeparator() + vsFT2Filenames.at(i);
 }
 
-void searchConfigureFiles(vector<string> & vsConfigureFilenames,
-		const string & sConfigFileDirectory, bool bScreenOutput) {
+void searchConfigureFiles(vector<string> & vsConfigureFilenames, const string & sConfigFileDirectory,
+		bool bScreenOutput) {
 	int i, iFileNum;
 	DirectoryStructure working_dir(sConfigFileDirectory);
 	working_dir.setPattern(".cfg");
@@ -55,8 +53,7 @@ void searchConfigureFiles(vector<string> & vsConfigureFilenames,
 		exit(1);
 	}
 	for (i = 0; i < iFileNum; i++)
-		vsConfigureFilenames.at(i) = sConfigFileDirectory + ProNovoConfig::getSeparator()
-				+ vsConfigureFilenames.at(i);
+		vsConfigureFilenames.at(i) = sConfigFileDirectory + ProNovoConfig::getSeparator() + vsConfigureFilenames.at(i);
 }
 
 /* 
@@ -65,9 +62,9 @@ void searchConfigureFiles(vector<string> & vsConfigureFilenames,
  * Set up SiprosConfig
  */
 
-void initializeArguments(int argc, char **argv, vector<string> & vsFT2Filenames,
-		string & sWorkingDirectory, vector<string> & vsConfigureFilenames,
-		string & sSingleWorkingFile, string & sOutputDirectory, bool & bScreenOutput)
+void initializeArguments(int argc, char **argv, vector<string> & vsFT2Filenames, string & sWorkingDirectory,
+		vector<string> & vsConfigureFilenames, string & sSingleWorkingFile, string & sOutputDirectory,
+		bool & bScreenOutput)
 // Under MPI mode, a user can specify configure file directory by specifying -g
 // If no configre file or directory is specified, configure file directory is working directory 
 		{
@@ -100,15 +97,12 @@ void initializeArguments(int argc, char **argv, vector<string> & vsFT2Filenames,
 		else if (vsArguments[i] == "-s")
 			bScreenOutput = false;
 		else if ((vsArguments[i] == "-h") || (vsArguments[i] == "--help")) {
-			cout
-					<< "Usage: -w WorkingDirectory -c ConfigurationFile, -f: A single MS2 or FT2 file to be processed"
+			cout << "Usage: -w WorkingDirectory -c ConfigurationFile, -f: A single MS2 or FT2 file to be processed"
 					<< endl;
 			cout
 					<< "If configuration file is not specified, Sipros will look for SiprosConfig.cfg in the directory of FT2 files"
 					<< endl;
-			cout
-					<< "-o output directory. If not specified, it is the same as that of the input scan file,"
-					<< endl;
+			cout << "-o output directory. If not specified, it is the same as that of the input scan file," << endl;
 			cout << "-g configure file directory. -s silence all standard output." << endl;
 			exit(0);
 		} else {
@@ -119,9 +113,7 @@ void initializeArguments(int argc, char **argv, vector<string> & vsFT2Filenames,
 		sWorkingDirectory = ".";
 
 	if ((sWorkingDirectory != "") && (sSingleWorkingFile != "")) {
-		cerr
-				<< "Either a input scan file or the directory of input scan files needs to be specified"
-				<< endl;
+		cerr << "Either a input scan file or the directory of input scan files needs to be specified" << endl;
 		exit(1);
 	}
 	if ((sConfigFilename == "") && (sConfigFileDirectory == ""))
@@ -144,21 +136,25 @@ void initializeArguments(int argc, char **argv, vector<string> & vsFT2Filenames,
 
 }
 
-void handleScan(const string & sFT2filename, const string & sOutputDirectory,
-		const string & sConfigFilename, bool bScreenOutput) {
-	MS2ScanVector * pMainMS2ScanVector = new MS2ScanVector(sFT2filename, sOutputDirectory,
-			sConfigFilename, bScreenOutput);
+void handleScan(const string & sFT2filename, const string & sOutputDirectory, const string & sConfigFilename,
+		bool bScreenOutput) {
 
-	if (bScreenOutput)
+	MS2ScanVector * pMainMS2ScanVector = new MS2ScanVector(sFT2filename, sOutputDirectory, sConfigFilename,
+			bScreenOutput);
+
+	if (bScreenOutput) {
 		cout << "Reading MS2 scan file " << sFT2filename << endl;
-
-	if (!pMainMS2ScanVector->loadFT2file())
+	}
+	if (!pMainMS2ScanVector->loadFT2file()) {
 		cerr << "Error: Failed to load file: " << sFT2filename << endl;
-	else {
+	} else {
 		// search all MS2 scans and write output to a file
 		pMainMS2ScanVector->startProcessing();
 	}
-	delete pMainMS2ScanVector;	//free memory of vpAllMS2Scans
+
+	//free memory of vpAllMS2Scans
+	delete pMainMS2ScanVector;
+
 }
 
 void MasterProcess(const vector<unit_of_workload_t> & vWorkload, bool bScreenOutput) {
@@ -171,8 +167,7 @@ void MasterProcess(const vector<unit_of_workload_t> & vWorkload, bool bScreenOut
 	workloadSize = vWorkload.size();
 
 	iNumberOfSlaves = iNumberOfProcessors - 1;
-	iBounderOfProcess = (
-			(workloadSize <= (size_t) iNumberOfSlaves) ? workloadSize : (size_t) iNumberOfSlaves);
+	iBounderOfProcess = ((workloadSize <= (size_t) iNumberOfSlaves) ? workloadSize : (size_t) iNumberOfSlaves);
 	for (i = 1; i <= iBounderOfProcess; i++) {
 		currentWorkId = i - 1;
 		MPI_Send(&currentWorkId, 1, MPI_INT, i, WORKTAG, MPI_COMM_WORLD);
@@ -202,21 +197,25 @@ void SlaveProcess(const vector<unit_of_workload_t> & vWorkload, bool bScreenOutp
 		if (status.MPI_TAG == DIETAG)
 			break;
 		currentWork = vWorkload.at(currentWorkId);
-		//cout<<"slave id:"<<myid<<" sFT2name: "<<currentWork.sFT2Filename<<endl;
+		cout << "slave Rank:\t" << myid << "\tsFT2name:\t" << currentWork.sFT2Filename << "\tCfg:\t"
+				<< currentWork.sConfigureFilename << endl;
 		// Load config file
 		if (!ProNovoConfig::setFilename(currentWork.sConfigureFilename)) {
 			cerr << "Could not load config file " << currentWork.sConfigureFilename << endl;
 			exit(1);
 		}
-		handleScan(currentWork.sFT2Filename, currentWork.sOutputDirectory,
-				currentWork.sConfigureFilename, bScreenOutput);
-		if (bScreenOutput)
+		ProNovoConfig::iRank = myid;
+		handleScan(currentWork.sFT2Filename, currentWork.sOutputDirectory, currentWork.sConfigureFilename,
+				bScreenOutput);
+		if (bScreenOutput) {
 			cout << currentWork.sFT2Filename << " and " << currentWork.sConfigureFilename
 					<< " is done by Slave process " << myid << endl;
+		}
 		MPI_Send(0, 0, MPI_INT, 0, 0, MPI_COMM_WORLD);
 	}
-	if (bScreenOutput)
+	if (bScreenOutput) {
 		cout << "Slave process " << myid << " is done." << endl;
+	}
 }
 
 int main(int argc, char **argv) {
@@ -225,25 +224,23 @@ int main(int argc, char **argv) {
 	// A list of configure files
 	vector<string> vsConfigureFilenames;
 	int i, j, myid;
-	string sWorkingDirectory, sConfigFilename, sSingleWorkingFile, sOutputDirectory,
-			sConfigFileDirectory;
+	string sWorkingDirectory, sConfigFilename, sSingleWorkingFile, sOutputDirectory, sConfigFileDirectory;
 	bool bScreenOutput;
 	unit_of_workload_t current_work;
 	vector<unit_of_workload_t> vWorkload;
 	MPI_Init(&argc, &argv); /* starts MPI */
-	initializeArguments(argc, argv, vsFT2Filenames, sWorkingDirectory, vsConfigureFilenames,
-			sSingleWorkingFile, sOutputDirectory, bScreenOutput);
+	initializeArguments(argc, argv, vsFT2Filenames, sWorkingDirectory, vsConfigureFilenames, sSingleWorkingFile,
+			sOutputDirectory, bScreenOutput);
 
 	for (j = 0; j < (int) vsConfigureFilenames.size(); j++) {
-		sConfigFilename = vsConfigureFilenames[j];
+		sConfigFilename = vsConfigureFilenames.at(j);
 
 		// Process one FT2 file and one configure file  at a time
 		for (i = 0; i < (int) vsFT2Filenames.size(); i++) {
-			current_work.sFT2Filename = vsFT2Filenames[i];
+			current_work.sFT2Filename = vsFT2Filenames.at(i);
 			current_work.sConfigureFilename = sConfigFilename;
 			current_work.sOutputDirectory = sOutputDirectory;
 			vWorkload.push_back(current_work);
-			//handleScan(vsFT2Filenames[i], sOutputDirectory, sConfigFilename);
 		}
 	}
 
@@ -253,6 +250,6 @@ int main(int argc, char **argv) {
 	else
 		SlaveProcess(vWorkload, bScreenOutput);
 	MPI_Finalize(); /* let MPI finish up ... */
-	//std::cout << "Hello, world!" << std::endl;
+
 	return 0;
 }

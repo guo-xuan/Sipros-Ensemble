@@ -70,9 +70,6 @@ public:
 
 	// compute isotoptic distribution for an amino acid sequence
 	bool computeIsotopicDistribution(string sSequence, IsotopeDistribution & myIsotopeDistribution);
-	bool computeIsotopicDistribution2(string sSequence, IsotopeDistribution & myIsotopeDistribution);
-	bool computeIsotopicDistribution3(string sSequence, IsotopeDistribution & myIsotopeDistribution);
-	bool computeIsotopicDistribution4(string sSequence, IsotopeDistribution & myIsotopeDistribution);
 
 	// compute isotoptic distribution for a given atomic composition,
 	// which can be that of a residue's or a amino acid sequence's
@@ -93,7 +90,6 @@ private:
 	// functions for IsotopeDistribution's arithmetic
 	IsotopeDistribution sum(const IsotopeDistribution & distribution0, const IsotopeDistribution & distribution1);
 	IsotopeDistribution sum2(const IsotopeDistribution & distribution0, const IsotopeDistribution & distribution1);
-	IsotopeDistribution sum3(const IsotopeDistribution & distribution0, const IsotopeDistribution & distribution1);
 	IsotopeDistribution multiply(const IsotopeDistribution & distribution0, int count);
 	void shiftMass(IsotopeDistribution & distribution0, double dMass);
 

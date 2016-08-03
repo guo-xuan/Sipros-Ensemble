@@ -4,7 +4,6 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
-../src/TableIsotopeDistribution.cpp \
 ../src/directoryStructure.cpp \
 ../src/isotopologue.cpp \
 ../src/main.cpp \
@@ -18,7 +17,6 @@ CPP_SRCS += \
 ../src/tokenvector.cpp 
 
 OBJS += \
-./src/TableIsotopeDistribution.o \
 ./src/directoryStructure.o \
 ./src/isotopologue.o \
 ./src/main.o \
@@ -31,7 +29,6 @@ OBJS += \
 ./src/tokenvector.o 
 
 CPP_DEPS += \
-./src/TableIsotopeDistribution.d \
 ./src/directoryStructure.d \
 ./src/isotopologue.d \
 ./src/main.d \

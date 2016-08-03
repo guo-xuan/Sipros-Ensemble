@@ -11,8 +11,6 @@
 using namespace std;
 
 class Peptide {
-	// the sequence of the original peptide
-	string sOriginalPeptide;
 	// the protein name
 	string sProteinName;
 	// the begining position of the original peptide on the the protein
@@ -35,8 +33,8 @@ class Peptide {
 public:
 	// the sequence of the peptide
 	string sPeptide;
-	// score from comet;
-	double dxScore;
+	// the sequence of the original peptide
+	string sOriginalPeptide;
 	// Low-res MS2 scan just need
 	// the most abundant isotopic masses of predicted Y and B ions of the peptide
 	vector<double> vdYionMasses;
@@ -107,13 +105,21 @@ public:
 
 	// calculate all expected y and b ions from sPeptide
 	void calculateExpectedFragments(const string & sNewPeptide, const map<char, double> & mapResidueMass);
+	void static calculateExpectedFragments(const string & sNewPeptide, const map<char, double> & mapResidueMass,
+			vector<double> * pvdYionMass, vector<double> * pvvdBionMass);
 
 	void preprocessing(bool isMS2HighRes, const map<char, double> & mapResidueMass);
+	void static preprocessing(string & sPeptide, bool isMS2HighRes, const map<char, double> & mapResidueMass,
+			vector<vector<double> > * vvdYionMass, vector<vector<double> > * vvdYionProb,
+			vector<vector<double> > * vvdBionMass, vector<vector<double> > * vvdBionProb, vector<double> * pvdYionMass,
+			vector<double> * pvvdBionMass);
 
 	// this function doesn't need mapResidueMass as input
 	void calculateIsotope(const string & sNewPeptide, const map<char, double> & mapResidueMass);
 
 	string neutralLossProcess(const string & sCurrentPeptide);
+	string static neutralLossProcess2(const string & sCurrentPeptide);
+	int getEnzInt() const;
 };
 
 #endif // PEPTIDE_H
