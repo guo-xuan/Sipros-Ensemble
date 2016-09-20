@@ -30,6 +30,7 @@ MS2Scan::MS2Scan() {
 	bin_res = 0;
 	iNumPeptideAssigned = 0;
 	dMaxIntensity = 0;
+	sRTime = "-1.000";
 }
 
 MS2Scan::~MS2Scan() {
@@ -37,21 +38,28 @@ MS2Scan::~MS2Scan() {
 	for (i = 0; i < (int) vpWeightSumTopPeptides.size(); i++)
 		delete vpWeightSumTopPeptides.at(i);
 
-	if (pQuery!=NULL) {
+	if (pQuery != NULL) {
 		delete pQuery;
 	}
 
-	if (peakData!=NULL) {
+	if (peakData != NULL) {
 		delete peakData;
 	}
 
-	if (intenClassCounts!=NULL) {
+	if (intenClassCounts != NULL) {
 		delete intenClassCounts;
 	}
 }
 
 void MS2Scan::postprocess() {
 
+}
+
+/**
+ * return the retention time
+ */
+string MS2Scan::getRTime(){
+	return sRTime;
 }
 
 bool MS2Scan::mergePeptide(vector<PeptideUnit*>& vpTopPeptides, const string & sPeptide, const string & sProteinName) {
@@ -1548,6 +1556,13 @@ bool MS2Scan::binarySearch(const double& dTarget, const vector<double>& vdList, 
 		}
 	}
 	return false;
+}
+
+/**
+ * set the retention time
+ */
+void MS2Scan::setRTime(string _sRTime) {
+	sRTime = _sRTime;
 }
 
 ProductIon::ProductIon() {

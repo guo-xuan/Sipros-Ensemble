@@ -77,8 +77,11 @@ public:
 	// Determine the charge state of every scan by calling the function MS2Scan::isSinglyCharged().
 	// Creat a +2 scan and a +3 scan for an unknown multipe charged scan.
 	// Return false if there is a problem with the file
+	bool loadFile();
 	bool loadFT2file();
+	bool loadMs2File();
 	bool ReadFT2File();    //Read FT2 files
+	bool ReadMs2File();//Read Ms2 files
 	void startProcessing(); // start functions to process the loaded FT2 file
 
 	size_t iMaxNumProteins;

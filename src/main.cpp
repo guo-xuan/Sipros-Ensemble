@@ -148,7 +148,7 @@ void handleScan(const string & sFT2filename, const string & sOutputDirectory, co
 		cout << "Reading MS2 scan file " << sFT2filename << endl;
 	}
 
-	if (!pMainMS2ScanVector->loadFT2file()) {
+	if (!pMainMS2ScanVector->loadFile()) {
 		cerr << "Error: Failed to load file: " << sFT2filename << endl;
 	} else {
 		// search all MS2 scans and write output to a file
@@ -181,7 +181,7 @@ int main(int argc, char **argv) {
 
 		// Process one FT2 file at a time
 		for (size_t i = 0; i < vsFT2Filenames.size(); i++) {
-			cout << "FT2 name:\t" << vsFT2Filenames.at(i) << "\nCfg:\t" << vsConfigureFilenames.at(j) << endl;
+			cout << "MS file name:\t" << vsFT2Filenames.at(i) << "\nCfg:\t" << vsConfigureFilenames.at(j) << endl;
 			handleScan(vsFT2Filenames.at(i), sOutputDirectory, vsConfigureFilenames.at(j), bScreenOutput);
 		}
 	}

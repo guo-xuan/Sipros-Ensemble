@@ -178,7 +178,7 @@ class MS2Scan {
 			int & iMostAbundantPeakIndex); // start with 0
 public:
 	MS2Scan();
-//    MS2Scan(const MS2Scan *& cMS2Scan);
+	// MS2Scan(const MS2Scan *& cMS2Scan);
 	~MS2Scan();
 
 	string sFT2Filename;     // FT2file name
@@ -206,6 +206,7 @@ public:
 	vector<Peptide *> vpPeptides;      //current set of peptides to be scored
 	bool bSetMS2Flag; // false when preprocess fail on bad data
 
+	string getRTime();
 	//merge same peptide. If no same peptide return false, otherwise, return true
 	bool mergePeptide(vector<PeptideUnit*>& vpTopPeptides, const string & sPeptide, const string & sProteinName);
 	// preprocess this scan, including
@@ -222,7 +223,7 @@ public:
 	void scoreWeightSum(Peptide * currentPeptide);
 	double scoreWeightSum(string * currentPeptide, vector<double> * pvdYionMass, vector<double> * pvdBionMass);
 	void scoreRankSum(Peptide * currentPeptide);
-	//void scoreRankSum_test(Peptide * currentPeptide);
+	// void scoreRankSum_test(Peptide * currentPeptide);
 	void scoreWeightSumHighMS2(Peptide * currentPeptide);
 	double scoreWeightSumHighMS2(string * currentPeptide, vector<vector<double> > * vvdYionMass,
 			vector<vector<double> > * vvdYionProb, vector<vector<double> > * vvdBionMass,
@@ -233,6 +234,7 @@ public:
 	void postprocess();
 	double CalculateRankSum(double r1, double n1, double n2);
 
+	void setRTime(string _sRTime);
 	void setScanType(string sScanType) {
 		this->sScanType = sScanType;
 	}
@@ -262,6 +264,7 @@ public:
 	int iNumPeptideAssigned;
 	int getMaxNumProteinPsm();
 	bool isAnyScoreInTopN(size_t _iIndexPeptide, double _dLogRank);
+	string sRTime;
 	//-----------Features End----------------
 
 };

@@ -219,7 +219,7 @@ bool Isotopologue::setupIsotopologue(const string & sTable, const string & AtomN
 				dMass = iterResidueIsotopicDistribution->second.vMass.at(j);
 			}
 		}
-		if(iterResidueIsotopicDistribution->first.size()>1){
+		if (iterResidueIsotopicDistribution->first.size() > 1) {
 			continue;
 		}
 		cResidue = iterResidueIsotopicDistribution->first.at(0);
@@ -831,17 +831,27 @@ IsotopeDistribution Isotopologue::sum(const IsotopeDistribution & distribution0,
 	double currentProb;
 	size_t iSizeDistribution0 = distribution0.vMass.size();
 	size_t iSizeDistribution1 = distribution1.vMass.size();
+	int iCount = 0;
+	double dSum = 0;
 	for (size_t k = 0; k < iSizeDistribution0 + iSizeDistribution1 - 1; k++) {
 		double sumweight = 0, summass = 0;
 		size_t start = k < (iSizeDistribution1 - 1) ? 0 : k - iSizeDistribution1 + 1; // max(0, k-f_n+1)
 		size_t end = k < (iSizeDistribution0 - 1) ? k : iSizeDistribution0 - 1; // min(g_n - 1, k)
+		iCount = 0;
+		dSum = 0;
 		for (size_t i = start; i <= end; i++) {
 			double weight = distribution0.vProb.at(i) * distribution1.vProb.at(k - i);
 			double mass = distribution0.vMass.at(i) + distribution1.vMass.at(k - i);
 			sumweight += weight;
 			summass += weight * mass;
+			iCount += 1;
+			dSum += mass;
 		}
-		currentMass = summass / sumweight;
+		if (sumweight == 0) {
+			currentMass = dSum / ((double)iCount);
+		} else {
+			currentMass = summass / sumweight;
+		}
 		currentProb = sumweight;
 		sumDistribution.vMass.push_back(currentMass);
 		sumDistribution.vProb.push_back(currentProb);

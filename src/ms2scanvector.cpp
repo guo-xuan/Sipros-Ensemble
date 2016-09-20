@@ -66,9 +66,9 @@ bool MS2ScanVector::ReadFT2File() {
 	if (bReVal) {
 		while (!ft2_stream.eof()) {
 			sline.clear();
-//	    string tmp_sline = sline;
+			// string tmp_sline = sline;
 			getline(ft2_stream, sline);
-//	    cout << sline <<"wyf"<<endl;
+			// cout << sline <<"wyf"<<endl;
 			if (sline == "")
 				continue;
 			if ((sline.at(0) >= '0') && (sline.at(0) <= '9')) {
@@ -143,8 +143,12 @@ bool MS2ScanVector::ReadFT2File() {
 				vector<string> words;
 				TokenVector::Parse(sline, " \r\t\n", words);
 				//TokenVector words(sline, " \r\t\n");
-				if (words.at(1) == "ScanType")
+				if (words.at(1) == "ScanType"){
 					pMS2Scan->setScanType(words.at(2) + words.at(5) + words.at(6));
+				}
+				if (words.at(1) == "RetentionTime") {
+					pMS2Scan->setRTime(words.at(2));
+				}
 				words.clear();
 			}
 		}
@@ -159,6 +163,128 @@ bool MS2ScanVector::ReadFT2File() {
 			pMS2Scan->isMS2HighRes = false;
 		if (!flag_1stScan) // To avoid empty file
 			saveScan(pMS2Scan);
+	}
+	return bReVal;
+}
+
+bool MS2ScanVector::ReadMs2File() {
+	bool bReVal, flag_1stScan = true; //flag_1stScan true indicates pMS2Scan is empty
+	string sline;
+	istringstream input;
+	MS2Scan * pMS2Scan;
+	ifstream ft2_stream(sFT2Filename.c_str());
+	int tmp_charge;
+	double tmp_mz, tmp_intensity;
+
+	bReVal = ft2_stream.is_open();
+	if (bReVal) {
+		while (!ft2_stream.eof()) {
+			sline.clear();
+			// string tmp_sline = sline;
+			getline(ft2_stream, sline);
+			// cout << sline <<"wyf"<<endl;
+			if (sline == "") {
+				continue;
+			}
+			if ((sline.at(0) >= '0') && (sline.at(0) <= '9')) {
+				TokenVector words(sline, " \t\n\r");
+				input.clear();
+				input.str(words[0]);
+				input >> tmp_mz;
+				input.clear();
+				pMS2Scan->vdMZ.push_back(tmp_mz);
+				input.str(words[1]);
+				input >> tmp_intensity;
+				input.clear();
+				pMS2Scan->vdIntensity.push_back(tmp_intensity);
+				if (words.size() >= 2) {
+					input.clear();
+					input.str(words[2]);
+					input >> tmp_charge;
+					input.clear();
+					pMS2Scan->viCharge.push_back(tmp_charge);
+				} else {
+					pMS2Scan->viCharge.push_back(0);
+				}
+			} else if (sline.at(0) == 'S') {
+				if (flag_1stScan) {
+					flag_1stScan = false;
+				} else if (pMS2Scan->vdIntensity.empty()) {
+					delete pMS2Scan;
+				} else {
+					if (ProNovoConfig::getMassAccuracyFragmentIon() < 0.1) {
+						pMS2Scan->isMS2HighRes = true;
+					} else {
+						pMS2Scan->isMS2HighRes = false;
+					}
+					saveScan(pMS2Scan);
+				}
+				pMS2Scan = new MS2Scan;
+				pMS2Scan->sFT2Filename = sFT2Filename;
+				TokenVector words(sline, " \r\t\n");
+				input.clear();
+				input.str(words[1]);
+				input >> pMS2Scan->iScanId;
+				input.clear();
+				input.str(words[3]);
+				input >> pMS2Scan->dParentMZ;
+				input.clear();
+				pMS2Scan->isMS1HighRes = isMS1HighRes(words[3]);
+				// in case no Z Line
+				pMS2Scan->iParentChargeState = 0;
+				pMS2Scan->dParentNeutralMass = 0;
+			} else if (sline.at(0) == 'Z') {
+				TokenVector words(sline, " \r\t\n");
+				input.clear();
+				input.str(words[1]);
+				input >> pMS2Scan->iParentChargeState;
+				input.clear();
+				//input.str(words[2]);
+				//input >> pMS2Scan->dParentNeutralMass;
+				//input.clear();
+			} else if (sline.at(0) == 'I') {
+				TokenVector words(sline, " \r\t\n");
+				if (words[1] == "ScanType") {
+					pMS2Scan->setScanType(words[2] + words[5] + words[6]);
+				}
+				if (words[1] == "RetTime") {
+					pMS2Scan->setRTime(words[2]);
+				}
+			}
+		}
+		ft2_stream.clear();
+		ft2_stream.close();
+
+		// recognition high or low MS2
+		// cout<<ProNovoConfig::getMassAccuracyFragmentIon()<<endl;
+		if (ProNovoConfig::getMassAccuracyFragmentIon() < 0.1) {
+			pMS2Scan->isMS2HighRes = true;
+		} else {
+			pMS2Scan->isMS2HighRes = false;
+		}
+		if (!flag_1stScan) { // To avoid empty file
+			saveScan(pMS2Scan);
+		}
+	}
+	return bReVal;
+}
+
+bool matchPattern(const string & sPattern, const string & sFilename) {
+	// if the filename ends with sPattern
+	// then it is matched
+	if ((sFilename.compare(sFilename.length() - sPattern.length(), sPattern.length(), sPattern) == 0))
+		return true;
+	else
+		return false;
+
+}
+
+bool MS2ScanVector::loadFile() {
+	bool bReVal;
+	if (matchPattern("ms2", sFT2Filename) || matchPattern("MS2", sFT2Filename)) {
+		bReVal = loadMs2File();
+	} else {
+		bReVal = loadFT2file();
 	}
 	return bReVal;
 }
@@ -178,6 +304,23 @@ bool MS2ScanVector::loadFT2file() {
 		}
 	}
 
+	return bReVal;
+}
+
+
+bool MS2ScanVector::loadMs2File() {
+	// read all MS2 scans from the file and populate vpAllMS2Scans
+	// sort all MS2 scans in vpAllProteins by ascending order of their precursor masses
+	// save their precursor masses in vpPrecursorMasses to quick look-up in assignPeptides2Scans()
+
+	bool bReVal; //false when the file fails to be opened.
+	vector<MS2Scan *>::iterator it;
+	bReVal = ReadMs2File();
+	if (bReVal) {
+		sort(vpAllMS2Scans.begin(), vpAllMS2Scans.end(), myless);
+		for (it = vpAllMS2Scans.begin(); it < vpAllMS2Scans.end(); it++)
+			vpPrecursorMasses.push_back((*it)->dParentNeutralMass);
+	}
 	return bReVal;
 }
 
@@ -339,11 +482,16 @@ void MS2ScanVector::preProcessAllMS2() {
 			IntenSortedPeakPreData = NULL;
 		}
 		int maxPeakBins = 0;
+		int iNumSkippedScans = 0;
 		for (size_t ii = 0; ii < iScanSize; ii++) {
 			if (vpAllMS2Scans.at(ii)->totalPeakBins > maxPeakBins) {
 				maxPeakBins = vpAllMS2Scans.at(ii)->totalPeakBins;
 			}
+			if(vpAllMS2Scans.at(ii)->bSkip){
+				iNumSkippedScans++;
+			}
 		}
+		cout << "Total Scans: " << iScanSize << "\t Skipped Scans: " << iNumSkippedScans << endl;
 		cout << "Rank " << ProNovoConfig::iRank << ":\tMvh preprocess creating table begin" << endl;
 		MVH::initialLnTable(((size_t) maxPeakBins));
 		cout << "Rank " << ProNovoConfig::iRank << ":\tMvh preprocess creating table end" << endl;
@@ -626,8 +774,13 @@ void MS2ScanVector::searchDatabase() {
 		currentPeptide = new Peptide();
 		// get one peptide from the database at a time, until there is no more peptide
 		while (myProteinDatabase.getNextPeptide(currentPeptide)) {
+			/*cout << currentPeptide->sPeptide << endl;
+			if(currentPeptide->sPeptide == "[PESAFQAVPLLELATIGLQK]"){
+				cout << "check" << endl;
+			}*/
 			// save the new peptide to the array
 			if (assignPeptides2Scans(currentPeptide)) {
+				//cout << currentPeptide->sPeptide << endl;
 				// save the new peptide to the array
 				vpPeptideArray.push_back(currentPeptide);
 				if (currentPeptide->getPeptideMass() > ProNovoConfig::dMaxPeptideMass) {
@@ -1050,7 +1203,7 @@ void MS2ScanVector::writeOutputMultiScoresSpectrum2MutiPep() {
 
 	//Spectrum level head
 	outputFile << "+\tFilename\tScanNumber\tParentCharge\tMeasuredParentMass"
-			<< "\tScanType\tSearchName\tTotalIntensity\tMaxIntensity" << endl;
+			<< "\tScanType\tSearchName\tTotalIntensity\tMaxIntensity\tRetentionTime" << endl;
 	//PSM level head
 	outputFile << "*\tIdentifiedPeptide\tOriginalPeptide\tCalculatedParentMass " << "\tMVH\tXcorr\tWDP\tProteinNames"
 			<< endl;
@@ -1069,6 +1222,8 @@ void MS2ScanVector::writeOutputMultiScoresSpectrum2MutiPep() {
 			outputFile << "\t" << vpAllMS2Scans.at(i)->dSumIntensity;
 			//maxInt
 			outputFile << "\t" << vpAllMS2Scans.at(i)->dMaxIntensity;
+			// Retention Time
+			outputFile << "\t" << vpAllMS2Scans.at(i)->getRTime();
 			outputFile << endl;
 			//PSM level head
 			for (j = 0; j < vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.size(); j++) {

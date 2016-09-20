@@ -100,7 +100,7 @@ struct IonInfo {
 	int bUseNeutralLoss;
 	int iIonVal[NUM_ION_SERIES];
 	IonInfo() {
-		bUseNeutralLoss = 1;
+		bUseNeutralLoss = 0;
 		iIonVal[ION_SERIES_A] = 0;
 		iIonVal[ION_SERIES_B] = 1;
 		iIonVal[ION_SERIES_C] = 0;
