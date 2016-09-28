@@ -1605,7 +1605,7 @@ void ProductIon::setComplementaryFragmentObserved(bool bComplementaryFragmentObs
 
 size_t PeptideUnit::iNumScores = 0;
 
-bool PeptideUnit::addXcorr(double dScore) {
+bool PeptideUnit::addScores(double dScore) {
 	vdScores.push_back(dScore);
 	return true;
 }
@@ -1644,6 +1644,7 @@ bool PeptideUnit::isDecoy(string & _sDecoyPrefix) {
 void PeptideUnit::setPeptideUnitInfo(const Peptide* currentPeptide, const double & dScore, string sScoringFunction) {
 	dCalculatedParentMass = currentPeptide->getPeptideMass();
 	sIdentifiedPeptide = currentPeptide->getPeptideSeq();
+	sPeptideForScoring = currentPeptide->getPeptideForScoring();
 	sOriginalPeptide = currentPeptide->getOriginalPeptideSeq();
 	sProteinNames = currentPeptide->getProteinName();
 	cIdentifyPrefix = currentPeptide->getIdentifyPrefix();

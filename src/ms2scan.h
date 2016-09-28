@@ -97,6 +97,7 @@ public:
 	double dCalculatedParentMass;
 	double dScore;
 	string sIdentifiedPeptide;
+	string sPeptideForScoring;
 	string sOriginalPeptide;
 	string sProteinNames;
 	string sScoringFunction;
@@ -113,7 +114,7 @@ public:
 	vector<double> vdRank;
 	vector<double> vdFraction;
 
-	bool addXcorr(double dScore);
+	bool addScores(double dScore);
 	int getNumProtein();
 	bool isDecoy(string & _sDecoyPrefix);
 	void setPeptideUnitInfo(const Peptide * currentPeptide, const double & dScore, string sScoringFunction);

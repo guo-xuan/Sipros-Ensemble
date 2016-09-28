@@ -202,7 +202,7 @@ bool MVH::CalculateSequenceIons(Peptide * currentPeptide, int maxIonCharge, bool
 	_pdAAreverse->clear();
 	vector<char> seq;
 	seq.clear();
-	string * sSequence = &(currentPeptide->sPeptide);
+	string * sSequence = &(currentPeptide->sNeutralPeptide);
 	size_t i = 0;
 	size_t k = sSequence->length() - 1;
 	char currentPTM = 0;

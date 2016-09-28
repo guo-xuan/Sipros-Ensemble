@@ -35,6 +35,8 @@ public:
 	string sPeptide;
 	// the sequence of the original peptide
 	string sOriginalPeptide;
+	// Neutral lost peptide
+	string sNeutralPeptide;
 	// Low-res MS2 scan just need
 	// the most abundant isotopic masses of predicted Y and B ions of the peptide
 	vector<double> vdYionMasses;
@@ -56,19 +58,23 @@ public:
 	string getPeptideSeq() const {
 		return sPeptide;
 	}
-	;
+
+	string getPeptideForScoring() const{
+		return sNeutralPeptide;
+	}
+
 	string getOriginalPeptideSeq() const {
 		return sOriginalPeptide;
 	}
-	;
+
 	string getProteinName() const {
 		return sProteinName;
 	}
-	;
+
 	int getBeginPosProtein() const {
 		return ibeginPos;
 	}
-	;
+
 	double getPeptideMass() const {
 		return dPeptideMass;
 	}
@@ -76,23 +82,23 @@ public:
 	double getPeptideScore() const {
 		return dscore;
 	}
-	;
+
 	int getPeptideLength() const {
 		return iPeptideLength;
 	}
-	;
+
 	char getIdentifyPrefix() const {
 		return cIdentifyPrefix;
 	}
-	;
+
 	char getIdentifySuffix() const {
 		return cIdentifySuffix;
 	}
-	;
+
 	char getOriginalPrefix() const {
 		return cOriginalPrefix;
 	}
-	;
+
 	char getOriginalSuffix() const {
 		return cOriginalSuffix;
 	}
@@ -101,7 +107,7 @@ public:
 	void setPeptideScore(double dscore) {
 		this->dscore = dscore;
 	}
-	;
+
 
 	// calculate all expected y and b ions from sPeptide
 	void calculateExpectedFragments(const string & sNewPeptide, const map<char, double> & mapResidueMass);

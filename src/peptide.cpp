@@ -147,22 +147,21 @@ void Peptide::calculateIsotope(const string & sNewPeptide, const map<char, doubl
 
 void Peptide::preprocessing(bool isMS2HighRes, const map<char, double>& mapResidueMass) {
 	int i;
-	string sNewPeptide;
 	iPeptideLength = 0;
 	for (i = 0; i < (int) sPeptide.length(); ++i) {
 		if (isalpha(sPeptide.at(i))) {
 			iPeptideLength = iPeptideLength + 1;
 		}
 	}
-	if (ProNovoConfig::bWeightDotSumEnable) {
-		sNewPeptide = neutralLossProcess(sPeptide);
-		if (isMS2HighRes) {
-			calculateIsotope(sNewPeptide, mapResidueMass); // just for weightsum
-			//calculateExpectedFragments(mapResidueMass); // just for ranksum
-		} else {
-			calculateExpectedFragments(sNewPeptide, mapResidueMass);
-		}
-	}
+	// if (ProNovoConfig::bWeightDotSumEnable) {
+	sNeutralPeptide = neutralLossProcess(sPeptide);
+	/*if (isMS2HighRes) {
+		calculateIsotope(sNewPeptide, mapResidueMass); // just for weightsum
+		//calculateExpectedFragments(mapResidueMass); // just for ranksum
+	} else {
+		calculateExpectedFragments(sNewPeptide, mapResidueMass);
+	}*/
+	// }
 }
 
 void Peptide::preprocessing(string & sPeptide, bool isMS2HighRes, const map<char, double> & mapResidueMass,
