@@ -85,8 +85,7 @@ void ProteinDatabase::initializePtmInfo()
 }
 
 void ProteinDatabase::initializeCombOrderPTM()
-// In comb_order, put numbers for 0 to iPtmCount-1 
-{
+{	// In comb_order, put numbers for 0 to iPtmCount-1
 	int j;
 	comb_order.clear();
 	for (j = 0; j < iPtmCount; j++)
@@ -106,9 +105,8 @@ void ProteinDatabase::initializePermutationPTM() {
 	}
 }
 
-bool ProteinDatabase::getNextPeptidePTM(Peptide* currentPeptide)
 // for original peptides and ptm peptides
-		{
+bool ProteinDatabase::getNextPeptidePTM(Peptide* currentPeptide) {
 	bool bReVal;
 	if (!bstayCurrentOriginalPeptide) {
 		//the next peptide must be original
@@ -128,10 +126,10 @@ bool ProteinDatabase::getNextPeptidePTM(Peptide* currentPeptide)
 	return bReVal;
 }
 
-bool ProteinDatabase::getNextPeptideMutation(Peptide* currentPeptide)
 // The residue mutation before or after the cleavage sites can silence or create cleavage sites
 // The current version just considers impact of mutation before cleavage sites
-		{
+bool ProteinDatabase::getNextPeptideMutation(Peptide* currentPeptide)
+{
 	bool bReVal;
 
 	if (!bstayCurrentOriginalPeptide) {

@@ -39,13 +39,13 @@ endif
 # Add inputs and outputs from these tool invocations to the build variables 
 
 # All Target
-all: Sipros5_openmp
+all: Sipros10_openmp
 
 # Tool invocations
-Sipros5_openmp: $(OBJS) $(USER_OBJS)
+Sipros10_openmp: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C++ Linker'
-	g++ -fopenmp  -o "Sipros5_openmp" $(OBJS) $(USER_OBJS) $(LIBS)
+	g++ -fopenmp -g3 -o "Sipros10_openmp" $(OBJS) $(USER_OBJS) $(LIBS)
 	-$(RM) $(OBJS)$(C++_DEPS)$(C_DEPS)$(CC_DEPS)$(CPP_DEPS)$(EXECUTABLES)$(CXX_DEPS)$(C_UPPER_DEPS)
 	@echo 'Finished building target: $@'
 	@echo ' '

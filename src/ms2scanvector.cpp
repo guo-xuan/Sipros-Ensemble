@@ -72,9 +72,9 @@ bool MS2ScanVector::ReadFT2File() {
 			if (sline == "")
 				continue;
 			if ((sline.at(0) >= '0') && (sline.at(0) <= '9')) {
-				//TokenVector words(sline, " \t\n\r");
-				vector<string> words;
-				TokenVector::Parse(sline, " \r\t\n", words);
+				TokenVector words(sline, " \t\n\r");
+				// vector<string> words;
+				// TokenVector::Parse(sline, " \r\t\n", words);
 				if (words.size() < 6) {
 					// The judgement of MS scan resolution here will be overwritten,
 					// we still keep the related codes here for future possible usuage
@@ -112,9 +112,9 @@ bool MS2ScanVector::ReadFT2File() {
 				}
 				pMS2Scan = new MS2Scan;
 				pMS2Scan->sFT2Filename = sFT2Filename;
-				vector<string> words;
-				TokenVector::Parse(sline, " \r\t\n", words);
-				//TokenVector words(sline, " \r\t\n");
+				// vector<string> words;
+				// TokenVector::Parse(sline, " \r\t\n", words);
+				TokenVector words(sline, " \r\t\n");
 				input.clear();
 				input.str(words.at(1));
 				input >> pMS2Scan->iScanId;
@@ -128,9 +128,9 @@ bool MS2ScanVector::ReadFT2File() {
 				pMS2Scan->dParentNeutralMass = 0;
 				words.clear();
 			} else if (sline.at(0) == 'Z') {
-				vector<string> words;
-				TokenVector::Parse(sline, " \r\t\n", words);
-				//TokenVector words(sline, " \r\t\n");
+				// vector<string> words;
+				// TokenVector::Parse(sline, " \r\t\n", words);
+				TokenVector words(sline, " \r\t\n");
 				input.clear();
 				input.str(words[1]);
 				input >> pMS2Scan->iParentChargeState;
@@ -140,9 +140,9 @@ bool MS2ScanVector::ReadFT2File() {
 				//input.clear();
 				words.clear();
 			} else if (sline.at(0) == 'I') {
-				vector<string> words;
-				TokenVector::Parse(sline, " \r\t\n", words);
-				//TokenVector words(sline, " \r\t\n");
+				// vector<string> words;
+				// TokenVector::Parse(sline, " \r\t\n", words);
+				TokenVector words(sline, " \r\t\n");
 				if (words.at(1) == "ScanType"){
 					pMS2Scan->setScanType(words.at(2) + words.at(5) + words.at(6));
 				}

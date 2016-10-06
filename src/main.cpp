@@ -5,7 +5,7 @@
 #include "directoryStructure.h"
 #include "proNovoConfig.h"
 #include "ms2scanvector.h"
-//#include <gperftools/profiler.h>
+// #include <gperftools/profiler.h>
 
 using namespace std;
 
@@ -172,6 +172,7 @@ int main(int argc, char **argv) {
 	if (vsConfigureFilenames.empty()) {
 		vsConfigureFilenames.push_back(sConfigFilename);
 	}
+	// ProfilerStart("low_res.log");
 	for (size_t j = 0; j < vsConfigureFilenames.size(); j++) {
 		// Load config file
 		if (!ProNovoConfig::setFilename(vsConfigureFilenames.at(j))) {
@@ -185,6 +186,7 @@ int main(int argc, char **argv) {
 			handleScan(vsFT2Filenames.at(i), sOutputDirectory, vsConfigureFilenames.at(j), bScreenOutput);
 		}
 	}
+	// ProfilerStop();
 
 	double end = omp_get_wtime();
 	cout << endl;
