@@ -14,6 +14,7 @@
 #include "proteindatabase.h"
 #include "./Scores/CometSearch.h"
 #include "./Scores/MVH.h"
+#include "ProteinDbParser.h"
 
 #define ZERO            0.00000001
 #define PEPTIDE_ARRAY_SIZE  1000000
@@ -45,6 +46,7 @@ class MS2ScanVector {
 	static bool mylessScanId(MS2Scan * pMS2Scan1, MS2Scan * pMS2Scan2);
 	void preProcessAllMS2();  // Preprocessing all MS2 scans by multi-threading
 	void searchDatabase(); // Search all MS2 scans against the protein list by multi-threading
+	void searchDatabaseSnp(); // Search all MS2 scans against the protein list by multi-threading
 	// find every MS2 scan whose precursor mass matches peptide mass
 	bool assignPeptides2Scans(Peptide * currentPeptide);
 	void processPeptideArray(vector<Peptide*>& vpPeptideArray);

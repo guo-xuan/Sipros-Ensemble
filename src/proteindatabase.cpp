@@ -61,27 +61,29 @@ void ProteinDatabase::initializePtmInfo()
 // For a original peptide, this function records all positions where ptm may happen.
 // This funcion also records related ptm types to each possible position.
 {
-	int j, residue_id, max_ptm;
-	pair<int, vector<pair<string, double> > > ptm_position;
-	ptm_position_all.clear();
-	for (j = 0; j < (int) (sOriginalPeptide.length()); j++)
-	// identify positions on which ptm may happen
-			{
-		residue_id = orderstring.find(sOriginalPeptide.at(j));
-		if (!(ptm_map[residue_id].empty())) {
-			//cout<<residue_id<<endl;
-			ptm_position = make_pair<int, vector<pair<string, double> > >(j, ptm_map[residue_id]);
-			ptm_position_all.push_back(ptm_position);
-		}
+    int j, residue_id, max_ptm;
+    pair<int, vector<pair<string,double> > > ptm_position;
+    ptm_position_all.clear();
+    for (j=0; j< (int)(sOriginalPeptide.length()); j++)
+      // identify positions on which ptm may happen
+    {
+	residue_id = orderstring.find(sOriginalPeptide.at(j));
+	if (!(ptm_map[residue_id].empty()))
+	{
+	    //cout<<residue_id<<endl;
+	    ptm_position = make_pair(j, ptm_map[residue_id]);
+	    ptm_position_all.push_back(ptm_position);
 	}
+    }
 
-	max_ptm = ProNovoConfig::getMaxPTMcount(); //max ptm allowed for each peptides
-	// If max_ptm is greater than the number of positions allowing ptms,
-	// the number of positions is actual upper bounder of ptm
-	icurrentMaxPtm = ((max_ptm < ((int) (ptm_position_all.size()))) ? max_ptm : ((int) (ptm_position_all.size())));
-	iPtmCount = 1;
-	if (iPtmCount <= icurrentMaxPtm)
-		initializeCombOrderPTM();
+    max_ptm = ProNovoConfig::getMaxPTMcount(); //max ptm allowed for each peptides
+    // If max_ptm is greater than the number of positions allowing ptms,
+    // the number of positions is actual upper bounder of ptm
+    icurrentMaxPtm = ( (max_ptm < ((int)(ptm_position_all.size()))) ? max_ptm
+		    : ((int)(ptm_position_all.size())) );
+    iPtmCount = 1;
+    if (iPtmCount <= icurrentMaxPtm)
+	initializeCombOrderPTM();
 }
 
 void ProteinDatabase::initializeCombOrderPTM()

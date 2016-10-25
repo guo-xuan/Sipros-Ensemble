@@ -13,6 +13,7 @@
 #include <sstream>
 #include <vector>
 #include <algorithm>
+#include <unordered_set>
 
 #include "peptide.h"
 #include "proNovoConfig.h"
@@ -27,7 +28,6 @@ struct Mutation {
 	size_t iPos;
 	char cType;
 	string sSeq;
-	vector<size_t> * vLinkedVariants;
 	size_t iMutationLinkIndex;
 	size_t iMutationIndex;
 };
@@ -43,7 +43,9 @@ struct CleavageSite {
 	size_t iPos;
 	size_t iMutationIndex;
 	bool bIsDynamicCleavageSite;
-	vector<size_t> vMutations;
+	vector<Mutation *> vMutations;
+	// 0: no mutation; 1: before cleavage site; 2 after cleavage site; 3: both
+	size_t iMutationPositionType;
 	bool operator<(const CleavageSite &cleavage) const {
 		return iPos < cleavage.iPos;
 	}
@@ -53,13 +55,15 @@ struct ProteinSegment {
 	// the original sequence without any variants
 	string sSeq;
 	// Position on the original sequence, first included, second not included
-	pair<int, int> pPostion;
-	vector<size_t> vStaticVariants;
+	pair<size_t, size_t> pPostion;
+	vector<size_t> vPositiveDynamicCleavageSites;
+	char cIdentifyPrefix, cIdentifySuffix, cOriginalPrefix, cOriginalSuffix;
 };
 
 struct MutatedPeptide {
 	string sSeq;
-	pair<int, int> pPostion;
+	ProteinSegment * proteinSegment;
+	pair<size_t, size_t> pPostion;
 	char cIdentifyPrefix, cIdentifySuffix, cOriginalPrefix, cOriginalSuffix;
 	double dcurrentMass;
 };
@@ -86,11 +90,12 @@ public:
 	bool getNextProtein();
 	size_t getNumMutatedPeptide();
 	size_t getNumPtmPeptide();
-	const vector<MutatedPeptide> & peptideDigest(size_t _iMutatedPeptideIndex);
+	const vector<MutatedPeptide> & peptideModify(size_t _iMutatedPeptideIndex);
 	const vector<MutatedPeptide> & proteinDigest();
+	void setPeptide(size_t _index, Peptide * _pPeptide);
 
 private:
-	//
+	// all protein characters
 	string orderstring;
 	// from configure file
 	PTM_List ptmlist;
@@ -98,9 +103,9 @@ private:
 	vector<vector<pair<string, double> > > ptm_map;
 	// position, and vector of PTMs with symbol and mass shift
 	// all potential ptm position for the current peptide
-	vector<pair<size_t, vector<pair<string, double> > > > ptm_position_all;
+	vector<pair<size_t, vector<pair<string, double> > *> > ptm_position_all;
 	// based on given comb_order
-	vector<size_t> comb_order, ptm_order, ele_num;
+	vector<int> comb_order, ptm_order, ele_num;
 	// the maximum number of PTMs allowed in a peptide, set this variable from ProNovoConfig::getMaxPTMcount()
 	size_t imaxPTM;
 	// if true, allows standard output
@@ -113,13 +118,12 @@ private:
 	string sLine;
 	//current protein id
 	int iProteinId;
-
+	// the current protein name
 	string scurrentProteinName;
-
+	// next protein name; if no more protein, then "" empty
 	string snextProteinName;
-
+	// original protein sequence from the protein DB
 	string sProteinSeq;
-
 	// if mutation info exists, it is surrounded by sOpenCharMutation and sCloseCharMutation
 	static string sOpenCharMutation;
 	static string sEndCharMutation;
@@ -135,6 +139,8 @@ private:
 	size_t iAllMutationLinksSize;
 	// all cleavage sites on the protein sequence, each position will only have cleavage site
 	vector<CleavageSite> vAllPosibleCleavageSites;
+	// poistion of cleavage sites
+	map<size_t, CleavageSite*> mscCleavageSites;
 	// the size of vAllPosibleCleavageSites
 	size_t iAllPosibleCleavageSitesSize;
 	// indexes of cleavage sites not affected by mutations
@@ -149,9 +155,9 @@ private:
 	vector<MutatedPeptide> vMutatedPeptides;
 	// the size of vMutatedPeptides
 	size_t iMutatedPeptidesSize;
-	//
+	// cleavage sites to do the protein digestions, not all cleavage site will be used
 	vector<CleavageSite*> vCombinationCleavageSites;
-	//
+	// dynamic cleavage sites must be covered by a peptide
 	vector<size_t> vSelectedDynamicCleavageSites;
 	// the protein segments after digestion
 	vector<ProteinSegment> vProteinSegments;
@@ -161,43 +167,67 @@ private:
 	vector<MutatedPeptide> vPtmPeptides;
 	// size of vPtmPeptides
 	size_t iPtmPeptidesSize;
-
+	// the link mask used to make sure there is no link conflict
+	vector<int64_t> vLinkMasks;
+	// the position mask used to make sure there is no position conflict
+	vector<int64_t> vPositionMasks;
+	// mutations in the range of a peptide
+	vector<size_t> vMutationsInPeptide;
+	// all possible residues
 	string slegalChar;
+	// temporary storing the mutation position info
 	string sPositionOfMutation;
+	// temporary storing the mutation string
 	string sMutationResidue;
+	// temporary storing the mutation info from the protein ID
 	string sMutationInfo;
+	// temporary storing the begin position of mutation info string in the protein ID sequence
 	size_t iMutationInfoOpenPos;
+	// temporary storing the end position of mutation info string in the protein ID sequence
 	size_t iMutationInfoClosePos;
-
+	// maximum allowed cleavage sites, get it from configure file
 	int iMaxMissedCleavageSites;
-
-	LookupTable lookupTableIndex;
+	// quick check if two mutations are in the same position
 	LookupTable lookupTablePosition;
+	// N term mass
+	double dTerminusMassN;
+	// C term mass
+	double dTerminusMassC;
+	// mass for each possible residue
+	map<char, double> mResiduleMass;
+	// minimum peptide length
+	size_t iMinPeptideLen;
+	// maximum peptide length
+	size_t iMaxPeptideLen;
+	// bool skip the first M or not
+	bool bSkipM;
 
 	void applyMutations(ProteinSegment & _proteinsegment, vector<Mutation> & _vAllVariants,
-			vector<size_t> & _vIndexStaticMutations, vector<size_t> & _vIndexDynamicMutations, int64_t _iMasks,
-			vector<MutatedPeptide> & _vMutatedPeptides);
-	void digest(string & _seq, vector<CleavageSite> & _vAllPosibleCleavageSites, vector<size_t> & _vStaticCleavageSites,
+			vector<size_t> & _vIndexDynamicMutations, int64_t _iMasks, vector<MutatedPeptide> & _vMutatedPeptides,
+			size_t & _iMutatedPeptidesSize, LookupTable & _lookupTablePosition);
+	void digest(string & _seq, vector<CleavageSite> & _vAllPosibleCleavageSites, size_t _iAllPosibleCleavageSitesSize, vector<size_t> & _vStaticCleavageSites,
 			vector<size_t> & vDynamicCleavageSites, vector<CleavageSite*> & vCombinationCleavageSites,
 			vector<size_t> & vSelectedDynamicCleavageSites, vector<ProteinSegment> & _vProteinSegments,
 			size_t & _iProteinSegmentsSize);
-	void generateLinkMasks(vector<vector<size_t>> & _vviAllMutationLinks, vector<size_t> & _vLinkIndexes,
-			vector<Mutation> & _vAllVariants, vector<size_t> & _vIndexDynamicMutations, vector<int64_t> & _vMasks);
+	void generateLinkMasks(vector<vector<size_t>> & _vviAllMutationLinks, const vector<size_t> & _vLinkIndexes,
+			vector<Mutation> & _vAllMutations, vector<size_t> & _vIndexDynamicMutations, vector<int64_t> & _vMasks);
 	void generateMutatedPeptides(ProteinSegment & _proteinsegment, vector<MutatedPeptide> & _vMutatedPeptides,
-			size_t & iMutatedPeptidesSize, multimap<size_t, size_t> & _miiMutations, vector<Mutation> & _vAllVariants,
-			vector<vector<size_t>> & _vviAllMutationLinks, LookupTable & _lookupTableIndex,
-			LookupTable & _lookupTablePosition);
+			size_t & iMutatedPeptidesSize, multimap<size_t, size_t> & _miiMutations, vector<Mutation> & _vAllMutations,
+			vector<vector<size_t>> & _vviAllMutationLinks, LookupTable & _lookupTablePosition,
+			vector<int64_t> & _vLinkMasks, vector<int64_t> & _vPositionMasks, vector<size_t> & _vDynamicMutations);
 	void generateProteinSegment(string & _seq, vector<CleavageSite*> & _vCleavageSites,
-			vector<size_t> & _vCleavageSitesMustHave, vector<ProteinSegment> & _vProteinSegments, size_t & _iProteinSegmentsSize);
+			vector<size_t> & _vCleavageSitesMustHave, vector<ProteinSegment> & _vProteinSegments,
+			size_t & _iProteinSegmentsSize);
 	void generatePtmPeptide(MutatedPeptide & _mutatedPeptide, vector<MutatedPeptide> & _vPtmPeptides,
-			size_t & _iPtmPeptidesSize, vector<pair<size_t, vector<pair<string, double> > > > & _ptm_position_all,
-			vector<size_t> & _comb_order, vector<size_t> & _ptm_order, vector<size_t> & _ele_num);
-	void generatePositionMasks(vector<Mutation> & _vAllVariants, vector<size_t> & _vIndexDynamicMutations,
+			size_t & _iPtmPeptidesSize, vector<pair<size_t, vector<pair<string, double> > *> > & _ptm_position_all,
+			vector<int> & _comb_order, vector<int> & _ptm_order, vector<int> & _ele_num);
+	void generatePositionMasks(vector<Mutation> & _vAllMutations, vector<size_t> & _vIndexDynamicMutations,
 			vector<int64_t> & _vMasks);
+	bool isCleavageResidueAfter(char c2);
+	bool isCleavageResidueBefore(char c1);
 	bool isCleavageSite(char c1, char c2);
 	bool isCleavageSite(string & _seq, Mutation & _mutation, size_t _iCleavagePos);
 	bool isCleavageSite(string & _seq, Mutation & _mutationBefore, Mutation & _mutationAfter, size_t _iCleavagePos);
-	bool isConflicting(vector<size_t> & _vStaticVariants);
 	void Initial_PTM_Map();
 	void ParseCleavageSites(string & _seq, vector<Mutation> & _vAllMutations, size_t & _iAllMutationsSize,
 			multimap<size_t, size_t> & _miiMutations, vector<CleavageSite> & _vAllPosibleCleavageSites,

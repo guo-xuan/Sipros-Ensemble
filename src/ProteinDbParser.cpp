@@ -7,6 +7,9 @@
 
 #include "ProteinDbParser.h"
 
+string ProteinDbParser::sOpenCharMutation = "((((";
+string ProteinDbParser::sEndCharMutation = "))))";
+
 void LookupTable::clean() {
 	for (size_t i = 0; i < vSet.size(); i++) {
 		vb.at(vSet.at(i)) = false;
@@ -59,9 +62,8 @@ ProteinDbParser::ProteinDbParser(bool _bScreenOutput) {
 		iMutationInfoOpenPos = sLine.rfind(sOpenCharMutation);
 		iMutationInfoClosePos = sLine.rfind(sEndCharMutation);
 		if (iMutationInfoOpenPos != string::npos && iMutationInfoClosePos != string::npos) {
-			sMutationInfo = sLine.substr(iMutationInfoOpenPos, iMutationInfoClosePos - iMutationInfoOpenPos);
+			sMutationInfo = sLine.substr(iMutationInfoOpenPos + 1, iMutationInfoClosePos - iMutationInfoOpenPos - 1);
 		}
-		ParseMutationInfo (iMutationInfo);
 	}
 	iProteinId = 0;
 	iMutationInfoOpenPos = 0;
@@ -75,20 +77,31 @@ ProteinDbParser::ProteinDbParser(bool _bScreenOutput) {
 		}
 	}
 	// Currently, in the peptide generating part, SIP and Regular modes are same.
-	if ((ProNovoConfig::getSearchType() == "Regular") || (ProNovoConfig::getSearchType() == "SIP")) {
-		if (!ptmlist.populate_from_xml_config()) {
-			// the current configure file is not xml format, but we still use this function
-			cerr << "Error in parsing PTM rules from config " << endl;
-			exit(1);
+	if (!ptmlist.populate_from_xml_config()) {
+		// the current configure file is not xml format, but we still use this function
+		cerr << "Error in parsing PTM rules from config " << endl;
+		exit(1);
+	}
+	Initial_PTM_Map();
+
+	dTerminusMassN = ProNovoConfig::getTerminusMassN();
+	dTerminusMassC = ProNovoConfig::getTerminusMassC();
+
+	for (size_t i = 0; i < orderstring.size(); i++) {
+		if (orderstring.at(i) == '[' || orderstring.at(i) == ']') {
+			mResiduleMass[orderstring.at(i)] = 0;
+		} else {
+			mResiduleMass[orderstring.at(i)] = ProNovoConfig::getResidueMass(orderstring.substr(i, 1));
 		}
-		Initial_PTM_Map();
 	}
 
+	iMinPeptideLen = ProNovoConfig::getMinPeptideLength();
+	iMaxPeptideLen = ProNovoConfig::getMaxPeptideLength();
+
+	bSkipM = false;
 }
 
 ProteinDbParser::~ProteinDbParser() {
-	db_stream.clear();
-	db_stream.close();
 }
 
 bool ProteinDbParser::getNextProtein() {
@@ -97,6 +110,8 @@ bool ProteinDbParser::getNextProtein() {
 	scurrentProteinName = snextProteinName;
 	// no more proteins in the database, if next protein name is empty
 	if (snextProteinName.empty()) {
+		db_stream.clear();
+		db_stream.close();
 		return false;
 	}
 	snextProteinName.clear();
@@ -109,23 +124,42 @@ bool ProteinDbParser::getNextProtein() {
 			continue;
 		}
 		if (sLine.at(0) == '>') {
+			if ((ProNovoConfig::getTestStartRemoval()) && (sProteinSeq.at(0) == 'M')) {
+				sProteinSeq = sProteinSeq.substr(1);
+				bSkipM = true;
+			} else {
+				bSkipM = false;
+			}
+			ParseMutationInfo(sMutationInfo, vAllMutations, iAllMutationsSize, vviAllMutationLinks,
+					iAllMutationLinksSize, miiMutations);
+			ParseCleavageSites(sProteinSeq, vAllMutations, iAllMutationsSize, miiMutations, vAllPosibleCleavageSites,
+					iAllPosibleCleavageSitesSize, vStaticCleavageSites, vDynamicCleavageSites);
 			snextProteinName = sLine.substr(1, sLine.find_first_of(" \t\f\v\n\r") - 1);
 			// extract the mutation information
 			sMutationInfo.clear();
 			iMutationInfoOpenPos = sLine.rfind(sOpenCharMutation);
 			iMutationInfoClosePos = sLine.rfind(sEndCharMutation);
 			if (iMutationInfoOpenPos != string::npos && iMutationInfoClosePos != string::npos) {
-				sMutationInfo = sLine.substr(iMutationInfoOpenPos, iMutationInfoClosePos - iMutationInfoOpenPos);
+				sMutationInfo = sLine.substr(iMutationInfoOpenPos + 1,
+						iMutationInfoClosePos - iMutationInfoOpenPos - 1);
 			}
-			ParseMutationInfo(sMutationInfo, vAllMutations, iAllMutationsSize, vviAllMutationLinks,
-					iAllMutationLinksSize, miiMutations);
-			ParseCleavageSites(sProteinSeq, vAllMutations, iAllMutationsSize, miiMutations, vAllPosibleCleavageSites,
-					iAllPosibleCleavageSitesSize, vStaticCleavageSites, vDynamicCleavageSites);
 			break;
 		} else {
 			RemoveIllegalResidue(sLine);
 			sProteinSeq.append(sLine);
 		}
+	}
+	if (db_stream.eof()) {
+		if ((ProNovoConfig::getTestStartRemoval()) && (sProteinSeq.at(0) == 'M')) {
+			sProteinSeq = sProteinSeq.substr(1);
+			bSkipM = true;
+		} else {
+			bSkipM = false;
+		}
+		ParseMutationInfo(sMutationInfo, vAllMutations, iAllMutationsSize, vviAllMutationLinks, iAllMutationLinksSize,
+				miiMutations);
+		ParseCleavageSites(sProteinSeq, vAllMutations, iAllMutationsSize, miiMutations, vAllPosibleCleavageSites,
+				iAllPosibleCleavageSitesSize, vStaticCleavageSites, vDynamicCleavageSites);
 	}
 	iProteinId++;
 	if (bScreenOutput) {
@@ -142,7 +176,7 @@ size_t ProteinDbParser::getNumPtmPeptide() {
 	return iPtmPeptidesSize;
 }
 
-const vector<MutatedPeptide> & ProteinDbParser::peptideDigest(size_t _iMutatedPeptideIndex) {
+const vector<MutatedPeptide> & ProteinDbParser::peptideModify(size_t _iMutatedPeptideIndex) {
 	iPtmPeptidesSize = 0;
 	generatePtmPeptide(vMutatedPeptides.at(_iMutatedPeptideIndex), vPtmPeptides, iPtmPeptidesSize, ptm_position_all,
 			comb_order, ptm_order, ele_num);
@@ -151,48 +185,107 @@ const vector<MutatedPeptide> & ProteinDbParser::peptideDigest(size_t _iMutatedPe
 
 const vector<MutatedPeptide> & ProteinDbParser::proteinDigest() {
 	iMutatedPeptidesSize = 0;
-	digest(sProteinSeq, vAllPosibleCleavageSites, vStaticCleavageSites, vDynamicCleavageSites,
-			vCombinationCleavageSites, vSelectedDynamicCleavageSites, vProteinSegments, iProteinSegmentsSize);
+	digest(sProteinSeq, vAllPosibleCleavageSites, iAllPosibleCleavageSitesSize, vStaticCleavageSites,
+			vDynamicCleavageSites, vCombinationCleavageSites, vSelectedDynamicCleavageSites, vProteinSegments,
+			iProteinSegmentsSize);
 	for (size_t i = 0; i < iProteinSegmentsSize; i++) {
 		generateMutatedPeptides(vProteinSegments.at(i), vMutatedPeptides, iMutatedPeptidesSize, miiMutations,
-				vAllMutations, vviAllMutationLinks, lookupTableIndex, lookupTablePosition);
+				vAllMutations, vviAllMutationLinks, lookupTablePosition, vLinkMasks, vPositionMasks,
+				vMutationsInPeptide);
 	}
 	return vMutatedPeptides;
+}
+
+void ProteinDbParser::setPeptide(size_t _index, Peptide * _pPeptide) {
+	MutatedPeptide * p = &(vPtmPeptides.at(_index));
+	string s;
+	s.append("[");
+	s.append(p->proteinSegment->sSeq);
+	s.append("]");
+	_pPeptide->setPeptide(p->sSeq, s, scurrentProteinName, p->proteinSegment->pPostion.first, p->dcurrentMass,
+			p->cIdentifyPrefix, p->cIdentifySuffix, p->cOriginalPrefix, p->cOriginalSuffix);
 }
 
 // private methods for ProteinDbParser
 
 void ProteinDbParser::applyMutations(ProteinSegment & _proteinsegment, vector<Mutation> & _vAllVariants,
-		vector<size_t> & _vIndexStaticMutations, vector<size_t> & _vIndexDynamicMutations, int64_t _iMasks,
-		vector<MutatedPeptide> & _vMutatedPeptides) {
-	_vMutatedPeptides.push_back(MutatedPeptide());
-	MutatedPeptide * mutatedPeptide = &(_vMutatedPeptides.back());
+		vector<size_t> & _vIndexDynamicMutations, int64_t _iMasks, vector<MutatedPeptide> & _vMutatedPeptides,
+		size_t & _iMutatedPeptidesSize, LookupTable & _lookupTablePosition) {
+	/*	if (_proteinsegment.sSeq == "GLEIVKELLKK") {
+	 cout << "check" << endl;
+	 }*/
+	if (_iMutatedPeptidesSize >= _vMutatedPeptides.size()) {
+		_vMutatedPeptides.push_back(MutatedPeptide());
+	}
+	MutatedPeptide * mutatedPeptide = &(_vMutatedPeptides.at(_iMutatedPeptidesSize));
+	mutatedPeptide->sSeq.clear();
 	mutatedPeptide->sSeq.append("[");
 	mutatedPeptide->sSeq.append(_proteinsegment.sSeq);
 	mutatedPeptide->sSeq.append("]");
-	size_t i = 0, beg = _proteinsegment.pPostion.first, end = _proteinsegment.pPostion.second;
-	Mutation * variant;
-	for (i = 0; i < _vIndexStaticMutations.size(); i++) {
-		variant = &(_vAllVariants.at(_vIndexStaticMutations.at(i)));
-		if (variant->cType == 'S') {
-			mutatedPeptide->sSeq.at(variant->iPos - beg + 1) = variant->sSeq.at(0);
-		} else {
-			cout << "Error: mutations other than substitution not allowed right now." << endl;
-			exit(1);
+	mutatedPeptide->proteinSegment = &(_proteinsegment);
+	size_t beg = _proteinsegment.pPostion.first, end = _proteinsegment.pPostion.second;
+	Mutation * mutation;
+	int i = 0;
+	if (!_vIndexDynamicMutations.empty()) {
+		for (i = _vIndexDynamicMutations.size() - 1; i >= 0; i--) {
+			if ((_iMasks & 1) == 1) {
+				mutation = &(_vAllVariants.at(_vIndexDynamicMutations.at(i)));
+				if (mutation->cType == 'S') {
+					mutatedPeptide->sSeq.at(mutation->iPos - beg + 1) = mutation->sSeq.at(0);
+				} else {
+					cout << "Error: mutations other than substitution not allowed right now." << endl;
+					exit(1);
+				}
+			}
+			_iMasks = _iMasks >> 1;
 		}
 	}
-	for (i = _vIndexDynamicMutations.size() - 1; i >= 0; i--) {
-		if (_iMasks & 1 == 1) {
-			variant = &(_vAllVariants.at(_vIndexDynamicMutations.at(i)));
-			if (variant->cType == 'S') {
-				mutatedPeptide->sSeq.at(variant->iPos - beg + 1) = variant->sSeq.at(0);
-			} else {
-				cout << "Error: mutations other than substitution not allowed right now." << endl;
-				exit(1);
+	// check the length of peptide
+	if (mutatedPeptide->sSeq.length() - 2 < iMinPeptideLen || mutatedPeptide->sSeq.length() - 2 > iMaxPeptideLen) {
+		return;
+	}
+	// check the cleavage sites are all correct
+	_lookupTablePosition.clean();
+	for (size_t j = 0; j < _proteinsegment.vPositiveDynamicCleavageSites.size(); j++) {
+		_lookupTablePosition.push(_proteinsegment.vPositiveDynamicCleavageSites.at(j));
+		if (!isCleavageSite(mutatedPeptide->sSeq.at(_proteinsegment.vPositiveDynamicCleavageSites.at(j) - beg),
+				mutatedPeptide->sSeq.at(_proteinsegment.vPositiveDynamicCleavageSites.at(j) - beg + 1))) {
+			// if cleavage is the begin or the end of a protein, the site must be a cleavage site
+			if (_proteinsegment.vPositiveDynamicCleavageSites.at(j) == 0
+					|| _proteinsegment.vPositiveDynamicCleavageSites.at(j) == sProteinSeq.length()) {
+				continue;
+			}
+			return;
+		}
+	}
+	map<size_t, CleavageSite*>::iterator it, itLow, itUp;
+	itLow = mscCleavageSites.lower_bound(beg);
+	itUp = mscCleavageSites.upper_bound(end);
+	for (it = itLow; it != itUp; ++it) {
+		if (_lookupTablePosition.push(it->second->iPos)) {
+			if (isCleavageSite(mutatedPeptide->sSeq.at(it->second->iPos - beg),
+					mutatedPeptide->sSeq.at(it->second->iPos - beg + 1))) {
+				return;
 			}
 		}
-		_iMasks = _iMasks >> 1;
 	}
+	/*	if (mutatedPeptide->sSeq == "[ELLKSADVTVENMAPGTIER]") {
+	 cout << "check 2" << endl;
+	 }*/
+	mutatedPeptide->cIdentifyPrefix = _proteinsegment.cIdentifyPrefix;
+	mutatedPeptide->cIdentifySuffix = _proteinsegment.cIdentifySuffix;
+	mutatedPeptide->cOriginalPrefix = _proteinsegment.cOriginalPrefix;
+	mutatedPeptide->cOriginalSuffix = _proteinsegment.cOriginalSuffix;
+	// set the mass of this mutatedPeptide
+	mutatedPeptide->dcurrentMass = dTerminusMassC + dTerminusMassN;
+	for (size_t j = 1; j < mutatedPeptide->sSeq.size() - 1; j++) {
+		mutatedPeptide->dcurrentMass += mResiduleMass[mutatedPeptide->sSeq.at(j)];
+	}
+	// cout << mutatedPeptide->sSeq << endl;
+	/*	if (mutatedPeptide->sSeq == "[ELLKSADVTVENMAPGTIER]") {
+	 cout << "check 2" << endl;
+	 }*/
+	++_iMutatedPeptidesSize;
 }
 
 bool comparePtrToNode(CleavageSite* a, CleavageSite* b) {
@@ -200,18 +293,19 @@ bool comparePtrToNode(CleavageSite* a, CleavageSite* b) {
 }
 
 void ProteinDbParser::digest(string & _seq, vector<CleavageSite> & _vAllPosibleCleavageSites,
-		vector<size_t> & _vStaticCleavageSites, vector<size_t> & _vDynamicCleavageSites,
-		vector<CleavageSite*> & _vCombinationCleavageSites, vector<size_t> & _vSelectedDynamicCleavageSites,
-		vector<ProteinSegment> & _vProteinSegments, size_t & _iProteinSegmentsSize) {
+		size_t _iAllPosibleCleavageSitesSize, vector<size_t> & _vStaticCleavageSites,
+		vector<size_t> & _vDynamicCleavageSites, vector<CleavageSite*> & _vCombinationCleavageSites,
+		vector<size_t> & _vSelectedDynamicCleavageSites, vector<ProteinSegment> & _vProteinSegments,
+		size_t & _iProteinSegmentsSize) {
 	int iMissCleavage = 0;
-	int iNumPermutation = 0;
+	size_t iNumPermutation = 0;
 	size_t mod = 0, remainder = 0;
 	_iProteinSegmentsSize = 0;
 	// if there is no dynamic cleavage sites
 	if (_vDynamicCleavageSites.size() == 0) {
 		_vCombinationCleavageSites.clear();
 		_vSelectedDynamicCleavageSites.clear();
-		for (size_t i = 0; i < _vAllPosibleCleavageSites.size(); i++) {
+		for (size_t i = 0; i < _iAllPosibleCleavageSitesSize; i++) {
 			_vCombinationCleavageSites.push_back(&(_vAllPosibleCleavageSites.at(i)));
 		}
 		generateProteinSegment(_seq, _vCombinationCleavageSites, _vSelectedDynamicCleavageSites, _vProteinSegments,
@@ -243,7 +337,7 @@ void ProteinDbParser::digest(string & _seq, vector<CleavageSite> & _vAllPosibleC
 				_vCombinationCleavageSites.clear();
 				_vSelectedDynamicCleavageSites.clear();
 				_vSelectedDynamicCleavageSites.push_back(_vDynamicCleavageSites.at(i));
-				_vCombinationCleavageSites(&(_vAllPosibleCleavageSites.at(_vDynamicCleavageSites.at(i))));
+				_vCombinationCleavageSites.push_back(&(_vAllPosibleCleavageSites.at(_vDynamicCleavageSites.at(i))));
 				// decode the permutation
 				remainder = k;
 				for (size_t l = 1; l <= j - i; l++) {
@@ -256,7 +350,7 @@ void ProteinDbParser::digest(string & _seq, vector<CleavageSite> & _vAllPosibleC
 					}
 				}
 				// some dynamics are not selected
-				iMissCleavage = _vSelectedDynamicCleavageSites.back() - _vSelectedDynamicCleavageSites.begin() - 1;
+				iMissCleavage = _vSelectedDynamicCleavageSites.back() - _vSelectedDynamicCleavageSites.front() - 1;
 				iMissCleavage -= _vSelectedDynamicCleavageSites.size() - 2;
 				if (iMissCleavage > iMaxMissedCleavageSites) {
 					continue;
@@ -286,10 +380,11 @@ void ProteinDbParser::digest(string & _seq, vector<CleavageSite> & _vAllPosibleC
  * linked mutation: 3, 5
  * mask in binary:  0, 1, 0, 1, 0
  */
-void ProteinDbParser::generateLinkMasks(vector<vector<size_t>> & _vviAllMutationLinks, vector<size_t> & _vLinkIndexes,
-		vector<Mutation> & _vAllVariants, vector<size_t> & _vIndexDynamicMutations, vector<int64_t> & _vMasks) {
+void ProteinDbParser::generateLinkMasks(vector<vector<size_t>> & _vviAllMutationLinks,
+		const vector<size_t> & _vLinkIndexes, vector<Mutation> & _vAllVariants,
+		vector<size_t> & _vIndexDynamicMutations, vector<int64_t> & _vMasks) {
+	_vMasks.clear();
 	vector<size_t>::iterator first1, first2, last1, last2;
-	int iCount = 0;
 	vector<size_t> * mutationLink;
 	for (size_t i = 0; i < _vLinkIndexes.size(); i++) {
 		int64_t iMask = 0;
@@ -305,11 +400,15 @@ void ProteinDbParser::generateLinkMasks(vector<vector<size_t>> & _vviAllMutation
 			} else if (*first2 < *first1)
 				++first2;
 			else {
-				iMask += 1;
 				iMask = iMask << 1;
+				iMask += 1;
 				++first1;
 				++first2;
 			}
+		}
+		while (first1 != last1) {
+			iMask = iMask << 1;
+			++first1;
 		}
 		_vMasks.push_back(iMask);
 	}
@@ -317,90 +416,54 @@ void ProteinDbParser::generateLinkMasks(vector<vector<size_t>> & _vviAllMutation
 }
 
 void ProteinDbParser::generateMutatedPeptides(ProteinSegment & _proteinsegment,
-		vector<MutatedPeptide> & _vMutatedPeptides, size_t & iMutatedPeptidesSize,
-		multimap<size_t, size_t> & _miiMutations, vector<Mutation> & _vAllVariants,
-		vector<vector<size_t>> & _vviAllMutationLinks, LookupTable & _lookupTableIndex,
-		LookupTable & _lookupTablePosition) {
-	// if the linked variants conflict with the static variants
-	if (this->isConflicting(_proteinsegment.vStaticVariants)) {
-		return;
-	}
+		vector<MutatedPeptide> & _vMutatedPeptides, size_t & _iMutatedPeptidesSize,
+		multimap<size_t, size_t> & _miiMutations, vector<Mutation> & _vAllMutations,
+		vector<vector<size_t>> & _vviAllMutationLinks, LookupTable & _lookupTablePosition,
+		vector<int64_t> & _vLinkMasks, vector<int64_t> & _vPositionMasks, vector<size_t> & _vDynamicMutations) {
 	// get all mutations with static mutations
-	vector<size_t> vStaticMutations;
 	vector<size_t> * mutationLink;
-	Mutation * variant, *variantLink;
-	_lookupTableIndex.clean();
+	Mutation * variant, *linkedMutation;
 	_lookupTablePosition.clean();
-	for (size_t i = 0; i < _proteinsegment.vStaticVariants.size(); i++) {
-		mutationLink = &(_vviAllMutationLinks.at(
-				_vAllVariants.at(_proteinsegment.vStaticVariants.at(i)).iMutationLinkIndex));
-		for (size_t j = 0; j < mutationLink->size(); j++) {
-			variant = &(_vAllVariants.at(mutationLink->at(j)));
-			if (variant->iPos >= _proteinsegment.pPostion.first && variant->iPos < _proteinsegment.pPostion.second) {
-				_lookupTableIndex.push(mutationLink->at(j));
-				if (!_lookupTablePosition.push(variant->iPos)) {
-					cout << "Error in ProteinDbParser::generateMutatedPeptides" << endl;
-				}
-			}
-		}
-	}
-	vStaticMutations = _lookupTableIndex.get();
 	// get all the mutations in the range of this protein segment;
 	// considering same position problem (mutation level, link level)
-	vector<size_t> vDynamicMutations;
 	multimap<size_t, size_t>::iterator it, itlow, itup;
 	itlow = _miiMutations.lower_bound(_proteinsegment.pPostion.first);
-	itup = _miiMutations.upper_bound(_proteinsegment.pPostion.second);
+	itup = _miiMutations.upper_bound(_proteinsegment.pPostion.second - 1);
+	_vDynamicMutations.clear();
 	for (it = itlow; it != itup; ++it) {
-		variant = &(_vAllVariants.at((*it).second));
-		if ((!_lookupTableIndex.exist((*it).second)) && (!_lookupTablePosition.exist(variant->iPos))) {
-			vDynamicMutations.push_back((*it).second);
-		}
-	}
-	for (size_t i = 0; i < vDynamicMutations.size(); i++) {
-		_lookupTableIndex.push(vDynamicMutations.at(i));
+		variant = &(_vAllMutations.at((*it).second));
+		_vDynamicMutations.push_back((*it).second);
 	}
 	bool bConflict = false;
 	LookupTable * lookupTableLinkIndex = &(_lookupTablePosition);
 	lookupTableLinkIndex->clean();
 	int iMutationCount = 0;
-	vector<size_t> vDynamicMutationsNoConflict = vDynamicMutations;
-	for (size_t i = 0; i < vDynamicMutations.size(); i++) {
-		variant = &(_vAllVariants.at(vDynamicMutations.at(i)));
+	for (size_t i = 0; i < _vDynamicMutations.size(); i++) {
+		variant = &(_vAllMutations.at(_vDynamicMutations.at(i)));
 		bConflict = false;
 		iMutationCount = 0;
 		if (variant->iMutationLinkIndex != EMPTY) {
 			mutationLink = &(_vviAllMutationLinks.at(variant->iMutationLinkIndex));
 			for (size_t j = 0; j < mutationLink->size(); j++) {
-				variantLink = &(_vAllVariants.at(mutationLink->at(j)));
-				if (variantLink->iPos >= _proteinsegment.pPostion.first
-						&& variantLink->iPos < _proteinsegment.pPostion.second) {
+				linkedMutation = &(_vAllMutations.at(mutationLink->at(j)));
+				if (linkedMutation->iPos >= _proteinsegment.pPostion.first
+						&& linkedMutation->iPos < _proteinsegment.pPostion.second) {
 					++iMutationCount;
-					if (!_lookupTableIndex.exist(mutationLink->at(j))) {
-						bConflict = true;
-						break;
-					}
 				}
 			}
 		}
-		if (!bConflict) {
-			vDynamicMutationsNoConflict.push_back(vDynamicMutations.at(i));
-			// get all the links
-			if (iMutationCount > 1) {
-				lookupTableLinkIndex->push(variant->iMutationLinkIndex);
-			}
+		if (iMutationCount > 1) {
+			lookupTableLinkIndex->push(variant->iMutationLinkIndex);
 		}
 	}
-	vector<size_t> vLinkIndexes = lookupTableLinkIndex->get();
-	sort(vDynamicMutationsNoConflict.begin(), vDynamicMutationsNoConflict.end());
+	const vector<size_t> & vLinkIndexes = lookupTableLinkIndex->get();
+	sort(_vDynamicMutations.begin(), _vDynamicMutations.end());
 	// generate masks
-	vector<int64_t> _vLinkMasks;
-	vector<int64_t> _vPositionMasks;
-	generateLinkMasks(_vviAllMutationLinks, vLinkIndexes, _vAllVariants, vDynamicMutationsNoConflict, _vLinkMasks);
-	generatePositionMasks(_vAllVariants, vDynamicMutationsNoConflict, _vPositionMasks);
+	generateLinkMasks(_vviAllMutationLinks, vLinkIndexes, _vAllMutations, _vDynamicMutations, _vLinkMasks);
+	generatePositionMasks(_vAllMutations, _vDynamicMutations, _vPositionMasks);
 	// permutation of mutations
 	int64_t iMask = 0, iTemp;
-	int64_t iTotalMuations = pow(2, vDynamicMutationsNoConflict.size());
+	int64_t iTotalMuations = pow(2, _vDynamicMutations.size());
 	for (; iMask < iTotalMuations; iMask++) {
 		// check if comply with all link constrains
 		bConflict = false;
@@ -417,7 +480,7 @@ void ProteinDbParser::generateMutatedPeptides(ProteinSegment & _proteinsegment,
 		// check if comply with position constrains
 		for (size_t i = 0; i < _vPositionMasks.size(); i++) {
 			iTemp = iMask & _vPositionMasks.at(i);
-			if (iTemp % 2 != 0) {
+			if (iTemp == _vPositionMasks.at(i)) {
 				bConflict = true;
 				break;
 			}
@@ -426,8 +489,8 @@ void ProteinDbParser::generateMutatedPeptides(ProteinSegment & _proteinsegment,
 			continue;
 		}
 		// now generate peptide with mutations
-		applyMutations(_proteinsegment, _vAllVariants, vStaticMutations, vDynamicMutationsNoConflict, iMask,
-				_vMutatedPeptides);
+		applyMutations(_proteinsegment, _vAllMutations, _vDynamicMutations, iMask, _vMutatedPeptides,
+				_iMutatedPeptidesSize, _lookupTablePosition);
 	}
 }
 
@@ -441,32 +504,44 @@ void ProteinDbParser::generateMutatedPeptides(ProteinSegment & _proteinsegment,
 void ProteinDbParser::generateProteinSegment(string & _seq, vector<CleavageSite*> & _vCleavageSites,
 		vector<size_t> & _vCleavageSitesMustHave, vector<ProteinSegment> & _vProteinSegments,
 		size_t & _iProteinSegmentsSize) {
-	_iProteinSegmentsSize = 0;
+	// _iProteinSegmentsSize = 0;
 	size_t iBeginCleavePos = -1;
 	size_t iEndCleavePos = 0;
+	ProteinSegment * pProteinSegment;
 	if (_vCleavageSitesMustHave.size() == 0) {
 		// enumerate all the peptides
-		for (int i = 0; i < iMaxMissedCleavageSites; i++) {
-			for (size_t j = 0; j < _vCleavageSites.size(); j++) {
+		for (int i = 0; i <= iMaxMissedCleavageSites; i++) {
+			for (size_t j = 0; j + 1 + i < _vCleavageSites.size(); j++) {
 				iBeginCleavePos = _vCleavageSites.at(j)->iPos;
 				iEndCleavePos = _vCleavageSites.at(j + 1 + i)->iPos;
 				if (_iProteinSegmentsSize >= _vProteinSegments.size()) {
 					_vProteinSegments.push_back(ProteinSegment());
 				}
-				_vProteinSegments.at(_iProteinSegmentsSize).sSeq = _seq.substr(iBeginCleavePos,
-						iEndCleavePos - iBeginCleavePos);
-				_vProteinSegments.at(_iProteinSegmentsSize).pPostion.first = iBeginCleavePos;
-				_vProteinSegments.at(_iProteinSegmentsSize).pPostion.second = iEndCleavePos;
-				_vProteinSegments.at(_iProteinSegmentsSize).vStaticVariants.clear();
+				pProteinSegment = &(_vProteinSegments.at(_iProteinSegmentsSize));
+				pProteinSegment->sSeq = _seq.substr(iBeginCleavePos, iEndCleavePos - iBeginCleavePos);
+				pProteinSegment->pPostion.first = iBeginCleavePos;
+				pProteinSegment->pPostion.second = iEndCleavePos;
+				pProteinSegment->cIdentifyPrefix = (iBeginCleavePos == 0 ? '-' : _seq.at(iBeginCleavePos - 1));
+				pProteinSegment->cOriginalPrefix = pProteinSegment->cIdentifyPrefix;
+				pProteinSegment->cIdentifySuffix = (iEndCleavePos == _seq.size() ? '-' : _seq.at(iEndCleavePos));
+				pProteinSegment->cOriginalSuffix = pProteinSegment->cIdentifySuffix;
+				pProteinSegment->vPositiveDynamicCleavageSites.clear();
+				for (size_t l = j; l <= j + 1 + i; l++) {
+					pProteinSegment->vPositiveDynamicCleavageSites.push_back(_vCleavageSites.at(l)->iPos);
+				}
 				++_iProteinSegmentsSize;
 			}
 		}
 	} else {
 		// enumerate the peptides that contain all cleavage sites in _vCleavageSitesMustHave
-		for (int i = 0; i < iMaxMissedCleavageSites; i++) {
-			for (size_t j = _vCleavageSitesMustHave.at(0) - i - 1; j < _vCleavageSitesMustHave.at(0); j++) {
+		for (int i = 0; i <= iMaxMissedCleavageSites; i++) {
+			int j = ((int) _vCleavageSitesMustHave.at(0)) - i - 1;
+			if (j < 0) {
+				j = 0;
+			}
+			for (; j <= (int) _vCleavageSitesMustHave.at(0) && (j + 1 + i) < ((int) _vCleavageSites.size()); j++) {
 				// check if the new peptide contains all cleavage sites that we must have
-				if (j + 1 + i < _vCleavageSitesMustHave.back()) {
+				if (j + 1 + i < (int) _vCleavageSitesMustHave.back()) {
 					continue;
 				}
 				iBeginCleavePos = _vCleavageSites.at(j)->iPos;
@@ -474,15 +549,38 @@ void ProteinDbParser::generateProteinSegment(string & _seq, vector<CleavageSite*
 				if (_iProteinSegmentsSize >= _vProteinSegments.size()) {
 					_vProteinSegments.push_back(ProteinSegment());
 				}
-				_vProteinSegments.at(_iProteinSegmentsSize).sSeq = _seq.substr(iBeginCleavePos,
-						iEndCleavePos - iBeginCleavePos);
-				_vProteinSegments.at(_iProteinSegmentsSize).pPostion.first = iBeginCleavePos;
-				_vProteinSegments.at(_iProteinSegmentsSize).pPostion.second = iEndCleavePos;
-				_vProteinSegments.at(_iProteinSegmentsSize).vStaticVariants.clear();
-				for (size_t l = j; l <= j + 1 + i; l++) {
-					_vProteinSegments.at(_iProteinSegmentsSize).vStaticVariants.insert(
-							_vProteinSegments.at(_iProteinSegmentsSize).vStaticVariants.end(),
-							_vCleavageSites.at(l)->vMutations.begin(), _vCleavageSites.at(l)->vMutations.end());
+				pProteinSegment = &(_vProteinSegments.at(_iProteinSegmentsSize));
+				pProteinSegment->sSeq = _seq.substr(iBeginCleavePos, iEndCleavePos - iBeginCleavePos);
+				pProteinSegment->pPostion.first = iBeginCleavePos;
+				pProteinSegment->pPostion.second = iEndCleavePos;
+				pProteinSegment->cOriginalPrefix = (iBeginCleavePos == 0 ? '-' : _seq.at(iBeginCleavePos - 1));
+				if (_vCleavageSites.at(j)->bIsDynamicCleavageSite && (!_vCleavageSites.at(j)->vMutations.empty())
+						&& (_vCleavageSites.at(j)->iPos - 1 == _vCleavageSites.at(j)->vMutations.at(0)->iPos)) {
+					if (_vCleavageSites.at(j)->vMutations.at(0)->cType == SUBSITUE) {
+						pProteinSegment->cIdentifyPrefix = _vCleavageSites.at(j)->vMutations.at(0)->sSeq.at(0);
+					} else {
+						cout << "Error in ProteinDbParser::generateProteinSegment" << endl;
+						exit(1);
+					}
+				} else {
+					pProteinSegment->cIdentifyPrefix = pProteinSegment->cOriginalPrefix;
+				}
+				pProteinSegment->cOriginalSuffix = (iEndCleavePos == _seq.size() ? '-' : _seq.at(iEndCleavePos));
+				if (_vCleavageSites.at(j)->bIsDynamicCleavageSite && (!_vCleavageSites.at(j)->vMutations.empty())
+						&& (_vCleavageSites.at(j)->iPos == _vCleavageSites.at(j)->vMutations.back()->iPos)) {
+					if (_vCleavageSites.at(j)->vMutations.at(0)->cType == SUBSITUE) {
+						pProteinSegment->cIdentifySuffix = _vCleavageSites.at(j)->vMutations.back()->sSeq.at(0);
+					} else {
+						cout << "Error in ProteinDbParser::generateProteinSegment" << endl;
+						exit(1);
+					}
+				} else {
+					pProteinSegment->cIdentifySuffix = pProteinSegment->cOriginalSuffix;
+				}
+
+				pProteinSegment->vPositiveDynamicCleavageSites.clear();
+				for (int l = j; l <= j + 1 + i; l++) {
+					pProteinSegment->vPositiveDynamicCleavageSites.push_back(_vCleavageSites.at(l)->iPos);
 				}
 				++_iProteinSegmentsSize;
 			}
@@ -491,75 +589,90 @@ void ProteinDbParser::generateProteinSegment(string & _seq, vector<CleavageSite*
 }
 
 void ProteinDbParser::generatePtmPeptide(MutatedPeptide & _mutatedPeptide, vector<MutatedPeptide> & _vPtmPeptides,
-		size_t & _iPtmPeptidesSize, vector<pair<size_t, vector<pair<string, double> > > > & _ptm_position_all,
-		vector<size_t> & _comb_order, vector<size_t> & _ptm_order, vector<size_t> & _ele_num) {
-
-	vector<MutatedPeptide> vPeptides;
-	size_t iPeptidesSize = 0;
-	string sPtm;
-	size_t i = 0, j = 0, k = 0, total_num, ori_val, iPtmPos;
+		size_t & _iPtmPeptidesSize, vector<pair<size_t, vector<pair<string, double> > *> > & _ptm_position_all,
+		vector<int> & _comb_order, vector<int> & _ptm_order, vector<int> & _ele_num) {
+	// without PTM
 	MutatedPeptide * mutatedPeptide;
+	if (_iPtmPeptidesSize >= _vPtmPeptides.size()) {
+		_vPtmPeptides.push_back(MutatedPeptide());
+	}
+	mutatedPeptide = &(_vPtmPeptides.at(_iPtmPeptidesSize));
+	(*mutatedPeptide) = _mutatedPeptide;
+	++_iPtmPeptidesSize;
+	// with PTM
+	string sPtm;
+	int i = 0, ori_val, j = 0, k = 0, l = 0, total_num, iPtmPos;
 	// find all positions with PTMs
-	size_t residue_id, max_ptm;
+	size_t residue_id;
 	pair<int, vector<pair<string, double> >*> ptm_position;
 	_ptm_position_all.clear();
-	for (j = 0; j < (_mutatedPeptide.sSeq.length()); j++) {
+	for (j = 0; j < ((int) (_mutatedPeptide.sSeq.length())); j++) {
 		// identify positions on which ptm may happen
 		residue_id = orderstring.find(_mutatedPeptide.sSeq.at(j));
 		if (!(ptm_map.at(residue_id).empty())) {
 			//cout<<residue_id<<endl;
-			ptm_position = make_pair<int, vector<pair<string, double> >*>(j, &(ptm_map.at(residue_id)));
+			ptm_position = make_pair(j, &(ptm_map.at(residue_id)));
 			_ptm_position_all.push_back(ptm_position);
 		}
 	}
 	total_num = _ptm_position_all.size();
-	size_t icurrentMaxPtm = ((imaxPTM < ((ptm_position_all.size()))) ? imaxPTM : ((ptm_position_all.size())));
-	size_t iPtmCount = 1;
+	int icurrentMaxPtm = ((imaxPTM < ((ptm_position_all.size()))) ? imaxPTM : ((ptm_position_all.size())));
+	int iPtmCount = 1;
+	bool bNextCom = true;
 	for (; iPtmCount <= icurrentMaxPtm; iPtmCount++) {
 		// Initialize the ptm info
 		_comb_order.clear();
-		for (i = 0; i < iPtmCount; i++) {
+		for (i = 0; i < (int) iPtmCount; i++) {
 			_comb_order.push_back(i);
 		}
+		bNextCom = true;
 		_comb_order.back() -= 1;
-		// ptm order update
-		for (i = (iPtmCount - 1); i >= 0; i--) {
-			if (_comb_order.at(i) < total_num - iPtmCount + i) {
-				ori_val = _ptm_order[i];
-				for (j = i; j < iPtmCount; j++) {
-					_comb_order[j] = ori_val + 1 + j - i;
-				}
-				_ptm_order.clear();
-				//ptm_order is for which ptm happen on positions
-				_ele_num.clear();
-				//ele_num is for numbers of ptm may happen on positions
-				for (j = 0; j < comb_order.size(); j++) {
-					_ptm_order.push_back(0);
-					_ele_num.push_back((int) ptm_position_all.at(comb_order.at(j)).second.size());
-				}
-				_ptm_order.begin() -= 1;
-				// next ptm
-				for (j = 0; j < _ptm_order.size(); j++) {
-					if (_ptm_order.at(j) < (_ele_num.at(j) - 1)) {
-						_ptm_order.at(j) += 1;
-						for (k = 0; k < j; k++) {
-							_ptm_order.at(k) = 0;
-						}
-						// apply ptm
-						if (iPeptidesSize >= vPeptides.size()) {
-							vPeptides.push_back(MutatedPeptide());
-						}
-						mutatedPeptide = &(vPeptides.at(iPeptidesSize));
-						mutatedPeptide->sSeq = _mutatedPeptide.sSeq;
-						mutatedPeptide->dcurrentMass = _mutatedPeptide.dcurrentMass;
-						for (k = (_comb_order.size() - 1); k >= 0; k--) {
-							iPtmPos = _ptm_position_all.at(_comb_order.at(i)).first;
-							sPtm = _ptm_position_all.at(_comb_order.at(i)).second.at(_ptm_order.at(i)).first;
-							mutatedPeptide->dcurrentMass += _ptm_position_all.at(_comb_order.at(i)).second.at(
-									_ptm_order.at(i)).second;
-							mutatedPeptide->sSeq.insert(iPtmPos + 1, sPtm);
+		while (bNextCom) {
+			bNextCom = false;
+			// comb order update
+			for (i = (iPtmCount - 1); i >= 0; i--) {
+				if (_comb_order.at(i) < total_num - iPtmCount + i) {
+					ori_val = _comb_order[i];
+					for (j = i; j < iPtmCount; j++) {
+						_comb_order.at(j) = ori_val + 1 + j - i;
+					}
+					bNextCom = true;
+					_ptm_order.clear();
+					//ptm_order is for which ptm happen on positions
+					_ele_num.clear();
+					//ele_num is for numbers of ptm may happen on positions
+					for (j = 0; j < ((int) comb_order.size()); j++) {
+						_ptm_order.push_back(0);
+						_ele_num.push_back((int) ptm_position_all.at(comb_order.at(j)).second->size());
+					}
+					_ptm_order.front() -= 1;
+					// next ptm
+					for (j = 0; j < ((int) _ptm_order.size()); j++) {
+						for (l = j; l >= 0; l--) {
+							while (_ptm_order.at(l) < (_ele_num.at(l) - 1)) {
+								_ptm_order.at(l) += 1;
+								for (k = 0; k < l; k++) {
+									_ptm_order.at(k) = 0;
+								}
+								// apply ptm
+								if (_iPtmPeptidesSize >= _vPtmPeptides.size()) {
+									_vPtmPeptides.push_back(MutatedPeptide());
+								}
+								mutatedPeptide = &(_vPtmPeptides.at(_iPtmPeptidesSize));
+								(*mutatedPeptide) = _mutatedPeptide;
+								for (k = (_comb_order.size() - 1); k >= 0; k--) {
+									iPtmPos = _ptm_position_all.at(_comb_order.at(k)).first;
+									sPtm = _ptm_position_all.at(_comb_order.at(k)).second->at(_ptm_order.at(k)).first;
+									mutatedPeptide->dcurrentMass += _ptm_position_all.at(_comb_order.at(k)).second->at(
+											_ptm_order.at(k)).second;
+									mutatedPeptide->sSeq.insert(iPtmPos + 1, sPtm);
+								}
+								// cout << mutatedPeptide->sSeq << endl;
+								++_iPtmPeptidesSize;
+							}
 						}
 					}
+					break;
 				}
 			}
 		}
@@ -575,14 +688,17 @@ void ProteinDbParser::generatePtmPeptide(MutatedPeptide & _mutatedPeptide, vecto
  * 				0, 1, 1, 0, 0, 0
  * 				0, 0, 0, 1, 1, 0
  */
-void ProteinDbParser::generatePositionMasks(vector<Mutation> & _vAllVariants, vector<size_t> & _vIndexDynamicMutations,
+void ProteinDbParser::generatePositionMasks(vector<Mutation> & _vAllMutations, vector<size_t> & _vIndexDynamicMutations,
 		vector<int64_t> & _vMasks) {
 	int64_t iMask = 0;
 	_vMasks.clear();
 	size_t i = 0;
+	if (_vIndexDynamicMutations.size() < 2) {
+		return;
+	}
 	for (i = 0; i < _vIndexDynamicMutations.size() - 1; i++) {
-		if (_vAllVariants.at(_vIndexDynamicMutations.at(i)).iPos
-				== _vAllVariants.at(_vIndexDynamicMutations.at(i + 1))) {
+		if (_vAllMutations.at(_vIndexDynamicMutations.at(i)).iPos
+				== _vAllMutations.at(_vIndexDynamicMutations.at(i + 1)).iPos) {
 			iMask += 1;
 			iMask = iMask << 1;
 		} else {
@@ -595,8 +711,8 @@ void ProteinDbParser::generatePositionMasks(vector<Mutation> & _vAllVariants, ve
 		}
 	}
 	if (iMask > 0) {
-		if (_vAllVariants.at(_vIndexDynamicMutations.at(i - 1)).iPos
-				== _vAllVariants.at(_vIndexDynamicMutations.at(i))) {
+		if (_vAllMutations.at(_vIndexDynamicMutations.at(i - 1)).iPos
+				== _vAllMutations.at(_vIndexDynamicMutations.at(i)).iPos) {
 			iMask += 1;
 		} else {
 			iMask = iMask << 1;
@@ -605,7 +721,21 @@ void ProteinDbParser::generatePositionMasks(vector<Mutation> & _vAllVariants, ve
 	}
 }
 
+bool ProteinDbParser::isCleavageResidueAfter(char c2) {
+	return (sResiduesAfterCleavageSite.find(c2, 0) != string::npos);
+}
+
+bool ProteinDbParser::isCleavageResidueBefore(char c1) {
+	return (sResiduesBeforeCleavageSite.find(c1, 0) != string::npos);
+}
+
 bool ProteinDbParser::isCleavageSite(char c1, char c2) {
+	if (c1 == '[') {
+		return isCleavageResidueAfter(c2);
+	}
+	if (c2 == ']') {
+		return isCleavageResidueBefore(c1);
+	}
 	return ((sResiduesBeforeCleavageSite.find(c1, 0) != string::npos)
 			&& (sResiduesAfterCleavageSite.find(c2, 0) != string::npos));
 }
@@ -647,39 +777,6 @@ bool ProteinDbParser::isCleavageSite(string & _seq, Mutation & _mutationBefore, 
 	}
 }
 
-bool ProteinDbParser::isConflicting(vector<size_t> & _vStaticVariants) {
-	vector<size_t>::iterator first1, first2, last1, last2;
-	int iCount = 0;
-	for (size_t i = 0; i < _vStaticVariants.size(); i++) {
-		if (vAllMutations.at(_vStaticVariants.at(i)).vLinkedVariants != NULL) {
-			for (size_t j = 0; j < _vStaticVariants.size(); j++) {
-				first1 = _vStaticVariants.begin();
-				last1 = _vStaticVariants.end();
-				first2 = vAllMutations.at(_vStaticVariants.at(i)).vLinkedVariants->begin();
-				last2 = vAllMutations.at(_vStaticVariants.at(i)).vLinkedVariants->end();
-				iCount = 0;
-				while (first1 != last1 && first2 != last2) {
-					if (vAllMutations.at(*first1).iPos < vAllMutations.at(*first2).iPos)
-						++first1;
-					else if (vAllMutations.at(*first2).iPos < vAllMutations.at(*first1).iPos)
-						++first2;
-					else {
-						if ((*first1) != (*first2)) {
-							++iCount;
-						}
-						++first1;
-						++first2;
-					}
-				}
-				if (iCount > 1) {
-					return true;
-				}
-			}
-		}
-	}
-	return false;
-}
-
 // organize ptm information
 void ProteinDbParser::Initial_PTM_Map() {
 	vector<pair<string, double> > ptm_elm;
@@ -706,14 +803,17 @@ void ProteinDbParser::ParseCleavageSites(string & _seq, vector<Mutation> & _vAll
 		vector<size_t> & _vDynamicCleavageSites) {
 	// each position will only have cleavage site
 	size_t i = 0;
+	CleavageSite * _pCleavageSite;
 	multimap<size_t, size_t>::iterator itBefore, itAfter, itLowBefore, itUpBefore, itLowAfter, itUpAfter;
 	_iAllPosibleCleavageSitesSize = 0;
 	if (_iAllPosibleCleavageSitesSize >= _vAllPosibleCleavageSites.size()) {
 		_vAllPosibleCleavageSites.push_back(CleavageSite());
 	}
-	_vAllPosibleCleavageSites.at(_iAllPosibleCleavageSitesSize).iPos = 0;
-	_vAllPosibleCleavageSites.at(_iAllPosibleCleavageSitesSize).vMutations.clear();
-	_vAllPosibleCleavageSites.at(_iAllPosibleCleavageSitesSize).bIsDynamicCleavageSite = false;
+	_pCleavageSite = &(_vAllPosibleCleavageSites.at(_iAllPosibleCleavageSitesSize));
+	_pCleavageSite->iPos = 0;
+	_pCleavageSite->iMutationPositionType = 0;
+	_pCleavageSite->vMutations.clear();
+	_pCleavageSite->bIsDynamicCleavageSite = false;
 	_vStaticCleavageSites.clear();
 	_vStaticCleavageSites.push_back(0);
 	_vDynamicCleavageSites.clear();
@@ -724,16 +824,35 @@ void ProteinDbParser::ParseCleavageSites(string & _seq, vector<Mutation> & _vAll
 			if (_iAllPosibleCleavageSitesSize >= _vAllPosibleCleavageSites.size()) {
 				_vAllPosibleCleavageSites.push_back(CleavageSite());
 			}
-			_vAllPosibleCleavageSites.at(_iAllPosibleCleavageSitesSize).iPos = i + 1;
-			_vAllPosibleCleavageSites.at(_iAllPosibleCleavageSitesSize).vMutations.clear();
+			_pCleavageSite = &(_vAllPosibleCleavageSites.at(_iAllPosibleCleavageSitesSize));
+			_pCleavageSite->iPos = i + 1;
+			_pCleavageSite->iMutationPositionType = 0;
+			_pCleavageSite->vMutations.clear();
 			// if there are mutations at position i or i + 1
 			itLowBefore = _miiMutations.lower_bound(i);
 			itUpBefore = _miiMutations.upper_bound(i);
+			itLowAfter = _miiMutations.lower_bound(i + 1);
+			itUpAfter = _miiMutations.upper_bound(i + 1);
 			bDynamicCleavageSite = false;
+			// try the combination of mutations before and after cleavage site
+			for (itBefore = itLowBefore; itBefore != itUpBefore; ++itBefore) {
+				for (itAfter = itLowAfter; itAfter != itUpAfter; ++itAfter) {
+					if (!isCleavageSite(_seq, _vAllMutations.at((*itBefore).second),
+							_vAllMutations.at((*itAfter).second), i + 1)) {
+						_vDynamicCleavageSites.push_back(_iAllPosibleCleavageSitesSize);
+						_pCleavageSite->bIsDynamicCleavageSite = true;
+						bDynamicCleavageSite = true;
+						break;
+					}
+				}
+			}
+			if (bDynamicCleavageSite) {
+				continue;
+			}
 			for (itBefore = itLowBefore; itBefore != itUpBefore; ++itBefore) {
 				if (!isCleavageSite(_seq, _vAllMutations.at((*itBefore).second), i + 1)) {
 					_vDynamicCleavageSites.push_back(_iAllPosibleCleavageSitesSize);
-					_vAllPosibleCleavageSites.at(_iAllPosibleCleavageSitesSize).bIsDynamicCleavageSite = true;
+					_pCleavageSite->bIsDynamicCleavageSite = true;
 					bDynamicCleavageSite = true;
 					break;
 				}
@@ -742,53 +861,64 @@ void ProteinDbParser::ParseCleavageSites(string & _seq, vector<Mutation> & _vAll
 			if (bDynamicCleavageSite) {
 				continue;
 			}
-			itLowAfter = _miiMutations.lower_bound(i + 1);
-			itUpAfter = _miiMutations.upper_bound(i + 1);
-			for (itAfter = itLowAfter; itAfter != itUpAfter; ++itBefore) {
+			for (itAfter = itLowAfter; itAfter != itUpAfter; ++itAfter) {
 				if (!isCleavageSite(_seq, _vAllMutations.at((*itAfter).second), i + 1)) {
 					_vDynamicCleavageSites.push_back(_iAllPosibleCleavageSitesSize);
-					_vAllPosibleCleavageSites.at(_iAllPosibleCleavageSitesSize).bIsDynamicCleavageSite = true;
+					_pCleavageSite->bIsDynamicCleavageSite = true;
 					bDynamicCleavageSite = true;
 					break;
 				}
 			}
-			if (bDynamicCleavageSite) {
-				continue;
-			}
-			// try the combination of mutations before and after cleavage site
-			for (itBefore = itLowBefore; itBefore != itUpBefore; ++itBefore) {
-				for (itAfter = itLowAfter; itAfter != itUpAfter; ++itBefore) {
-					if (!isCleavageSite(_seq, _vAllMutations.at((*itBefore).second),
-							_vAllMutations.at((*itAfter).second), i + 1)) {
-						_vDynamicCleavageSites.push_back(_iAllPosibleCleavageSitesSize);
-						_vAllPosibleCleavageSites.at(_iAllPosibleCleavageSitesSize).bIsDynamicCleavageSite = true;
-						bDynamicCleavageSite = true;
-						break;
-					}
-				}
-			}
 			if (!bDynamicCleavageSite) {
 				_vStaticCleavageSites.push_back(_iAllPosibleCleavageSitesSize);
-				_vAllPosibleCleavageSites.at(_iAllPosibleCleavageSitesSize).bIsDynamicCleavageSite = false;
+				_pCleavageSite->bIsDynamicCleavageSite = false;
 			}
 		} else {
 			// if it is not a cleavage site on the original sequence
 			// if there are mutations at position i or i + 1
 			itLowBefore = _miiMutations.lower_bound(i);
 			itUpBefore = _miiMutations.upper_bound(i);
+			itLowAfter = _miiMutations.lower_bound(i + 1);
+			itUpAfter = _miiMutations.upper_bound(i + 1);
 			bDynamicCleavageSite = false;
+			for (itBefore = itLowBefore; itBefore != itUpBefore; ++itBefore) {
+				for (itAfter = itLowAfter; itAfter != itUpAfter; ++itAfter) {
+					if (isCleavageSite(_seq, _vAllMutations.at((*itBefore).second),
+							_vAllMutations.at((*itAfter).second), i + 1)) {
+						++_iAllPosibleCleavageSitesSize;
+						if (_iAllPosibleCleavageSitesSize >= _vAllPosibleCleavageSites.size()) {
+							_vAllPosibleCleavageSites.push_back(CleavageSite());
+						}
+						_pCleavageSite = &(_vAllPosibleCleavageSites.at(_iAllPosibleCleavageSitesSize));
+						_pCleavageSite->iPos = i + 1;
+						_pCleavageSite->iMutationPositionType = 3;
+						_pCleavageSite->vMutations.clear();
+						_pCleavageSite->vMutations.push_back(&(_vAllMutations.at((*itBefore).second)));
+						_pCleavageSite->vMutations.push_back(&(_vAllMutations.at((*itAfter).second)));
+						_vDynamicCleavageSites.push_back(_iAllPosibleCleavageSitesSize);
+						_pCleavageSite->bIsDynamicCleavageSite = true;
+						bDynamicCleavageSite = true;
+						break;
+					}
+				}
+			}
+			// as long as one mutation make it a cleavage site, then it is a dynamic cleavage site
+			if (bDynamicCleavageSite) {
+				continue;
+			}
 			for (itBefore = itLowBefore; itBefore != itUpBefore; ++itBefore) {
 				if (isCleavageSite(_seq, _vAllMutations.at((*itBefore).second), i + 1)) {
 					++_iAllPosibleCleavageSitesSize;
 					if (_iAllPosibleCleavageSitesSize >= _vAllPosibleCleavageSites.size()) {
 						_vAllPosibleCleavageSites.push_back(CleavageSite());
 					}
-					_vAllPosibleCleavageSites.at(_iAllPosibleCleavageSitesSize).iPos = i + 1;
-					_vAllPosibleCleavageSites.at(_iAllPosibleCleavageSitesSize).vMutations.clear();
-					_vAllPosibleCleavageSites.at(_iAllPosibleCleavageSitesSize).vMutations.push_back(
-							_vAllMutations.at((*itBefore).second).iMutationIndex);
+					_pCleavageSite = &(_vAllPosibleCleavageSites.at(_iAllPosibleCleavageSitesSize));
+					_pCleavageSite->iPos = i + 1;
+					_pCleavageSite->iMutationPositionType = 1;
+					_pCleavageSite->vMutations.clear();
+					_pCleavageSite->vMutations.push_back(&(_vAllMutations.at((*itBefore).second)));
 					_vDynamicCleavageSites.push_back(_iAllPosibleCleavageSitesSize);
-					_vAllPosibleCleavageSites.at(_iAllPosibleCleavageSitesSize).bIsDynamicCleavageSite = true;
+					_pCleavageSite->bIsDynamicCleavageSite = true;
 					bDynamicCleavageSite = true;
 					break;
 				}
@@ -797,46 +927,21 @@ void ProteinDbParser::ParseCleavageSites(string & _seq, vector<Mutation> & _vAll
 			if (bDynamicCleavageSite) {
 				continue;
 			}
-			itLowAfter = _miiMutations.lower_bound(i + 1);
-			itUpAfter = _miiMutations.upper_bound(i + 1);
-			for (itAfter = itLowAfter; itAfter != itUpAfter; ++itBefore) {
+			for (itAfter = itLowAfter; itAfter != itUpAfter; ++itAfter) {
 				if (isCleavageSite(_seq, _vAllMutations.at((*itAfter).second), i + 1)) {
 					++_iAllPosibleCleavageSitesSize;
 					if (_iAllPosibleCleavageSitesSize >= _vAllPosibleCleavageSites.size()) {
 						_vAllPosibleCleavageSites.push_back(CleavageSite());
 					}
-					_vAllPosibleCleavageSites.at(_iAllPosibleCleavageSitesSize).iPos = i + 1;
-					_vAllPosibleCleavageSites.at(_iAllPosibleCleavageSitesSize).vMutations.clear();
-					_vAllPosibleCleavageSites.at(_iAllPosibleCleavageSitesSize).vMutations.push_back(
-							_vAllMutations.at((*itAfter).second).iMutationIndex);
+					_pCleavageSite = &(_vAllPosibleCleavageSites.at(_iAllPosibleCleavageSitesSize));
+					_pCleavageSite->iPos = i + 1;
+					_pCleavageSite->iMutationPositionType = 2;
+					_pCleavageSite->vMutations.clear();
+					_pCleavageSite->vMutations.push_back(&(_vAllMutations.at((*itAfter).second)));
 					_vDynamicCleavageSites.push_back(_iAllPosibleCleavageSitesSize);
-					_vAllPosibleCleavageSites.at(_iAllPosibleCleavageSitesSize).bIsDynamicCleavageSite = true;
+					_pCleavageSite->bIsDynamicCleavageSite = true;
 					bDynamicCleavageSite = true;
 					break;
-				}
-			}
-			if (bDynamicCleavageSite) {
-				continue;
-			}
-			for (itBefore = itLowBefore; itBefore != itUpBefore; ++itBefore) {
-				for (itAfter = itLowAfter; itAfter != itUpAfter; ++itBefore) {
-					if (isCleavageSite(_seq, _vAllMutations.at((*itBefore).second),
-							_vAllMutations.at((*itAfter).second), i + 1)) {
-						++_iAllPosibleCleavageSitesSize;
-						if (_iAllPosibleCleavageSitesSize >= _vAllPosibleCleavageSites.size()) {
-							_vAllPosibleCleavageSites.push_back(CleavageSite());
-						}
-						_vAllPosibleCleavageSites.at(_iAllPosibleCleavageSitesSize).iPos = i + 1;
-						_vAllPosibleCleavageSites.at(_iAllPosibleCleavageSitesSize).vMutations.clear();
-						_vAllPosibleCleavageSites.at(_iAllPosibleCleavageSitesSize).vMutations.push_back(
-								_vAllMutations.at((*itBefore).second).iMutationIndex);
-						_vAllPosibleCleavageSites.at(_iAllPosibleCleavageSitesSize).vMutations.push_back(
-								_vAllMutations.at((*itAfter).second).iMutationIndex);
-						_vDynamicCleavageSites.push_back(_iAllPosibleCleavageSitesSize);
-						_vAllPosibleCleavageSites.at(_iAllPosibleCleavageSitesSize).bIsDynamicCleavageSite = true;
-						bDynamicCleavageSite = true;
-						break;
-					}
 				}
 			}
 		}
@@ -845,9 +950,17 @@ void ProteinDbParser::ParseCleavageSites(string & _seq, vector<Mutation> & _vAll
 	if (_iAllPosibleCleavageSitesSize >= _vAllPosibleCleavageSites.size()) {
 		_vAllPosibleCleavageSites.push_back(CleavageSite());
 	}
-	_vAllPosibleCleavageSites.at(_iAllPosibleCleavageSitesSize).iPos = _seq.length();
-	_vAllPosibleCleavageSites.at(_iAllPosibleCleavageSitesSize).vMutations.clear();
-	_vAllPosibleCleavageSites.at(_iAllPosibleCleavageSitesSize).bIsDynamicCleavageSite = false;
+	_pCleavageSite = &(_vAllPosibleCleavageSites.at(_iAllPosibleCleavageSitesSize));
+	_pCleavageSite->iPos = _seq.length();
+	_pCleavageSite->iMutationPositionType = 0;
+	_pCleavageSite->vMutations.clear();
+	_pCleavageSite->bIsDynamicCleavageSite = false;
+	_vStaticCleavageSites.push_back(_iAllPosibleCleavageSitesSize);
+	mscCleavageSites.clear();
+	for (size_t i = 0; i < _iAllPosibleCleavageSitesSize; ++i) {
+		_pCleavageSite = &(_vAllPosibleCleavageSites.at(i));
+		mscCleavageSites[_pCleavageSite->iPos] = _pCleavageSite;
+	}
 	++_iAllPosibleCleavageSitesSize;
 }
 
@@ -856,9 +969,13 @@ void ProteinDbParser::ParseMutationInfo(string & _sInfo, vector<Mutation> & _vAl
 		multimap<size_t, size_t> & _miiMutations) {
 	_iAllMutationsSize = 0;
 	int iPos = 0;
+	if (bSkipM) {
+		--iPos;
+	}
 	sPositionOfMutation.clear();
 	sMutationResidue.clear();
 	size_t i;
+	Mutation * pMutation;
 	for (i = 0; i < _sInfo.size(); i++) {
 		if (_sInfo.at(i) == ',') {
 			// link information
@@ -872,15 +989,17 @@ void ProteinDbParser::ParseMutationInfo(string & _sInfo, vector<Mutation> & _vAl
 			if (_iAllMutationsSize >= _vAllMutations.size()) {
 				_vAllMutations.push_back(Mutation());
 			}
-			_vAllMutations.at(_iAllMutationsSize).iPos = iPos;
-			_vAllMutations.at(_iAllMutationsSize).iMutationIndex = _iAllMutationsSize;
+			pMutation = &(_vAllMutations.at(_iAllMutationsSize));
+			pMutation->iPos = iPos;
+			pMutation->iMutationIndex = _iAllMutationsSize;
+			pMutation->iMutationLinkIndex = EMPTY;
 			if (sMutationResidue.at(0) == INSERT) {
-				_vAllMutations.at(_iAllMutationsSize).cType = INSERT;
+				pMutation->cType = INSERT;
 			} else if (sMutationResidue.at(0) == DELETE) {
-				_vAllMutations.at(_iAllMutationsSize).cType = DELETE;
+				pMutation->cType = DELETE;
 			} else {
-				_vAllMutations.at(_iAllMutationsSize).cType = SUBSITUE;
-				_vAllMutations.at(_iAllMutationsSize).sSeq = sMutationResidue;
+				pMutation->cType = SUBSITUE;
+				pMutation->sSeq = sMutationResidue;
 			}
 			sPositionOfMutation.clear();
 			sMutationResidue.clear();
@@ -890,7 +1009,7 @@ void ProteinDbParser::ParseMutationInfo(string & _sInfo, vector<Mutation> & _vAl
 	// put mutation into a multimap
 	_miiMutations.clear();
 	for (size_t j = 0; j < _iAllMutationsSize; j++) {
-		_miiMutations[_vAllMutations.at(j).iPos] = j;
+		_miiMutations.insert(pair<size_t, size_t>(_vAllMutations.at(j).iPos, j));
 	}
 	// parse link information
 	_iAllMutationLinksSize = -1;
@@ -898,6 +1017,10 @@ void ProteinDbParser::ParseMutationInfo(string & _sInfo, vector<Mutation> & _vAl
 	sMutationResidue.clear();
 	for (; i < _sInfo.size(); i++) {
 		if (_sInfo.at(i) == ',') {
+			if (!sPositionOfMutation.empty()) {
+				_vviAllMutationLinks.at(_iAllMutationLinksSize).push_back(atoi(sPositionOfMutation.c_str()));
+				sPositionOfMutation.clear();
+			}
 			++_iAllMutationLinksSize;
 			if (_iAllMutationLinksSize >= _vviAllMutationLinks.size()) {
 				_vviAllMutationLinks.push_back(vector<size_t>());
@@ -906,8 +1029,15 @@ void ProteinDbParser::ParseMutationInfo(string & _sInfo, vector<Mutation> & _vAl
 		if (isdigit(_sInfo.at(i))) {
 			sPositionOfMutation.push_back(_sInfo.at(i));
 		} else {
-			_vviAllMutationLinks.at(_iAllMutationLinksSize).push_back(atoi(sPositionOfMutation.c_str()));
+			if (!sPositionOfMutation.empty()) {
+				_vviAllMutationLinks.at(_iAllMutationLinksSize).push_back(atoi(sPositionOfMutation.c_str()));
+				sPositionOfMutation.clear();
+			}
 		}
+	}
+	if (!sPositionOfMutation.empty()) {
+		_vviAllMutationLinks.at(_iAllMutationLinksSize).push_back(atoi(sPositionOfMutation.c_str()));
+		sPositionOfMutation.clear();
 	}
 	++_iAllMutationLinksSize;
 	// put the mutation link to all associated mutations

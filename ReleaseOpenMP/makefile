@@ -45,7 +45,7 @@ all: Sipros10_openmp
 Sipros10_openmp: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C++ Linker'
-	g++ -fopenmp -g3 -o "Sipros10_openmp" $(OBJS) $(USER_OBJS) $(LIBS)
+	g++ -std=c++11 -fopenmp -g3 -o "Sipros10_openmp" $(OBJS) $(USER_OBJS) $(LIBS)
 	-$(RM) $(OBJS)$(C++_DEPS)$(C_DEPS)$(CC_DEPS)$(CPP_DEPS)$(EXECUTABLES)$(CXX_DEPS)$(C_UPPER_DEPS)
 	@echo 'Finished building target: $@'
 	@echo ' '
