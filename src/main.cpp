@@ -54,9 +54,14 @@ void searchConfigureFiles(vector<string> & vsConfigureFilenames, const string & 
  */
 
 void initializeArguments(int argc, char **argv, vector<string> & vsFT2Filenames, string & sWorkingDirectory,
-		string & sConfigFilename, string & sSingleWorkingFile, string & sOutputDirectory, bool & bScreenOutput,
-		vector<string> & vsConfigureFilenames) {
+		vector<string> & vsConfigureFilenames, string & sSingleWorkingFile, string & sOutputDirectory,
+		bool & bScreenOutput)
+// Under MPI mode, a user can specify configure file directory by specifying -g
+// If no configre file or directory is specified, configure file directory is working directory
+		{
 	int i;
+
+	string sConfigFileDirectory, sConfigFilename;
 	// Grab command line arguments
 	vector<string> vsArguments;
 
@@ -64,10 +69,8 @@ void initializeArguments(int argc, char **argv, vector<string> & vsFT2Filenames,
 	sConfigFilename = "";
 	sSingleWorkingFile = "";
 	sOutputDirectory = "";
-	bScreenOutput = true;
-
-	string sConfigFileDirectory;
 	sConfigFileDirectory = "";
+	bScreenOutput = true;
 
 	while (argc--)
 		vsArguments.push_back(*argv++);
@@ -76,12 +79,12 @@ void initializeArguments(int argc, char **argv, vector<string> & vsFT2Filenames,
 			sWorkingDirectory = vsArguments[++i];
 		else if (vsArguments[i] == "-c")
 			sConfigFilename = vsArguments[++i];
-		else if (vsArguments[i] == "-g")
-			sConfigFileDirectory = vsArguments[++i];
 		else if (vsArguments[i] == "-f")
 			sSingleWorkingFile = vsArguments[++i];
 		else if (vsArguments[i] == "-o")
 			sOutputDirectory = vsArguments[++i];
+		else if (vsArguments[i] == "-g")
+			sConfigFileDirectory = vsArguments[++i];
 		else if (vsArguments[i] == "-s")
 			bScreenOutput = false;
 		else if ((vsArguments[i] == "-h") || (vsArguments[i] == "--help")) {
@@ -91,30 +94,8 @@ void initializeArguments(int argc, char **argv, vector<string> & vsFT2Filenames,
 					<< "If configuration file is not specified, Sipros will look for SiprosConfig.cfg in the directory of FT2 files"
 					<< endl;
 			cout << "-o output directory. If not specified, it is the same as that of the input scan file," << endl;
-			cout << "-s silence all standard output." << endl;
+			cout << "-g configure file directory. -s silence all standard output." << endl;
 			exit(0);
-		} else if (vsArguments[i] == "-1") {
-			ProNovoConfig::bWeightDotSumEnable = true;
-			ProNovoConfig::bLessIsotopicDistribution = false;
-			ProNovoConfig::bXcorrEnable = false;
-			ProNovoConfig::bMvhEnable = false;
-		} else if (vsArguments[i] == "-2") {
-			ProNovoConfig::bWeightDotSumEnable = true;
-			ProNovoConfig::bLessIsotopicDistribution = true;
-			ProNovoConfig::bXcorrEnable = false;
-			ProNovoConfig::bMvhEnable = false;
-		} else if (vsArguments[i] == "-3") {
-			ProNovoConfig::bWeightDotSumEnable = false;
-			ProNovoConfig::bLessIsotopicDistribution = false;
-			ProNovoConfig::bXcorrEnable = true;
-			ProNovoConfig::bMvhEnable = false;
-		} else if (vsArguments[i] == "-4") {
-			ProNovoConfig::bWeightDotSumEnable = false;
-			ProNovoConfig::bLessIsotopicDistribution = false;
-			ProNovoConfig::bXcorrEnable = false;
-			ProNovoConfig::bMvhEnable = true;
-		} else if (vsArguments[i] == "-5") {
-			ProNovoConfig::bMultiScores = false;
 		} else {
 			cerr << "Unknown option " << vsArguments[i] << endl << endl;
 			exit(1);
@@ -126,8 +107,17 @@ void initializeArguments(int argc, char **argv, vector<string> & vsFT2Filenames,
 		cerr << "Either a input scan file or the directory of input scan files needs to be specified" << endl;
 		exit(1);
 	}
-	if (sConfigFilename == "")
-		sConfigFilename = sWorkingDirectory + ProNovoConfig::getSeparator() + "SiprosConfig.cfg";
+	if ((sConfigFilename == "") && (sConfigFileDirectory == ""))
+		//sConfigFilename = sWorkingDirectory + ProNovoConfig::getSeparator() + "SiprosConfig.cfg";
+		// Without specifying configure file and configure file directory, the default configure file directory
+		// is working directory. In the openmp only version, the default configure file is SiprosConfig.cfg
+		sConfigFileDirectory = sWorkingDirectory;
+
+	if (sConfigFileDirectory != "")
+		searchConfigureFiles(vsConfigureFilenames, sConfigFileDirectory, bScreenOutput);
+	else
+		vsConfigureFilenames.push_back(sConfigFilename);
+
 	if (sSingleWorkingFile != "")
 		vsFT2Filenames.push_back(sSingleWorkingFile);
 	else
@@ -135,8 +125,6 @@ void initializeArguments(int argc, char **argv, vector<string> & vsFT2Filenames,
 	if ((sOutputDirectory == "") && (sWorkingDirectory != ""))
 		sOutputDirectory = sWorkingDirectory;
 
-	if (sConfigFileDirectory != "")
-		searchConfigureFiles(vsConfigureFilenames, sConfigFileDirectory, bScreenOutput);
 }
 
 void handleScan(const string & sFT2filename, const string & sOutputDirectory, const string & sConfigFilename,
@@ -167,8 +155,8 @@ int main(int argc, char **argv) {
 	vsConfigureFilenames.clear();
 	bool bScreenOutput;
 	string sWorkingDirectory, sConfigFilename, sSingleWorkingFile, sOutputDirectory;
-	initializeArguments(argc, argv, vsFT2Filenames, sWorkingDirectory, sConfigFilename, sSingleWorkingFile,
-			sOutputDirectory, bScreenOutput, vsConfigureFilenames);
+	initializeArguments(argc, argv, vsFT2Filenames, sWorkingDirectory, vsConfigureFilenames, sSingleWorkingFile,
+			sOutputDirectory, bScreenOutput);
 	if (vsConfigureFilenames.empty()) {
 		vsConfigureFilenames.push_back(sConfigFilename);
 	}

@@ -171,7 +171,7 @@ bool MS2ScanVector::ReadMs2File() {
 	bool bReVal, flag_1stScan = true; //flag_1stScan true indicates pMS2Scan is empty
 	string sline;
 	istringstream input;
-	MS2Scan * pMS2Scan;
+	MS2Scan * pMS2Scan = NULL;
 	ifstream ft2_stream(sFT2Filename.c_str());
 	int tmp_charge;
 	double tmp_mz, tmp_intensity;
@@ -197,7 +197,8 @@ bool MS2ScanVector::ReadMs2File() {
 				input >> tmp_intensity;
 				input.clear();
 				pMS2Scan->vdIntensity.push_back(tmp_intensity);
-				if (words.size() >= 2) {
+				pMS2Scan->viCharge.push_back(0);
+				/*if (words.size() >= 2) {
 					input.clear();
 					input.str(words[2]);
 					input >> tmp_charge;
@@ -205,7 +206,7 @@ bool MS2ScanVector::ReadMs2File() {
 					pMS2Scan->viCharge.push_back(tmp_charge);
 				} else {
 					pMS2Scan->viCharge.push_back(0);
-				}
+				}*/
 			} else if (sline.at(0) == 'S') {
 				if (flag_1stScan) {
 					flag_1stScan = false;
@@ -704,14 +705,14 @@ void MS2ScanVector::processPeptideArray(vector<Peptide*>& vpPeptideArray) {
 	 */
 
 	if (ProNovoConfig::bMvhEnable) {
-// #pragma omp parallel
+#pragma omp parallel
 		{
 			//double * _pdAAforward = new double[MAX_PEPTIDE_LEN]();
 			//double * _pdAAreverse = new double[MAX_PEPTIDE_LEN]();
 			vector<double> * _pdAAforward = new vector<double>();
 			vector<double> * _pdAAreverse = new vector<double>();
 			vector<double> * sequenceIonMasses = new vector<double>();
-// #pragma omp for schedule(guided)
+#pragma omp for schedule(guided)
 			for (size_t ii = 0; ii < iScanSize; ii++) {
 				if (vpAllMS2Scans.at(ii)->bSkip) {
 					vpAllMS2Scans.at(ii)->vpPeptides.clear();
@@ -801,9 +802,9 @@ void MS2ScanVector::searchDatabaseSnp() {
 		processPeptideArray(vpPeptideArray);
 	}
 	/*// the last peptide object is an empty object and need to be deleted
-	if (currentPeptide != NULL) {
-		delete currentPeptide;
-	}*/
+	 if (currentPeptide != NULL) {
+	 delete currentPeptide;
+	 }*/
 	delete db;
 	cout << "Rank " << ProNovoConfig::iRank << ":\tSearch database end" << endl;
 	cout << "Rank " << ProNovoConfig::iRank << ":\tdestroy mvh table begin" << endl;
@@ -825,13 +826,13 @@ void MS2ScanVector::searchDatabase() {
 		currentPeptide = new Peptide();
 		// get one peptide from the database at a time, until there is no more peptide
 		while (myProteinDatabase.getNextPeptide(currentPeptide)) {
-			if(currentPeptide->getProteinName()=="Rev_UNLACT1_7763G0002"){
-				cout << "check" << endl;
-			}
-			/*cout << currentPeptide->sPeptide << endl;
-			 if(currentPeptide->sPeptide == "[PESAFQAVPLLELATIGLQK]"){
+			/*if(currentPeptide->getProteinName()=="Rev_UNLACT1_7763G0002"){
 			 cout << "check" << endl;
 			 }*/
+			// cout << currentPeptide->sPeptide << endl;
+			/*if (currentPeptide->sPeptide == "[ALLS<LAYCK]") {
+				cout << "check" << endl;
+			}*/
 			// save the new peptide to the array
 			if (assignPeptides2Scans(currentPeptide)) {
 				// cout << currentPeptide->sPeptide << ":\t" << currentPeptide->getPeptideMass() <<endl;
@@ -881,9 +882,9 @@ void MS2ScanVector::startProcessing() {
 	preProcessAllMS2();
 
 	// Search all MS2 scans against the database by mult-threading
-	searchDatabaseSnp();
+	// searchDatabaseSnp();
 
-	// searchDatabase();
+	searchDatabase();
 
 	// Postprocessing all MS2 scans' results by mult-threading
 	postProcessAllMS2();

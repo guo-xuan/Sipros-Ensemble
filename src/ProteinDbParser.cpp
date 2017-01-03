@@ -62,7 +62,7 @@ ProteinDbParser::ProteinDbParser(bool _bScreenOutput) {
 		iMutationInfoOpenPos = sLine.rfind(sOpenCharMutation);
 		iMutationInfoClosePos = sLine.rfind(sEndCharMutation);
 		if (iMutationInfoOpenPos != string::npos && iMutationInfoClosePos != string::npos) {
-			sMutationInfo = sLine.substr(iMutationInfoOpenPos + 1, iMutationInfoClosePos - iMutationInfoOpenPos - 1);
+			sMutationInfo = sLine.substr(iMutationInfoOpenPos + sOpenCharMutation.length(), iMutationInfoClosePos - iMutationInfoOpenPos - sOpenCharMutation.length());
 		}
 	}
 	iProteinId = 0;
@@ -114,6 +114,9 @@ bool ProteinDbParser::getNextProtein() {
 		db_stream.close();
 		return false;
 	}
+	/*if(scurrentProteinName == "21942184((((105E))))"){
+		cout << "check" << endl;
+	}*/
 	snextProteinName.clear();
 	iMutationInfoOpenPos = 0;
 	iMutationInfoClosePos = 0;
@@ -140,8 +143,8 @@ bool ProteinDbParser::getNextProtein() {
 			iMutationInfoOpenPos = sLine.rfind(sOpenCharMutation);
 			iMutationInfoClosePos = sLine.rfind(sEndCharMutation);
 			if (iMutationInfoOpenPos != string::npos && iMutationInfoClosePos != string::npos) {
-				sMutationInfo = sLine.substr(iMutationInfoOpenPos + 1,
-						iMutationInfoClosePos - iMutationInfoOpenPos - 1);
+				sMutationInfo = sLine.substr(iMutationInfoOpenPos + sOpenCharMutation.length(),
+						iMutationInfoClosePos - iMutationInfoOpenPos - sOpenCharMutation.length());
 			}
 			break;
 		} else {
@@ -321,9 +324,9 @@ void ProteinDbParser::digest(string & _seq, vector<CleavageSite> & _vAllPosibleC
 		generateProteinSegment(_seq, _vCombinationCleavageSites, _vSelectedDynamicCleavageSites, _vProteinSegments,
 				_iProteinSegmentsSize);
 		// fix the static cleavage sites then try every dynamic cleavage site
-		for (size_t i = 0; i < _vDynamicCleavageSites.size(); i++) {
-			size_t j = i + 1;
-			for (; j < _vDynamicCleavageSites.size(); j++) {
+		for (int i = 0; i < ((int)_vDynamicCleavageSites.size()); i++) {
+			int j = i + 1;
+			for (; j < ((int)_vDynamicCleavageSites.size()); j++) {
 				iMissCleavage = _vDynamicCleavageSites.at(j) - _vDynamicCleavageSites.at(i) - 1;
 				iMissCleavage -= j - i - 1;
 				if (iMissCleavage > iMaxMissedCleavageSites) {
@@ -340,7 +343,7 @@ void ProteinDbParser::digest(string & _seq, vector<CleavageSite> & _vAllPosibleC
 				_vCombinationCleavageSites.push_back(&(_vAllPosibleCleavageSites.at(_vDynamicCleavageSites.at(i))));
 				// decode the permutation
 				remainder = k;
-				for (size_t l = 1; l <= j - i; l++) {
+				for (int l = 1; l <= j - i; l++) {
 					mod = remainder % 2;
 					remainder = remainder >> 1;
 					if (mod == 1) {
@@ -356,14 +359,14 @@ void ProteinDbParser::digest(string & _seq, vector<CleavageSite> & _vAllPosibleC
 					continue;
 				}
 				// generate protein segments
-				for (size_t l = 0; l < _vStaticCleavageSites.size(); l++) {
+				for (int l = 0; l < ((int)_vStaticCleavageSites.size()); l++) {
 					_vCombinationCleavageSites.push_back(
 							(&(_vAllPosibleCleavageSites.at(_vStaticCleavageSites.at(l)))));
 				}
 				sort(_vCombinationCleavageSites.begin(), _vCombinationCleavageSites.end(), comparePtrToNode);
 				_vSelectedDynamicCleavageSites.clear();
 				// each position will only have one cleavage site
-				for (size_t l = 0; l < _vCombinationCleavageSites.size(); l++) {
+				for (int l = 0; l < ((int)_vCombinationCleavageSites.size()); l++) {
 					if (_vCombinationCleavageSites.at(l)->bIsDynamicCleavageSite) {
 						_vSelectedDynamicCleavageSites.push_back(l);
 					}
@@ -986,6 +989,11 @@ void ProteinDbParser::ParseMutationInfo(string & _sInfo, vector<Mutation> & _vAl
 		} else {
 			sMutationResidue.push_back(_sInfo.at(i));
 			iPos += atoi(sPositionOfMutation.c_str());
+			if (iPos < 0) {
+				sPositionOfMutation.clear();
+				sMutationResidue.clear();
+				continue;
+			}
 			if (_iAllMutationsSize >= _vAllMutations.size()) {
 				_vAllMutations.push_back(Mutation());
 			}
