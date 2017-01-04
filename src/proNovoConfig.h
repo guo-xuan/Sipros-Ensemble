@@ -320,6 +320,7 @@ public:
 	//---------------Sipros Score End----------------
 	static string sCleavageAfterResidues;
 	static string sCleavageBeforeResidues;
+	static int num_threads;
 
 protected:
 	ProNovoConfig();

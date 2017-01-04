@@ -55,7 +55,7 @@ void searchConfigureFiles(vector<string> & vsConfigureFilenames, const string & 
 
 void initializeArguments(int argc, char **argv, vector<string> & vsFT2Filenames, string & sWorkingDirectory,
 		string & sConfigFilename, string & sSingleWorkingFile, string & sOutputDirectory, bool & bScreenOutput,
-		vector<string> & vsConfigureFilenames) {
+		vector<string> & vsConfigureFilenames, int & num_threads) {
 	int i;
 	// Grab command line arguments
 	vector<string> vsArguments;
@@ -84,7 +84,9 @@ void initializeArguments(int argc, char **argv, vector<string> & vsFT2Filenames,
 			sOutputDirectory = vsArguments[++i];
 		else if (vsArguments[i] == "-s")
 			bScreenOutput = false;
-		else if ((vsArguments[i] == "-h") || (vsArguments[i] == "--help")) {
+		else if(vsArguments[i] == "-t"){
+			num_threads = atoi(vsArguments[++i].c_str());
+		} else if ((vsArguments[i] == "-h") || (vsArguments[i] == "--help")) {
 			cout << "Usage: -w WorkingDirectory -c ConfigurationFile, -f: A single MS2 or FT2 file to be processed"
 					<< endl;
 			cout
@@ -93,28 +95,6 @@ void initializeArguments(int argc, char **argv, vector<string> & vsFT2Filenames,
 			cout << "-o output directory. If not specified, it is the same as that of the input scan file," << endl;
 			cout << "-s silence all standard output." << endl;
 			exit(0);
-		} else if (vsArguments[i] == "-1") {
-			ProNovoConfig::bWeightDotSumEnable = true;
-			ProNovoConfig::bLessIsotopicDistribution = false;
-			ProNovoConfig::bXcorrEnable = false;
-			ProNovoConfig::bMvhEnable = false;
-		} else if (vsArguments[i] == "-2") {
-			ProNovoConfig::bWeightDotSumEnable = true;
-			ProNovoConfig::bLessIsotopicDistribution = true;
-			ProNovoConfig::bXcorrEnable = false;
-			ProNovoConfig::bMvhEnable = false;
-		} else if (vsArguments[i] == "-3") {
-			ProNovoConfig::bWeightDotSumEnable = false;
-			ProNovoConfig::bLessIsotopicDistribution = false;
-			ProNovoConfig::bXcorrEnable = true;
-			ProNovoConfig::bMvhEnable = false;
-		} else if (vsArguments[i] == "-4") {
-			ProNovoConfig::bWeightDotSumEnable = false;
-			ProNovoConfig::bLessIsotopicDistribution = false;
-			ProNovoConfig::bXcorrEnable = false;
-			ProNovoConfig::bMvhEnable = true;
-		} else if (vsArguments[i] == "-5") {
-			ProNovoConfig::bMultiScores = false;
 		} else {
 			cerr << "Unknown option " << vsArguments[i] << endl << endl;
 			exit(1);
@@ -167,11 +147,13 @@ int main(int argc, char **argv) {
 	vsConfigureFilenames.clear();
 	bool bScreenOutput;
 	string sWorkingDirectory, sConfigFilename, sSingleWorkingFile, sOutputDirectory;
+	int num_threads = 0;
 	initializeArguments(argc, argv, vsFT2Filenames, sWorkingDirectory, sConfigFilename, sSingleWorkingFile,
-			sOutputDirectory, bScreenOutput, vsConfigureFilenames);
+			sOutputDirectory, bScreenOutput, vsConfigureFilenames, num_threads);
 	if (vsConfigureFilenames.empty()) {
 		vsConfigureFilenames.push_back(sConfigFilename);
 	}
+	ProNovoConfig::num_threads = num_threads;
 	// ProfilerStart("low_res.log");
 	for (size_t j = 0; j < vsConfigureFilenames.size(); j++) {
 		// Load config file

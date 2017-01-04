@@ -21,6 +21,7 @@ int ProNovoConfig::iMaxPeptideLength = 60;
 
 string ProNovoConfig::sCleavageAfterResidues = "KR";
 string ProNovoConfig::sCleavageBeforeResidues = "ACDEFGHIJKLMNPQRSTVWXY";
+int ProNovoConfig::num_threads = 0;
 int ProNovoConfig::iMaxMissedCleavages = 2;
 bool ProNovoConfig::bTestStartRemoval = false;
 

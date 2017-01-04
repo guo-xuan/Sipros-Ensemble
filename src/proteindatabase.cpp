@@ -191,8 +191,9 @@ void ProteinDatabase::RemoveIllegalResidue(string& seq) {
 //	cout<<legalstr<<"bbb"<<endl;
 	found = seq.find_first_not_of(legalstr);
 	while (found != string::npos) {
-		if (bScreenOutput)
-			cout << "Remove illegal character " << seq.substr(found, 1) << " of " << seq << endl;
+		if (bScreenOutput){
+			// cout << "Remove illegal character " << seq.substr(found, 1) << " of " << seq << endl;
+		}
 		seq.erase(found, 1);
 		//cout<<seq<<endl;
 		found = seq.find_first_not_of(legalstr);

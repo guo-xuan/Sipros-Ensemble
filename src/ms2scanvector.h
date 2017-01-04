@@ -17,7 +17,7 @@
 #include "ProteinDbParser.h"
 
 #define ZERO            0.00000001
-#define PEPTIDE_ARRAY_SIZE  1000000
+#define PEPTIDE_ARRAY_SIZE  2000000
 
 using namespace std;
 
@@ -87,6 +87,14 @@ public:
 	void startProcessing(); // start functions to process the loaded FT2 file
 
 	size_t iMaxNumProteins;
+
+	// variables for the MVH thread
+	vector<double> ** _ppdAAforward;
+	vector<double> ** _ppdAAreverse;
+	vector<double> ** psequenceIonMasses;
+	int num_max_threads;
+	void preMvh();
+	void postMvh();
 };
 
 #endif // MS2SCANVECTOR_H
