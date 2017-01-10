@@ -10,6 +10,7 @@ MS2Scan::MS2Scan() {
 	dsumofWeightScore = 0;
 	pQuery = NULL;
 	peakData = NULL;
+	pPeakList = NULL;
 	intenClassCounts = NULL;
 	mvh = 0;
 	totalPeakBins = 0;
@@ -46,6 +47,10 @@ MS2Scan::~MS2Scan() {
 		delete peakData;
 	}
 
+	if (pPeakList != NULL) {
+		delete pPeakList;
+	}
+
 	if (intenClassCounts != NULL) {
 		delete intenClassCounts;
 	}
@@ -58,7 +63,7 @@ void MS2Scan::postprocess() {
 /**
  * return the retention time
  */
-string MS2Scan::getRTime(){
+string MS2Scan::getRTime() {
 	return sRTime;
 }
 
@@ -66,10 +71,12 @@ bool MS2Scan::mergePeptide(vector<PeptideUnit*>& vpTopPeptides, const string & s
 	int i;
 	bool bReVal = false, bNewProtein;
 	size_t iPosition;
+
 	if (!vpTopPeptides.empty()) {
 		for (i = 0; i < (int) vpTopPeptides.size(); i++) {
 			if (vpTopPeptides.at(i)->sIdentifiedPeptide == sPeptide) {
-				bNewProtein = true; // True: sProteinName doesn't appear in vpTopPeptides.at(i)->sProteinNames
+				// True: sProteinName doesn't appear in vpTopPeptides.at(i)->sProteinNames
+				bNewProtein = true;
 				if (sProteinName == vpTopPeptides.at(i)->sProteinNames) {
 					bNewProtein = false;
 				} else {
@@ -121,7 +128,7 @@ void MS2Scan::cleanup() {
 		vector<double>().swap(vdMZ);
 		vector<double>().swap(vdIntensity);
 	}
-	vector<int>().swap(viCharge);
+	vector<int>().swap(viFragmentCharges);
 	// vdMaxMzIntensity.clear();
 	//   vdMzIntensity.clear();
 	//   vdHighIntensity.clear();
@@ -745,15 +752,10 @@ void MS2Scan::scorePeptides() {
 void MS2Scan::preprocessHighMS2() {
 	initialPreprocess();
 	if (bSetMS2Flag) {
-//	normalizeMS2scan(); // for ranksum only
-//	setIntensityThreshold(); // for ranksum only
-//	filterMS2scan(); // for ranksum only
-		vdpreprocessedMZ = vdMZ; // for weightsum only
-		vdpreprocessedIntensity = vdIntensity; // for weightsum only
-		vipreprocessedCharge = viCharge; // for weightsum only
+		vdpreprocessedMZ = vdMZ;
+		vdpreprocessedIntensity = vdIntensity;
+		vipreprocessedCharge = viFragmentCharges;
 		binCalculation2D();
-		//sortPreprocessedIntensity(); // for ranksum only
-		//highMS2scan need the last part for TandemMassSpectrum
 	}
 }
 
@@ -826,7 +828,7 @@ void MS2Scan::filterMS2scan() {
 	lowpeak.clear();
 	if (isMS2HighRes) {
 		vdpreprocessedMZ = vdMZ;
-		vipreprocessedCharge = viCharge;
+		vipreprocessedCharge = viFragmentCharges;
 	}
 	for (i = 0; i < (int) vdIntensity.size(); ++i)
 		if (isMS2HighRes) {
@@ -836,7 +838,7 @@ void MS2Scan::filterMS2scan() {
 			vdpreprocessedMZ.push_back(vdMZ[i]);
 			vdpreprocessedIntensity[i] = vdpreprocessedIntensity[i]
 					/ vdMaxMzIntensity[(int) (vdMZ[i] + SMALLINCREMENT)];
-			vipreprocessedCharge.push_back(viCharge[i]);
+			vipreprocessedCharge.push_back(viFragmentCharges[i]);
 		} else {
 			lowpeak.push_back(i);
 		}
@@ -915,7 +917,7 @@ void MS2Scan::initialPreprocess() {
 	} else {
 		bin_res = LOW_BIN_RES;
 	}
-	if ((int) vdMZ.size() == 0 || vdMZ.size() != vdIntensity.size() || vdMZ.size() != viCharge.size()) {
+	if ((int) vdMZ.size() == 0 || vdMZ.size() != vdIntensity.size() || vdMZ.size() != viFragmentCharges.size()) {
 		cerr << "ERROR: Problem with the input mass spectrum" << endl;
 		bSetMS2Flag = false;
 	} else {
@@ -955,15 +957,15 @@ void MS2Scan::sortPeakList() {
 				// exchange
 				dCurrentMZ = vdMZ.at(i);
 				dCurrentInt = vdIntensity.at(i);
-				iCurrentZ = viCharge.at(i);
+				iCurrentZ = viFragmentCharges.at(i);
 
 				vdMZ.at(i) = vdMZ.at(i + 1);
 				vdIntensity.at(i) = vdIntensity.at(i + 1);
-				viCharge.at(i) = viCharge.at(i + 1);
+				viFragmentCharges.at(i) = viFragmentCharges.at(i + 1);
 
 				vdMZ.at(i + 1) = dCurrentMZ;
 				vdIntensity.at(i + 1) = dCurrentInt;
-				viCharge.at(i + 1) = iCurrentZ;
+				viFragmentCharges.at(i + 1) = iCurrentZ;
 			}
 		}
 	}
@@ -1088,11 +1090,11 @@ bool MS2Scan::findProductIon(const vector<double> & vdIonMass, const vector<doub
 	dScoreWeight = 1.0;
 	dAverageMZError = dMassTolerance;
 
-// search for the most abundant peak
+	// search for the most abundant peak
 	if (!searchMZ2D(dMaxIntExpectedMZ, iIndex4SelectedFound)) {
 		return false;
 	}
-// test whether the iCharge is consistant with viZinput
+	// test whether the iCharge is consistent with viZinput
 	if (vipreprocessedCharge[iIndex4SelectedFound] != 0) {
 		if (vipreprocessedCharge[iIndex4SelectedFound] != iCharge) {
 			return false;
@@ -1104,7 +1106,7 @@ bool MS2Scan::findProductIon(const vector<double> & vdIonMass, const vector<doub
 	double dMostAbundantObservedIntensity = vdpreprocessedIntensity[iIndex4SelectedFound];
 	double dMostAbundantMZError = dMostAbundantObservedMZ - dMaxIntExpectedMZ;
 
-// compute expected MZ and intensity for this product ion
+	// compute expected MZ and intensity for this product ion
 	int iIsotopicEnvelopeSize = vdIonProb.size();
 	vector<bool> vbObserved(iIsotopicEnvelopeSize, false);
 	vector<double> vdObservedMZ(iIsotopicEnvelopeSize, 0);
@@ -1311,15 +1313,15 @@ bool MS2Scan::findProductIonSIP(const vector<double> & vdIonMass, const vector<d
 		}
 	}
 
-// test whether the iCharge is consistant with viZinput
-// if not, lower the dScoreWeight
+	// test whether the iCharge is consistant with viZinput
+	// if not, lower the dScoreWeight
 	if (vipreprocessedCharge[iMostAbundantPeakIndex] != 0) {
 		if (vipreprocessedCharge[iMostAbundantPeakIndex] != iCharge) {
 			dScoreWeight = dScoreWeight / 2;
 		}
 	}
 
-// calculate average mass error for this product ion
+	// calculate average mass error for this product ion
 	double dTotalRelativeIntensity = 0;
 	double dTotalMZError = 0;
 	for (i = 0; i < (int) vdMZError.size(); ++i) {
@@ -1329,7 +1331,6 @@ bool MS2Scan::findProductIonSIP(const vector<double> & vdIonMass, const vector<d
 		}
 	}
 	dAverageMZError = dTotalMZError / dTotalRelativeIntensity;
-//      dAverageMZError = dMostAbundantMZError;
 
 	return true;
 }
@@ -1659,4 +1660,90 @@ void PeptideUnit::setPeptideUnitInfo(const Peptide* currentPeptide, const double
 	this->dPepMass = currentPeptide->getPeptideMass();
 	this->iPepLen = currentPeptide->getPeptideLength();
 	iEnzInt = currentPeptide->getEnzInt();
+}
+
+char PeakList::iNULL = 255;
+
+PeakList::PeakList(map<double, char> * _peakData) {
+	iPeakSize = _peakData->size();
+	pPeaks = new double[iPeakSize];
+	pClasses = new char[iPeakSize];
+	int j = 0;
+	for (std::map<double, char>::iterator i = _peakData->begin(); i != _peakData->end(); i++) {
+		pPeaks[j] = i->first;
+		pClasses[j] = i->second;
+		++j;
+	}
+	iLowestMass = (int) pPeaks[0];
+	iHighestMass = (int) pPeaks[iPeakSize - 1] + 1;
+	iMassHubSize = iHighestMass - iLowestMass;
+	iMassHubSizeMinorOne = iMassHubSize - 1;
+	pMassHub = new int[iMassHubSize];
+	int iMass = 0;
+	int iStart, iEnd;
+	for (j = 0; j < iPeakSize - 1; ++j) {
+		iMass = pPeaks[j];
+		iStart = iMass - iLowestMass;
+		iEnd = pPeaks[j + 1] - iLowestMass - 1;
+		if (iEnd > iStart) {
+			fill_n(pMassHub + iStart, (iEnd - iStart + 1), j);
+		} else {
+			fill_n(pMassHub + iStart, 1, j);
+		}
+	}
+	if (((int) pPeaks[iPeakSize - 1]) != ((int) pPeaks[iPeakSize - 2])) {
+		iStart = pPeaks[iPeakSize - 1] - iLowestMass;
+		pMassHub[iStart] = iPeakSize - 1;
+	}
+}
+
+PeakList::~PeakList() {
+	delete[] pMassHub;
+	delete[] pPeaks;
+	delete[] pClasses;
+}
+
+char PeakList::end() {
+	return iNULL;
+}
+
+char PeakList::findNear(double mz, double tolerance) {
+	double dMin = 1000000, dDiff;
+	int iMzU, iMzL, iMz;
+	char iClass = iNULL;
+	iMzU = (int) (mz + tolerance);
+	iMzL = (int) (mz - tolerance);
+	iMz = (int) mz;
+	if (iMzU < iLowestMass) {
+		return iNULL;
+	}
+	if (iMzL > iHighestMass) {
+		return iNULL;
+	}
+	int iStart = 0, iEnd = iMassHubSizeMinorOne;
+	iStart = mz - iLowestMass;
+	if (iMzU == iMz) {
+		iEnd = iStart + 1 >= iEnd ? iPeakSize : pMassHub[iStart + 1];
+	} else {
+		iEnd = iStart + 2 >= iEnd ? iPeakSize : pMassHub[iStart + 2];
+	}
+	iStart = iMzL - iLowestMass;
+	// iStart's minimum is 0
+	iStart = iStart > iMassHubSizeMinorOne ? pMassHub[iMassHubSizeMinorOne] : pMassHub[iStart];
+	for (; iStart < iEnd; ++iStart) {
+		dDiff = fabs(mz - pPeaks[iStart]);
+		if (dDiff < dMin) {
+			dMin = dDiff;
+			iClass = pClasses[iStart];
+		}
+	}
+	if (dMin < tolerance) {
+		return iClass;
+	} else {
+		return iNULL;
+	}
+}
+
+int PeakList::size() {
+	return iPeakSize;
 }

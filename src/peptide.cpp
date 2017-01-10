@@ -183,8 +183,6 @@ string Peptide::neutralLossProcess(const string& sCurrentPeptide) {
 	size_t i, listLength, pos;
 	sNewPeptide = sCurrentPeptide;
 	vpNeutralLossList = ProNovoConfig::getNeutralLossList();
-	//   cout<<"!!!"<<endl;
-	//   cout<< sNewPeptide <<endl;
 	listLength = vpNeutralLossList->size();
 	for (i = 0; i < listLength; i++) {
 		pos = 0;
@@ -193,9 +191,7 @@ string Peptide::neutralLossProcess(const string& sCurrentPeptide) {
 			sNewPeptide.replace(pos, 1, (*vpNeutralLossList).at(i).second);
 			pos = sNewPeptide.find((*vpNeutralLossList).at(i).first, pos);
 		}
-		//cout<<vpNeutralLossList[i].first<<" : "<<vpNeutralLossList[i].second<<endl;
 	}
-	//cout<< sNewPeptide <<endl;
 	return sNewPeptide;
 }
 

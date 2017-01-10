@@ -1,4 +1,3 @@
-
 #ifndef MS2SCANVECTOR_H
 #define MS2SCANVECTOR_H
 
@@ -17,7 +16,8 @@
 #include "ProteinDbParser.h"
 
 #define ZERO            0.00000001
-#define PEPTIDE_ARRAY_SIZE  2000000
+#define PEPTIDE_ARRAY_SIZE  100000
+#define TASKWAIT_SIZE 30
 
 using namespace std;
 
@@ -26,65 +26,71 @@ class MS2ScanVector {
 	// the MS2 scans are sorted by their precursor masses
 	vector<MS2Scan *> vpAllMS2Scans;
 	// the precursor mass of these MS2 scans
-	// this is used for quickly inserting a peptide into corrent MS2 scans
+	// this is used for quickly inserting a peptide into correct MS2 scans
 	// vpAllMS2Scans and vpPrecursorMasses are in the same order
 	vector<double> vpPrecursorMasses;
-	//vector <int> mass_w; // mass window
 	string sFT2Filename;    // the FT2 filename
 	string sOutputFile; // the output file name
 	string sConfigFile; // the configure file name
+	// mass except N and C termini;
+	map<char, double> mapResidueMass;
+	// if true, allows standard output
+	bool bScreenOutput;
 
-	// this should be moved to the Peptide class or make it a static member in the Config class
-	map<char, double> mapResidueMass; // mass except N and C termini;
-
-	void saveScan(MS2Scan * pMS2Scan);
+	// find every MS2 scan whose precursor mass matches peptide mass
+	bool assignPeptides2Scans(Peptide * currentPeptide);
+	//return true if parent_charge should be 1
+	bool ChargeDetermination(const vector<double> & vdAllmz, double pmz);
 	bool isMS1HighRes(const string & target);
-	bool ChargeDetermination(const vector<double> & vdAllmz, double pmz); //return true if parent_charge should be 1
-	bool bScreenOutput; // if true, allows standard output
 	static bool mygreater(double i, double j);
 	static bool myless(MS2Scan * pMS2Scan1, MS2Scan * pMS2Scan2);
 	static bool mylessScanId(MS2Scan * pMS2Scan1, MS2Scan * pMS2Scan2);
-	void preProcessAllMS2();  // Preprocessing all MS2 scans by multi-threading
-	void searchDatabase(); // Search all MS2 scans against the protein list by multi-threading
-	void searchDatabaseSnp(); // Search all MS2 scans against the protein list by multi-threading
-	// find every MS2 scan whose precursor mass matches peptide mass
-	bool assignPeptides2Scans(Peptide * currentPeptide);
-	void processPeptideArray(vector<Peptide*>& vpPeptideArray);
-	pair<int, int> GetRangeFromMass(double lb, double ub);
-	// Postprocessing all MS2 scans' results by multi-threading
+	// postprocessing all MS2 scans' results by multi-threading
 	void postProcessAllMS2();
+	// preprocessing all MS2 scans by multi-threading
+	void preProcessAllMS2();
+	void processPeptideArray(vector<Peptide*>& vpPeptideArray);
+	// task version of processing peptides
+	void processPeptideArrayTask(vector<Peptide*>& vpPeptideArray, omp_lock_t * pLck);
+	void saveScan(MS2Scan * pMS2Scan);
+	// search all MS2 scans against the protein list by multi-threading
+	void searchDatabase();
+	void searchDatabaseSnp();
+	// task version of search database
+	void searchDatabaseTask();
+	pair<int, int> GetRangeFromMass(double lb, double ub);
 	// write results to a SIP file
 	// the SIP file will the same base file name as sFT2Filename
 	// change the extension filename to ".SIP"
-	void setOutputFile(const string & sFT2FilenameInput,
-			const string & sOutputDirectory);
+	void setOutputFile(const string & sFT2FilenameInput, const string & sOutputDirectory);
 	void writeOutput();
 	void writeOutputMultiScoresPin();
 	void writeOutputMultiScoresSip();
 	void writeOutputMultiScoresSpectrum2MutiPep();
 	//calculate mean and standard deviation of scores of a ms2 scan
-	void calculateMeanAndDeviation(int inumberScore, double dScoreSum,
-			double dScoreSquareSum, double & dMean, double & dDeviation);
-	void GetAllRangeFromMass(double dPeptideMass,
-			vector<pair<int, int> > & vpPeptideMassRanges);
+	void calculateMeanAndDeviation(int inumberScore, double dScoreSum, double dScoreSquareSum, double & dMean,
+			double & dDeviation);
+	void GetAllRangeFromMass(double dPeptideMass, vector<pair<int, int> > & vpPeptideMassRanges);
 	string ParsePath(string sPath);
 
 public:
-	MS2ScanVector(const string & sFT2FilenameInput,
-			const string & sOutputDirectory, const string & sConfigFilename,
+	MS2ScanVector(const string & sFT2FilenameInput, const string & sOutputDirectory, const string & sConfigFilename,
 			bool bScreenOutput);
 	~MS2ScanVector();
 
 	// Populate vpAllMS2Scans from the input FT2 file
 	// Determine the charge state of every scan by calling the function MS2Scan::isSinglyCharged().
-	// Creat a +2 scan and a +3 scan for an unknown multipe charged scan.
+	// Create a +2 scan and a +3 scan for an unknown multiple charged scan.
 	// Return false if there is a problem with the file
 	bool loadFile();
 	bool loadFT2file();
 	bool loadMs2File();
-	bool ReadFT2File();    //Read FT2 files
-	bool ReadMs2File();//Read Ms2 files
-	void startProcessing(); // start functions to process the loaded FT2 file
+	//Read FT2 files
+	bool ReadFT2File();
+	//Read Ms2 files
+	bool ReadMs2File();
+	// start functions to process the loaded FT2 file
+	void startProcessing();
 
 	size_t iMaxNumProteins;
 
@@ -92,6 +98,7 @@ public:
 	vector<double> ** _ppdAAforward;
 	vector<double> ** _ppdAAreverse;
 	vector<double> ** psequenceIonMasses;
+	vector<char> ** pSeqs;
 	int num_max_threads;
 	void preMvh();
 	void postMvh();

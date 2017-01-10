@@ -84,7 +84,7 @@ public:
 	map<string, IsotopeDistribution> vResidueIsotopicDistribution;
 	// when a peak have a probability less than the ProbabilityCutoff
 	// this peak will be ingnored, which makes the total probability space less than 1
-	const double ProbabilityCutoff; // 1*10E-9
+	const double ProbabilityCutoff = PROBOBILITYACCURACY; // 1*10E-9
 
 private:
 	// functions for IsotopeDistribution's arithmetic
@@ -103,7 +103,7 @@ private:
 
 	// when two peaks have a mass difference less than the MassPrecision
 	// they will be merged into one peak with their average mass and sum intensity
-	const double MassPrecision; // 0.01
+	const double MassPrecision = 0.01; // 0.01
 	static double MassTolerance;
 	// the name of atoms
 	string AtomName;

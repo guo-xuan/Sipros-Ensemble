@@ -83,14 +83,26 @@ public:
 	;
 };
 
-/*
- class ScanUnit
- {
- public:
- double intensity;
- bool match;
- ScanUnit(double inten, bool mat){intensity = inten; match=mat;};
- };*/
+class PeakList{
+public:
+	int iLowestMass;
+	// excluded
+	int iHighestMass;
+	int * pMassHub;
+	double * pPeaks;
+	char * pClasses;
+	int iPeakSize;
+	int iMassHubSize;
+	int iMassHubSizeMinorOne;
+	static char iNULL;
+
+	PeakList(map<double, char> * _peakData);
+	~PeakList();
+
+	char end();
+	char findNear(double mz, double tolerance);
+	int size();
+};
 
 class PeptideUnit {
 public:
@@ -160,8 +172,6 @@ class MS2Scan {
 
 	void cleanup();
 
-	// static bool mySUGreater (ScanUnit s1, ScanUnit s2);
-
 	bool binarySearch(const double & dTarget, const vector<double> & vdList, const double & dTolerance,
 			vector<int> & viIndex4Found);
 
@@ -179,7 +189,6 @@ class MS2Scan {
 			int & iMostAbundantPeakIndex); // start with 0
 public:
 	MS2Scan();
-	// MS2Scan(const MS2Scan *& cMS2Scan);
 	~MS2Scan();
 
 	string sFT2Filename;     // FT2file name
@@ -200,12 +209,16 @@ public:
 
 	vector<double> vdMZ;
 	vector<double> vdIntensity;
-	vector<int> viCharge;  // the value of viCharge is zero for low-resolution MS2
-
-	bool isMS1HighRes;     // Is the MS1 scan a high-resolution scan?
-	bool isMS2HighRes;      // Is this MS2 scan a high-resolution scan?
-	vector<Peptide *> vpPeptides;      //current set of peptides to be scored
-	bool bSetMS2Flag; // false when preprocess fail on bad data
+	// the value of viCharge is zero for low-resolution MS2
+	vector<int> viFragmentCharges;
+	// Is the MS1 scan a high-resolution scan?
+	bool isMS1HighRes;
+	// Is this MS2 scan a high-resolution scan?
+	bool isMS2HighRes;
+    //current set of peptides to be scored
+	vector<Peptide *> vpPeptides;
+	 // false when pre-process fail on bad data
+	bool bSetMS2Flag;
 
 	string getRTime();
 	//merge same peptide. If no same peptide return false, otherwise, return true
@@ -251,6 +264,7 @@ public:
 	//-----------Myrimatch Begin-------------
 	bool bSkip;
 	map<double, char> * peakData;
+	PeakList * pPeakList;
 	vector<int> * intenClassCounts;
 	double mvh;
 	int totalPeakBins;

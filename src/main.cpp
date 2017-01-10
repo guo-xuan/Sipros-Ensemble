@@ -43,8 +43,9 @@ void searchConfigureFiles(vector<string> & vsConfigureFilenames, const string & 
 		cerr << "no configure file in the directory" << endl;
 		exit(1);
 	}
-	for (i = 0; i < iFileNum; i++)
+	for (i = 0; i < iFileNum; i++) {
 		vsConfigureFilenames.at(i) = sConfigFileDirectory + ProNovoConfig::getSeparator() + vsConfigureFilenames.at(i);
+	}
 }
 
 /* 
@@ -52,7 +53,6 @@ void searchConfigureFiles(vector<string> & vsConfigureFilenames, const string & 
  * Populate vsFT2Filenames
  * Set up SiprosConfig
  */
-
 void initializeArguments(int argc, char **argv, vector<string> & vsFT2Filenames, string & sWorkingDirectory,
 		string & sConfigFilename, string & sSingleWorkingFile, string & sOutputDirectory, bool & bScreenOutput,
 		vector<string> & vsConfigureFilenames, int & num_threads) {
@@ -84,7 +84,7 @@ void initializeArguments(int argc, char **argv, vector<string> & vsFT2Filenames,
 			sOutputDirectory = vsArguments[++i];
 		else if (vsArguments[i] == "-s")
 			bScreenOutput = false;
-		else if(vsArguments[i] == "-t"){
+		else if (vsArguments[i] == "-t") {
 			num_threads = atoi(vsArguments[++i].c_str());
 		} else if ((vsArguments[i] == "-h") || (vsArguments[i] == "--help")) {
 			cout << "Usage: -w WorkingDirectory -c ConfigurationFile, -f: A single MS2 or FT2 file to be processed"
@@ -99,24 +99,32 @@ void initializeArguments(int argc, char **argv, vector<string> & vsFT2Filenames,
 			cerr << "Unknown option " << vsArguments[i] << endl << endl;
 			exit(1);
 		}
-	if ((sWorkingDirectory == "") && (sSingleWorkingFile == ""))
+	if ((sWorkingDirectory == "") && (sSingleWorkingFile == "")) {
 		sWorkingDirectory = ".";
+	}
 
 	if ((sWorkingDirectory != "") && (sSingleWorkingFile != "")) {
 		cerr << "Either a input scan file or the directory of input scan files needs to be specified" << endl;
 		exit(1);
 	}
-	if (sConfigFilename == "")
-		sConfigFilename = sWorkingDirectory + ProNovoConfig::getSeparator() + "SiprosConfig.cfg";
-	if (sSingleWorkingFile != "")
-		vsFT2Filenames.push_back(sSingleWorkingFile);
-	else
-		searchFT2Files(vsFT2Filenames, sWorkingDirectory, bScreenOutput);
-	if ((sOutputDirectory == "") && (sWorkingDirectory != ""))
-		sOutputDirectory = sWorkingDirectory;
 
-	if (sConfigFileDirectory != "")
+	if (sConfigFilename == "") {
+		sConfigFilename = sWorkingDirectory + ProNovoConfig::getSeparator() + "SiprosConfig.cfg";
+	}
+
+	if (sSingleWorkingFile != "") {
+		vsFT2Filenames.push_back(sSingleWorkingFile);
+	} else {
+		searchFT2Files(vsFT2Filenames, sWorkingDirectory, bScreenOutput);
+	}
+
+	if ((sOutputDirectory == "") && (sWorkingDirectory != "")) {
+		sOutputDirectory = sWorkingDirectory;
+	}
+
+	if (sConfigFileDirectory != "") {
 		searchConfigureFiles(vsConfigureFilenames, sConfigFileDirectory, bScreenOutput);
+	}
 }
 
 void handleScan(const string & sFT2filename, const string & sOutputDirectory, const string & sConfigFilename,
@@ -135,34 +143,41 @@ void handleScan(const string & sFT2filename, const string & sOutputDirectory, co
 		pMainMS2ScanVector->startProcessing();
 	}
 
-	delete pMainMS2ScanVector; //free memory of vpAllMS2Scans
+	//free memory of vpAllMS2Scans
+	delete pMainMS2ScanVector;
 }
 
 int main(int argc, char **argv) {
-	// A list of FT2/MS2 files to be searched
+	// a list of FT2/MS2 files to be searched
 	double begin = omp_get_wtime();
+
 	vector<string> vsFT2Filenames;
-	// A list of configure files
+	// a list of configure files
 	vector<string> vsConfigureFilenames;
 	vsConfigureFilenames.clear();
+
 	bool bScreenOutput;
 	string sWorkingDirectory, sConfigFilename, sSingleWorkingFile, sOutputDirectory;
+
 	int num_threads = 0;
+
 	initializeArguments(argc, argv, vsFT2Filenames, sWorkingDirectory, sConfigFilename, sSingleWorkingFile,
 			sOutputDirectory, bScreenOutput, vsConfigureFilenames, num_threads);
+
 	if (vsConfigureFilenames.empty()) {
 		vsConfigureFilenames.push_back(sConfigFilename);
 	}
 	ProNovoConfig::num_threads = num_threads;
+
 	// ProfilerStart("low_res.log");
+
 	for (size_t j = 0; j < vsConfigureFilenames.size(); j++) {
-		// Load config file
+		// load config file
 		if (!ProNovoConfig::setFilename(vsConfigureFilenames.at(j))) {
 			cerr << "Could not load config file " << sConfigFilename << endl;
 			return 0;
 		}
-
-		// Process one FT2 file at a time
+		// process one FT2 file at a time
 		for (size_t i = 0; i < vsFT2Filenames.size(); i++) {
 			cout << "MS file name:\t" << vsFT2Filenames.at(i) << "\nCfg:\t" << vsConfigureFilenames.at(j) << endl;
 			handleScan(vsFT2Filenames.at(i), sOutputDirectory, vsConfigureFilenames.at(j), bScreenOutput);

@@ -58,7 +58,8 @@ int ProNovoConfig::iXcorrProcessingOffset = 75;
 PrecalcMasses ProNovoConfig::precalcMasses;
 double ProNovoConfig::dMaxMS2ScanMass = 0;
 double ProNovoConfig::dMaxPeptideMass = 0;
-map<char, double> ProNovoConfig::pdAAMassFragment;
+// map<char, double> ProNovoConfig::pdAAMassFragment;
+AminoAcidMasses ProNovoConfig::pdAAMassFragment;
 double ProNovoConfig::dHighResFragmentBinSize = 0.02;
 double ProNovoConfig::dHighResFragmentBinStartOffset = 0;
 double ProNovoConfig::dLowResFragmentBinSize = 1.0005;
@@ -90,6 +91,38 @@ size_t ProNovoConfig::TOP_N = 5;
 double ProNovoConfig::Log_TOP_N_Output = log(5);
 int ProNovoConfig::iRank = 0;
 //---------------Sipros Score--------------------
+
+
+double AminoAcidMasses::dNULL = -1;
+double AminoAcidMasses::dERROR = -2;
+
+AminoAcidMasses::AminoAcidMasses(){
+	fill_n(vdMasses, AminoAcidMassesSize, dNULL );
+}
+
+void AminoAcidMasses::clear(){
+	fill_n(vdMasses, AminoAcidMassesSize, dNULL );
+}
+
+double AminoAcidMasses::end(){
+	return dNULL;
+}
+
+double AminoAcidMasses::find(char _cAminoAcid){
+	if (_cAminoAcid > AminoAcidMassesSize || _cAminoAcid < 0) {
+		cerr << "error AminoAcidMasses. " << endl;
+		return dERROR;
+	}
+	return vdMasses[(int)_cAminoAcid];
+}
+
+double AminoAcidMasses::operator[](char _cAminoAcid) const{
+	return vdMasses[(int)_cAminoAcid];
+}
+
+double & AminoAcidMasses::operator[](char _cAminoAcid){
+	return vdMasses[(int)_cAminoAcid];;
+}
 
 ProNovoConfig::ProNovoConfig() {
 }

@@ -76,13 +76,12 @@ double IsotopeDistribution::getLowestMass() {
 	return *min_element(vMass.begin(), vMass.end());
 }
 
-Isotopologue::Isotopologue() :
-		MassPrecision(0.01), ProbabilityCutoff(PROBOBILITYACCURACY) {
+Isotopologue::Isotopologue(){
 	AtomNumber = 0;
 }
 
 Isotopologue::~Isotopologue() {
-	// destructor
+
 }
 
 bool Isotopologue::setupIsotopologue(const string & sTable, const string & AtomNameInput) {
@@ -183,7 +182,8 @@ bool Isotopologue::setupIsotopologue(const string & sTable, const string & AtomN
 	}
 
 	//-----Comet Begin--------
-	map<char, double>::iterator iterAtomMonoMass;
+	// map<char, double>::iterator iterAtomMonoMass;
+	double iterAtomMonoMass;
 	ProNovoConfig::pdAAMassFragment.clear();
 	char cAtom = 0;
 	double dProb = 0;
@@ -208,7 +208,8 @@ bool Isotopologue::setupIsotopologue(const string & sTable, const string & AtomN
 		}
 	}
 	map<string, IsotopeDistribution>::iterator iterResidueIsotopicDistribution;
-	map<char, double>::iterator iterResidueMonoMass;
+	// map<char, double>::iterator iterResidueMonoMass;
+	double iterResidueMonoMass;
 	char cResidue = 0;
 	for (iterResidueIsotopicDistribution = vResidueIsotopicDistribution.begin();
 			iterResidueIsotopicDistribution != vResidueIsotopicDistribution.end(); iterResidueIsotopicDistribution++) {
@@ -244,13 +245,13 @@ bool Isotopologue::setupIsotopologue(const string & sTable, const string & AtomN
 		cout << "Error 73" << endl;
 	}
 	//H2O
-	dMass = ProNovoConfig::pdAAMassFragment.find('h')->second * 2 + ProNovoConfig::pdAAMassFragment.find('o')->second;
+	dMass = ProNovoConfig::pdAAMassFragment.find('h') * 2 + ProNovoConfig::pdAAMassFragment.find('o');
 	ProNovoConfig::precalcMasses.iMinus17LowRes = (int) (dMass * ProNovoConfig::dLowResInverseBinWidth
 			+ ProNovoConfig::dLowResOneMinusBinOffset);
 	ProNovoConfig::precalcMasses.iMinus17HighRes = (int) (dMass * ProNovoConfig::dHighResInverseBinWidth
 			+ ProNovoConfig::dHighResOneMinusBinOffset);
 	//NH3
-	dMass = ProNovoConfig::pdAAMassFragment.find('h')->second * 3 + ProNovoConfig::pdAAMassFragment.find('n')->second;
+	dMass = ProNovoConfig::pdAAMassFragment.find('h') * 3 + ProNovoConfig::pdAAMassFragment.find('n');
 	ProNovoConfig::precalcMasses.iMinus18LowRes = (int) (dMass * ProNovoConfig::dLowResInverseBinWidth
 			+ ProNovoConfig::dLowResOneMinusBinOffset);
 	ProNovoConfig::precalcMasses.iMinus18HighRes = (int) (dMass * ProNovoConfig::dHighResInverseBinWidth
@@ -258,19 +259,19 @@ bool Isotopologue::setupIsotopologue(const string & sTable, const string & AtomN
 	//PROTON_MASS
 	ProNovoConfig::precalcMasses.dNtermProton = PROTON_MASS;
 	//dOH2fragment + PROTON_MASS
-	ProNovoConfig::precalcMasses.dCtermOH2Proton = PROTON_MASS + ProNovoConfig::pdAAMassFragment.find('o')->second
-			+ ProNovoConfig::pdAAMassFragment.find('h')->second * 2;
+	ProNovoConfig::precalcMasses.dCtermOH2Proton = PROTON_MASS + ProNovoConfig::pdAAMassFragment.find('o')
+			+ ProNovoConfig::pdAAMassFragment.find('h') * 2;
 	//dOH2fragment + PROTON_MASS
-	ProNovoConfig::precalcMasses.dCtermOH2 = ProNovoConfig::pdAAMassFragment.find('o')->second
-			+ ProNovoConfig::pdAAMassFragment.find('h')->second * 2;
-	ProNovoConfig::precalcMasses.dCO = ProNovoConfig::pdAAMassFragment.find('o')->second
-			+ ProNovoConfig::pdAAMassFragment.find('c')->second;
-	ProNovoConfig::precalcMasses.dNH2 = ProNovoConfig::pdAAMassFragment.find('n')->second
-			+ ProNovoConfig::pdAAMassFragment.find('h')->second * 2;
-	ProNovoConfig::precalcMasses.dNH3 = ProNovoConfig::pdAAMassFragment.find('n')->second
-			+ ProNovoConfig::pdAAMassFragment.find('h')->second * 3;
+	ProNovoConfig::precalcMasses.dCtermOH2 = ProNovoConfig::pdAAMassFragment.find('o')
+			+ ProNovoConfig::pdAAMassFragment.find('h') * 2;
+	ProNovoConfig::precalcMasses.dCO = ProNovoConfig::pdAAMassFragment.find('o')
+			+ ProNovoConfig::pdAAMassFragment.find('c');
+	ProNovoConfig::precalcMasses.dNH2 = ProNovoConfig::pdAAMassFragment.find('n')
+			+ ProNovoConfig::pdAAMassFragment.find('h') * 2;
+	ProNovoConfig::precalcMasses.dNH3 = ProNovoConfig::pdAAMassFragment.find('n')
+			+ ProNovoConfig::pdAAMassFragment.find('h') * 3;
 	ProNovoConfig::precalcMasses.dCOminusH2 = ProNovoConfig::precalcMasses.dCO
-			- (ProNovoConfig::pdAAMassFragment.find('h')->second * 2);
+			- (ProNovoConfig::pdAAMassFragment.find('h') * 2);
 	//-----Comet End----------
 
 	return true;

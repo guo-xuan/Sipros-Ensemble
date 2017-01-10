@@ -126,6 +126,30 @@ struct PrecalcMasses {
 	double dNH2;
 	double dCOminusH2;
 };
+
+#define AminoAcidMassesSize 256
+// store the mass for different amino acids
+class AminoAcidMasses{
+public:
+	static double dNULL;
+	static double dERROR;
+	double vdMasses[AminoAcidMassesSize];
+
+	// construct function
+	AminoAcidMasses();
+	// clear vdMasses
+	void clear();
+	// reach an empty spot
+	double end();
+	// return the mass for the given amino acid
+	double find(char _cAminoAcid);
+
+	double operator[](char _cAminoAcid) const;
+
+	double & operator[](char _cAminoAcid);
+
+};
+
 //--------------Comet End------------
 
 class ProNovoConfig {
@@ -287,7 +311,8 @@ public:
 	static PrecalcMasses precalcMasses;
 	static double dMaxMS2ScanMass;
 	static double dMaxPeptideMass;
-	static map<char, double> pdAAMassFragment;
+	// static map<char, double> pdAAMassFragment;
+	static AminoAcidMasses pdAAMassFragment;
 	static double dHighResFragmentBinSize;
 	static double dHighResFragmentBinStartOffset;
 	static double dLowResFragmentBinSize;
