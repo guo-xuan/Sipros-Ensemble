@@ -13,7 +13,8 @@ CPP_SRCS += \
 ../src/proNovoConfig.cpp \
 ../src/proteindatabase.cpp \
 ../src/ptm.cpp \
-../src/tokenvector.cpp 
+../src/tokenvector.cpp \
+../src/ProteinDbParser.cpp 
 
 OBJS += \
 ./src/directoryStructure.o \
@@ -25,7 +26,8 @@ OBJS += \
 ./src/proNovoConfig.o \
 ./src/proteindatabase.o \
 ./src/ptm.o \
-./src/tokenvector.o 
+./src/tokenvector.o \
+./src/ProteinDbParser.o 
 
 CPP_DEPS += \
 ./src/directoryStructure.d \
@@ -37,14 +39,14 @@ CPP_DEPS += \
 ./src/proNovoConfig.d \
 ./src/proteindatabase.d \
 ./src/ptm.d \
-./src/tokenvector.d 
-
+./src/tokenvector.d \
+./src/ProteinDbParser.d 
 
 # Each subdirectory must supply rules for building sources it contributes
 src/%.o: ../src/%.cpp
 	@echo 'Building file: $<'
 	@echo 'Invoking: GCC C++ Compiler'
-	/home/xgo/local/bin/mpiCC -fopenmp -O3 -Wall -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+	/home/xgo/local/bin/mpiCC -fopenmp -std=c++11 -O3 -Wall -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 
