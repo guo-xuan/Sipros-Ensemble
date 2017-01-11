@@ -158,7 +158,7 @@ void handleScan(const string & sFT2filename, const string & sOutputDirectory, co
 }
 
 void MasterProcess(const vector<unit_of_workload_t> & vWorkload, bool bScreenOutput) {
-	int i, workloadSize, iBounderOfProcess;
+	size_t i, workloadSize, iBounderOfProcess;
 	int currentWorkId; //unit id of vWorkLoad
 	int iNumberOfProcessors, iNumberOfSlaves;
 	int result;
@@ -167,21 +167,21 @@ void MasterProcess(const vector<unit_of_workload_t> & vWorkload, bool bScreenOut
 	workloadSize = vWorkload.size();
 
 	iNumberOfSlaves = iNumberOfProcessors - 1;
-	iBounderOfProcess = ((workloadSize <= iNumberOfSlaves) ? workloadSize : iNumberOfSlaves);
-	for (i = 0; i < iBounderOfProcess; i++) {
-		currentWorkId = i;
+	iBounderOfProcess = ((workloadSize <= (size_t) iNumberOfSlaves) ? workloadSize : (size_t) iNumberOfSlaves);
+	for (i = 1; i <= iBounderOfProcess; i++) {
+		currentWorkId = i - 1;
 		MPI_Send(&currentWorkId, 1, MPI_INT, i, WORKTAG, MPI_COMM_WORLD);
 	}
-	if (workloadSize > iNumberOfSlaves) {
+	if ((int) workloadSize > iNumberOfSlaves) {
 		currentWorkId = iNumberOfSlaves;
-		while (currentWorkId < workloadSize) {
+		while (currentWorkId < (int) workloadSize) {
 			MPI_Recv(&result, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
 			MPI_Send(&currentWorkId, 1, MPI_INT, status.MPI_SOURCE, WORKTAG, MPI_COMM_WORLD);
 			currentWorkId++;
 		}
 	}
 	/* Tell all the slaves to exit by sending an empty message with the DIETAG. */
-	for (i = 0; i < iNumberOfSlaves; i++)
+	for (i = 1; i <= (size_t) iNumberOfSlaves; i++)
 		MPI_Send(0, 0, MPI_INT, i, DIETAG, MPI_COMM_WORLD);
 	if (bScreenOutput)
 		cout << "Master process is done." << endl;
@@ -192,15 +192,10 @@ void SlaveProcess(const vector<unit_of_workload_t> & vWorkload, bool bScreenOutp
 	int currentWorkId, myid;
 	unit_of_workload_t currentWork;
 	MPI_Comm_rank(MPI_COMM_WORLD, &myid);
-	int iNumberOfProcessors;
-	int masterid;
-	MPI_Comm_size(MPI_COMM_WORLD, &iNumberOfProcessors); /* get number of processes */
-	masterid = iNumberOfProcessors - 1;
 	while (true) {
-		MPI_Recv(&currentWorkId, 1, MPI_INT, masterid, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-		if (status.MPI_TAG == DIETAG){
+		MPI_Recv(&currentWorkId, 1, MPI_INT, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+		if (status.MPI_TAG == DIETAG)
 			break;
-		}
 		currentWork = vWorkload.at(currentWorkId);
 		cout << "slave Rank:\t" << myid << "\tsFT2name:\t" << currentWork.sFT2Filename << "\tCfg:\t"
 				<< currentWork.sConfigureFilename << endl;
@@ -216,7 +211,7 @@ void SlaveProcess(const vector<unit_of_workload_t> & vWorkload, bool bScreenOutp
 			cout << currentWork.sFT2Filename << " and " << currentWork.sConfigureFilename
 					<< " is done by Slave process " << myid << endl;
 		}
-		MPI_Send(0, 0, MPI_INT, masterid, 0, MPI_COMM_WORLD);
+		MPI_Send(0, 0, MPI_INT, 0, 0, MPI_COMM_WORLD);
 	}
 	if (bScreenOutput) {
 		cout << "Slave process " << myid << " is done." << endl;
@@ -250,13 +245,10 @@ int main(int argc, char **argv) {
 	}
 
 	MPI_Comm_rank(MPI_COMM_WORLD, &myid); /* get current process id */
-	int iNumberOfProcessors;
-	MPI_Comm_size(MPI_COMM_WORLD, &iNumberOfProcessors); /* get number of processes */
-	if (myid == (iNumberOfProcessors-1)) {
+	if (myid == 0)
 		MasterProcess(vWorkload, bScreenOutput);
-	} else {
+	else
 		SlaveProcess(vWorkload, bScreenOutput);
-	}
 	MPI_Finalize(); /* let MPI finish up ... */
 
 	return 0;
