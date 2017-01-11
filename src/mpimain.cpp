@@ -163,82 +163,60 @@ void MasterProcess(const vector<unit_of_workload_t> & vWorkload, bool bScreenOut
 	int iNumberOfProcessors, iNumberOfSlaves;
 	int result;
 	MPI_Status status;
-#pragma omp critical
-	{
-		MPI_Comm_size(MPI_COMM_WORLD, &iNumberOfProcessors); /* get number of processes */
-	}
+	MPI_Comm_size(MPI_COMM_WORLD, &iNumberOfProcessors); /* get number of processes */
 	workloadSize = vWorkload.size();
 
-	iNumberOfSlaves = iNumberOfProcessors;
+	iNumberOfSlaves = iNumberOfProcessors - 1;
 	iBounderOfProcess = ((workloadSize <= iNumberOfSlaves) ? workloadSize : iNumberOfSlaves);
 	for (i = 0; i < iBounderOfProcess; i++) {
 		currentWorkId = i;
-#pragma omp critical
-		{
-			MPI_Send(&currentWorkId, 1, MPI_INT, i, WORKTAG, MPI_COMM_WORLD);
-		}
+		MPI_Send(&currentWorkId, 1, MPI_INT, i, WORKTAG, MPI_COMM_WORLD);
 	}
-	if ((int) workloadSize > iNumberOfSlaves) {
+	if (workloadSize > iNumberOfSlaves) {
 		currentWorkId = iNumberOfSlaves;
 		while (currentWorkId < workloadSize) {
-#pragma omp critical
-			{
-				MPI_Recv(&result, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-				MPI_Send(&currentWorkId, 1, MPI_INT, status.MPI_SOURCE, WORKTAG, MPI_COMM_WORLD);
-			}
+			MPI_Recv(&result, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+			MPI_Send(&currentWorkId, 1, MPI_INT, status.MPI_SOURCE, WORKTAG, MPI_COMM_WORLD);
 			currentWorkId++;
 		}
 	}
 	/* Tell all the slaves to exit by sending an empty message with the DIETAG. */
-	for (i = 0; i < iNumberOfSlaves; i++) {
-#pragma omp critical
-		{
-			MPI_Send(0, 0, MPI_INT, i, DIETAG, MPI_COMM_WORLD);
-		}
-	}
-	if (bScreenOutput) {
+	for (i = 0; i < iNumberOfSlaves; i++)
+		MPI_Send(0, 0, MPI_INT, i, DIETAG, MPI_COMM_WORLD);
+	if (bScreenOutput)
 		cout << "Master process is done." << endl;
-	}
 }
 
 void SlaveProcess(const vector<unit_of_workload_t> & vWorkload, bool bScreenOutput) {
 	MPI_Status status;
 	int currentWorkId, myid;
 	unit_of_workload_t currentWork;
-#pragma omp critical
-	{
-		MPI_Comm_rank(MPI_COMM_WORLD, &myid);
-	}
+	MPI_Comm_rank(MPI_COMM_WORLD, &myid);
+	int iNumberOfProcessors;
+	int masterid;
+	MPI_Comm_size(MPI_COMM_WORLD, &iNumberOfProcessors); /* get number of processes */
+	masterid = iNumberOfProcessors - 1;
 	while (true) {
-#pragma omp critical
-		{
-			MPI_Recv(&currentWorkId, 1, MPI_INT, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-		}
+		MPI_Recv(&currentWorkId, 1, MPI_INT, masterid, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
 		if (status.MPI_TAG == DIETAG){
 			break;
 		}
 		currentWork = vWorkload.at(currentWorkId);
 		cout << "slave Rank:\t" << myid << "\tsFT2name:\t" << currentWork.sFT2Filename << "\tCfg:\t"
 				<< currentWork.sConfigureFilename << endl;
-
 		// Load config file
 		if (!ProNovoConfig::setFilename(currentWork.sConfigureFilename)) {
 			cerr << "Could not load config file " << currentWork.sConfigureFilename << endl;
 			exit(1);
 		}
-
 		ProNovoConfig::iRank = myid;
 		handleScan(currentWork.sFT2Filename, currentWork.sOutputDirectory, currentWork.sConfigureFilename,
 				bScreenOutput);
-
 		if (bScreenOutput) {
 			cout << currentWork.sFT2Filename << " and " << currentWork.sConfigureFilename
 					<< " is done by Slave process " << myid << endl;
 		}
-#pragma omp critical
-		{
-			MPI_Send(0, 0, MPI_INT, 0, 0, MPI_COMM_WORLD);
-		}
+		MPI_Send(0, 0, MPI_INT, masterid, 0, MPI_COMM_WORLD);
 	}
 	if (bScreenOutput) {
 		cout << "Slave process " << myid << " is done." << endl;
@@ -272,19 +250,10 @@ int main(int argc, char **argv) {
 	}
 
 	MPI_Comm_rank(MPI_COMM_WORLD, &myid); /* get current process id */
-	if (myid == 0) {
-#pragma omp parallel
-		{
-			if (omp_get_thread_num() == 0) {
-				MasterProcess(vWorkload, bScreenOutput);
-			} else {
-#pragma omp single
-				{
-					omp_set_num_threads(15);
-					SlaveProcess(vWorkload, bScreenOutput);
-				}
-			}
-		}
+	int iNumberOfProcessors;
+	MPI_Comm_size(MPI_COMM_WORLD, &iNumberOfProcessors); /* get number of processes */
+	if (myid == (iNumberOfProcessors-1)) {
+		MasterProcess(vWorkload, bScreenOutput);
 	} else {
 		SlaveProcess(vWorkload, bScreenOutput);
 	}
