@@ -16,7 +16,7 @@
 #include "ProteinDbParser.h"
 
 #define ZERO            0.00000001
-#define PEPTIDE_ARRAY_SIZE  10000
+#define PEPTIDE_ARRAY_SIZE  1000000
 #define TASKWAIT_SIZE 300
 
 using namespace std;

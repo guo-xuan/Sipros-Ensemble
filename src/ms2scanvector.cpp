@@ -971,9 +971,9 @@ void MS2ScanVector::startProcessing() {
 	preProcessAllMS2();
 
 	// Search all MS2 scans against the database by multi-threading
-	searchDatabaseTask();
+	// searchDatabaseTask();
 
-	// searchDatabase();
+	searchDatabase();
 
 	// searchDatabase();
 
