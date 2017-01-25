@@ -87,7 +87,7 @@ bool ProNovoConfig::bWeightDotSumEnable = false;
 bool ProNovoConfig::bLessIsotopicDistribution = false;
 bool ProNovoConfig::bMultiScores = true;
 string ProNovoConfig::sDecoyPrefix = "";
-size_t ProNovoConfig::TOP_N = 5;
+int ProNovoConfig::TOP_N = 5;
 double ProNovoConfig::Log_TOP_N_Output = log(5);
 int ProNovoConfig::iRank = 0;
 //---------------Sipros Score--------------------

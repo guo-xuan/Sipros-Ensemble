@@ -145,7 +145,7 @@ void Peptide::calculateIsotope(const string & sNewPeptide, const map<char, doubl
 			vvdBionProb);
 }
 
-void Peptide::preprocessing(bool isMS2HighRes, const map<char, double>& mapResidueMass) {
+void Peptide::preprocessing() {
 	int i;
 	iPeptideLength = 0;
 	for (i = 0; i < (int) sPeptide.length(); ++i) {
@@ -153,15 +153,7 @@ void Peptide::preprocessing(bool isMS2HighRes, const map<char, double>& mapResid
 			iPeptideLength = iPeptideLength + 1;
 		}
 	}
-	// if (ProNovoConfig::bWeightDotSumEnable) {
 	sNeutralPeptide = neutralLossProcess(sPeptide);
-	/*if (isMS2HighRes) {
-		calculateIsotope(sNewPeptide, mapResidueMass); // just for weightsum
-		//calculateExpectedFragments(mapResidueMass); // just for ranksum
-	} else {
-		calculateExpectedFragments(sNewPeptide, mapResidueMass);
-	}*/
-	// }
 }
 
 void Peptide::preprocessing(string & sPeptide, bool isMS2HighRes, const map<char, double> & mapResidueMass,
@@ -180,13 +172,13 @@ void Peptide::preprocessing(string & sPeptide, bool isMS2HighRes, const map<char
 string Peptide::neutralLossProcess(const string& sCurrentPeptide) {
 	string sNewPeptide;
 	vector<pair<string, string> >* vpNeutralLossList;
-	size_t i, listLength, pos;
+	int i, listLength, pos;
 	sNewPeptide = sCurrentPeptide;
 	vpNeutralLossList = ProNovoConfig::getNeutralLossList();
 	listLength = vpNeutralLossList->size();
 	for (i = 0; i < listLength; i++) {
 		pos = 0;
-		pos = sNewPeptide.find((*vpNeutralLossList)[i].first, pos);
+		pos = sNewPeptide.find((*vpNeutralLossList).at(i).first, pos);
 		while (pos != string::npos) {
 			sNewPeptide.replace(pos, 1, (*vpNeutralLossList).at(i).second);
 			pos = sNewPeptide.find((*vpNeutralLossList).at(i).first, pos);

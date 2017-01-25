@@ -168,7 +168,7 @@ int main(int argc, char **argv) {
 		vsConfigureFilenames.push_back(sConfigFilename);
 	}
 	ProNovoConfig::num_threads = num_threads;
-
+	omp_set_num_threads(2);
 	// ProfilerStart("low_res.log");
 
 	for (size_t j = 0; j < vsConfigureFilenames.size(); j++) {

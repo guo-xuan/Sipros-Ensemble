@@ -339,7 +339,7 @@ public:
 	static bool bLessIsotopicDistribution;
 	static bool bMultiScores;
 	static string sDecoyPrefix;
-	static size_t TOP_N; // the top n PSM for calculation of other two scores
+	static int TOP_N; // the top n PSM for calculation of other two scores
 	static double Log_TOP_N_Output; // the logarithm value of the top n PSM written in the output
 	static int iRank;
 	//---------------Sipros Score End----------------

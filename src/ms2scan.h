@@ -161,7 +161,6 @@ class MS2Scan {
 	void setIntensityThreshold();
 	void filterMS2scan();
 	static bool mygreater(double i, double j);
-	void binCalculation();
 	void binCalculation2D(); // replace binCalculation();
 	static bool GreaterScore(PeptideUnit * p1, PeptideUnit * p2);
 	void WeightCompare(const string & sPeptide, vector<bool> & vbFragmentZ2);
@@ -191,23 +190,21 @@ public:
 	MS2Scan();
 	~MS2Scan();
 
-	string sFT2Filename;     // FT2file name
-	int iParentChargeState;     // Parent ion charge state
-	double dParentMZ;     // Parent ion M/Z
-	double dParentNeutralMass;     // Parent neutral mass
-	double dParentMass; // Parent mass with charge
-	int iScanId;     // Product ions in the scan
-
-	vector<PeptideUnit *> vpWeightSumTopPeptides;
-
-	// the scores of all scored peptides
-	vector<double> vdWeightSumAllScores;
-
-	int inumberofWeightSumScore;
-	double dsumofWeightScore;
-	double dsumofSquareWeightSumScore;
-
+	// FT2file name
+	string sFT2Filename;
+	// Parent ion charge state
+	int iParentChargeState;
+	// Parent ion M/Z
+	double dParentMZ;
+	// Parent neutral mass
+	double dParentNeutralMass;
+	// Parent mass with charge
+	double dParentMass;
+	// Product ions in the scan
+	int iScanId;
+	// peak list of mass over charge
 	vector<double> vdMZ;
+	// peak list of intensity
 	vector<double> vdIntensity;
 	// the value of viCharge is zero for low-resolution MS2
 	vector<int> viFragmentCharges;
@@ -217,46 +214,42 @@ public:
 	bool isMS2HighRes;
     //current set of peptides to be scored
 	vector<Peptide *> vpPeptides;
+
+	// Peptides associated with this scan
+	vector<PeptideUnit *> vpTopPeptides;
+	// the scores of all scored peptides
+	vector<double> vdPeptideScores;
+	// number of peptide in the list
+	int iSizeOfTopPeptides;
+	// WDP scores
+	double dSumWeightSumScore;
+	double dSumSquareWeightSumScore;
+
 	 // false when pre-process fail on bad data
 	bool bSetMS2Flag;
 
 	string getRTime();
+	string getScanType();
 	//merge same peptide. If no same peptide return false, otherwise, return true
 	bool mergePeptide(vector<PeptideUnit*>& vpTopPeptides, const string & sPeptide, const string & sProteinName);
 	// preprocess this scan, including
 	// (1) remove noise peaks
 	// (2) normalize intensity
 	void preprocess();
-	// score all peptides matched to this scan
-	void scorePeptides();
-	void scorePeptidesLowMS2();
-	void scorePeptidesHighMS2();
+	// normalize raw scores
+	void postprocess();
 	void saveScore(const double & dScore, const Peptide * currentPeptide, vector<PeptideUnit *> & vpTopPeptides,
 			vector<double> & vdAllScores, string sScoreFunction = "WeightSum");
+	void setRTime(string _sRTime);
+	void setScanType(string sScanType);
 	// scoring functions
-	void scoreWeightSum(Peptide * currentPeptide);
 	double scoreWeightSum(string * currentPeptide, vector<double> * pvdYionMass, vector<double> * pvdBionMass);
-	void scoreRankSum(Peptide * currentPeptide);
 	// void scoreRankSum_test(Peptide * currentPeptide);
-	void scoreWeightSumHighMS2(Peptide * currentPeptide);
 	double scoreWeightSumHighMS2(string * currentPeptide, vector<vector<double> > * vvdYionMass,
 			vector<vector<double> > * vvdYionProb, vector<vector<double> > * vvdBionMass,
 			vector<vector<double> > * vvdBionProb);
-	void scoreRankSumHighMS2(Peptide * currentPeptide);
 	void sortPeakList(); // bubble sort the peak list by MZ in ascending order
-	// normalize raw scores
-	void postprocess();
-	double CalculateRankSum(double r1, double n1, double n2);
 
-	void setRTime(string _sRTime);
-	void setScanType(string sScanType) {
-		this->sScanType = sScanType;
-	}
-	;
-	string getScanType() {
-		return this->sScanType;
-	}
-	;
 
 	//-----------Comet Begin-------------
 	struct Query * pQuery;

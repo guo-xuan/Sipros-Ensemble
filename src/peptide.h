@@ -114,7 +114,7 @@ public:
 	void static calculateExpectedFragments(const string & sNewPeptide, const map<char, double> & mapResidueMass,
 			vector<double> * pvdYionMass, vector<double> * pvvdBionMass);
 
-	void preprocessing(bool isMS2HighRes, const map<char, double> & mapResidueMass);
+	void preprocessing();
 	void static preprocessing(string & sPeptide, bool isMS2HighRes, const map<char, double> & mapResidueMass,
 			vector<vector<double> > * vvdYionMass, vector<vector<double> > * vvdYionProb,
 			vector<vector<double> > * vvdBionMass, vector<vector<double> > * vvdBionProb, vector<double> * pvdYionMass,
