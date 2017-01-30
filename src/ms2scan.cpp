@@ -71,7 +71,6 @@ string MS2Scan::getScanType() {
 	return this->sScanType;
 }
 
-
 bool MS2Scan::mergePeptide(vector<PeptideUnit*>& vpTopPeptides, const string & sPeptide, const string & sProteinName) {
 	int i;
 	bool bReVal = false, bNewProtein;
@@ -306,7 +305,7 @@ void MS2Scan::saveScore(const double & dScore, const Peptide * currentPeptide, v
 	}
 
 	int TOP_N = ProNovoConfig::TOP_N;
-	if (((int)vpTopPeptides.size()) < TOP_N) {
+	if (((int) vpTopPeptides.size()) < TOP_N) {
 		copyPeptide = new PeptideUnit;
 		copyPeptide->setPeptideUnitInfo(currentPeptide, dScore, sScoreFunction);
 		vpTopPeptides.push_back(copyPeptide);
@@ -562,7 +561,7 @@ void MS2Scan::sortPreprocessedIntensity() {
 void MS2Scan::sumIntensity() {
 	dSumIntensity = 0;
 	dMaxIntensity = 0;
-	for (int i = 0; i < (int)vdIntensity.size(); i++) {
+	for (int i = 0; i < (int) vdIntensity.size(); i++) {
 		dSumIntensity += vdIntensity.at(i);
 		if (dMaxIntensity < vdIntensity.at(i)) {
 			dMaxIntensity = vdIntensity.at(i);
@@ -1118,35 +1117,37 @@ PeakList::PeakList(map<double, char> * _peakData) {
 	iPeakSize = _peakData->size();
 	pPeaks = new double[iPeakSize];
 	pClasses = new char[iPeakSize];
-	int j = 0;
+	int j = 0, k = 0;
 	for (std::map<double, char>::iterator i = _peakData->begin(); i != _peakData->end(); i++) {
 		pPeaks[j] = i->first;
 		pClasses[j] = i->second;
 		++j;
 	}
 	iLowestMass = (int) pPeaks[0];
-	iHighestMass = (int) pPeaks[iPeakSize - 1] + 1;
-	iMassHubSize = iHighestMass - iLowestMass;
-	iMassHubSizeMinorOne = iMassHubSize - 1;
+	iHighestMass = (int) pPeaks[iPeakSize - 1];
+	iMassHubPairSizeMinusOne = (iHighestMass - iLowestMass);
+	iMassHubSize = (iHighestMass - iLowestMass + 1) * 2;
 	pMassHub = new int[iMassHubSize];
-	int * pInt = NULL;
-	int iMass = 0;
+	fill_n(pMassHub, iMassHubSize, -1);
+	int iMass = 0, iMassIdx;
 	int iStart, iEnd;
-	for (j = 0; j < iPeakSize - 1; ++j) {
+	for (j = 0; j < iPeakSize;) {
 		iMass = pPeaks[j];
-		iStart = iMass - iLowestMass;
-		iEnd = pPeaks[j + 1] - iLowestMass - 1;
-		if (iEnd > iStart) {
-			pInt = pMassHub + iStart;
-			fill_n(pInt, (iEnd - iStart + 1), j);
-		} else {
-			pInt = pMassHub + iStart;
-			fill_n(pInt, 1, j);
+		iStart = j;
+		iEnd = j + 1;
+		for (k = j + 1; k < iPeakSize; ++k) {
+			if (((int) pPeaks[k]) > iMass) {
+				iEnd = k;
+				break;
+			}
 		}
-	}
-	if (((int) pPeaks[iPeakSize - 1]) != ((int) pPeaks[iPeakSize - 2])) {
-		iStart = pPeaks[iPeakSize - 1] - iLowestMass;
-		pMassHub[iStart] = iPeakSize - 1;
+		if (k == iPeakSize) {
+			iEnd = k;
+		}
+		j = iEnd;
+		iMassIdx = 2 * (iMass - iLowestMass);
+		pMassHub[iMassIdx] = iStart;
+		pMassHub[iMassIdx + 1] = iEnd;
 	}
 }
 
@@ -1162,32 +1163,32 @@ char PeakList::end() {
 
 char PeakList::findNear(double mz, double tolerance) {
 	double dMin = 1000000, dDiff;
-	int iMzU, iMzL, iMz;
+	int iMzU, iMzL, i, j;
 	char iClass = iNULL;
 	iMzU = (int) (mz + tolerance);
 	iMzL = (int) (mz - tolerance);
-	iMz = (int) mz;
 	if (iMzU < iLowestMass) {
 		return iNULL;
 	}
 	if (iMzL > iHighestMass) {
 		return iNULL;
 	}
-	int iStart = 0, iEnd = iMassHubSizeMinorOne;
-	iStart = mz - iLowestMass;
-	if (iMzU == iMz) {
-		iEnd = iStart + 1 >= iEnd ? iPeakSize : pMassHub[iStart + 1];
-	} else {
-		iEnd = iStart + 2 >= iEnd ? iPeakSize : pMassHub[iStart + 2];
+	int iStart = 0, iEnd = iMassHubPairSizeMinusOne;
+	if (iMzL >= iLowestMass) {
+		iStart = iMzL - iLowestMass;
 	}
-	iStart = iMzL - iLowestMass;
-	// iStart's minimum is 0
-	iStart = iStart > iMassHubSizeMinorOne ? pMassHub[iMassHubSizeMinorOne] : pMassHub[iStart];
-	for (; iStart < iEnd; ++iStart) {
-		dDiff = fabs(mz - pPeaks[iStart]);
-		if (dDiff < dMin) {
-			dMin = dDiff;
-			iClass = pClasses[iStart];
+	if (iMzU <= iHighestMass) {
+		iEnd = iMzU - iLowestMass;
+	}
+	for (; iStart <= iEnd; ++iStart) {
+		if (pMassHub[iStart * 2] != -1) {
+			for (i = pMassHub[iStart * 2], j = pMassHub[iStart * 2 + 1]; i < j; ++i) {
+				dDiff = fabs(mz - pPeaks[i]);
+				if (dDiff < dMin) {
+					dMin = dDiff;
+					iClass = pClasses[i];
+				}
+			}
 		}
 	}
 	if (dMin < tolerance) {

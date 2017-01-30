@@ -92,36 +92,35 @@ double ProNovoConfig::Log_TOP_N_Output = log(5);
 int ProNovoConfig::iRank = 0;
 //---------------Sipros Score--------------------
 
-
 double AminoAcidMasses::dNULL = -1;
 double AminoAcidMasses::dERROR = -2;
 
-AminoAcidMasses::AminoAcidMasses(){
-	fill_n(vdMasses, AminoAcidMassesSize, dNULL );
+AminoAcidMasses::AminoAcidMasses() {
+	fill_n(vdMasses, AminoAcidMassesSize, dNULL);
 }
 
-void AminoAcidMasses::clear(){
-	fill_n(vdMasses, AminoAcidMassesSize, dNULL );
+void AminoAcidMasses::clear() {
+	fill_n(vdMasses, AminoAcidMassesSize, dNULL);
 }
 
-double AminoAcidMasses::end(){
+double AminoAcidMasses::end() {
 	return dNULL;
 }
 
-double AminoAcidMasses::find(char _cAminoAcid){
-	if (_cAminoAcid > AminoAcidMassesSize || _cAminoAcid < 0) {
+double AminoAcidMasses::find(char _cAminoAcid) {
+	if (_cAminoAcid >= AminoAcidMassesSize || _cAminoAcid < 0) {
 		cerr << "error AminoAcidMasses. " << endl;
 		return dERROR;
 	}
-	return vdMasses[(int)_cAminoAcid];
+	return vdMasses[(int) _cAminoAcid];
 }
 
-double AminoAcidMasses::operator[](char _cAminoAcid) const{
-	return vdMasses[(int)_cAminoAcid];
+double AminoAcidMasses::operator[](char _cAminoAcid) const {
+	return vdMasses[(int) _cAminoAcid];
 }
 
-double & AminoAcidMasses::operator[](char _cAminoAcid){
-	return vdMasses[(int)_cAminoAcid];;
+double & AminoAcidMasses::operator[](char _cAminoAcid) {
+	return vdMasses[(int) _cAminoAcid];;
 }
 
 ProNovoConfig::ProNovoConfig() {
@@ -134,7 +133,7 @@ bool ProNovoConfig::setFilename(const string & sConfigFileName) {
 
 	sFilename = sConfigFileName;
 
-	// Try loading the file.
+	// try loading the file.
 	if (!ProNovoConfigSingleton->parseConfigKeyValues()) {
 		cerr << "ERROR! Loading Configuration file" << endl;
 		return false;
@@ -144,17 +143,9 @@ bool ProNovoConfig::setFilename(const string & sConfigFileName) {
 		return false;
 	}
 
-	//parse neutral loss
+	// parse neutral loss
 	ProNovoConfigSingleton->NeutralLoss();
 
-	/*//pre calculation of residues
-	if (iNumPrecalcuatedResidues > 0 && iMaxPTMcount == 0) {
-		ProNovoConfigSingleton->tid = new TableIsotopeDistribution();
-		ProNovoConfigSingleton->tid->initializeEverything(iNumPrecalcuatedResidues);
-		ProNovoConfigSingleton->tid->startPrecalculation();
-	}*/
-
-	// If everything goes fine return 0.
 	return true;
 
 }
@@ -285,11 +276,6 @@ bool ProNovoConfig::getParameters() {
 		issStream.str(sTemp);
 		issStream >> iMaxPTMcount;
 	}
-
-	/*getConfigValue("[Peptide_Identification]Max_Resides_Count", sTemp);
-	 issStream.clear();
-	 issStream.str(sTemp);
-	 issStream >> iNumPrecalcuatedResidues;*/
 
 	getConfigValue("[Peptide_Identification]Mass_Tolerance_Parent_Ion", sTemp);
 	issStream.clear();
@@ -427,7 +413,6 @@ bool ProNovoConfig::parseConfigKeyValues() {
 	bool bReVal = true;
 	string sline, sWhiteSpaces(" \t\f\v\n\r");
 	size_t poundPos, whitespacePos;
-//    map<string,string>::iterator it;
 
 	ifstream config_stream(sFilename.c_str());
 	bReVal = config_stream.is_open();
@@ -437,28 +422,30 @@ bool ProNovoConfig::parseConfigKeyValues() {
 			sline.clear();
 			getline(config_stream, sline);
 			poundPos = sline.find("#");
-			if (poundPos != string::npos)
+			if (poundPos != string::npos) {
 				sline.erase(poundPos);
+			}
 			whitespacePos = sline.find_last_not_of(sWhiteSpaces);
-			if (whitespacePos != string::npos)
+			if (whitespacePos != string::npos) {
 				sline.erase(whitespacePos + 1);
-			else
+			} else {
 				// if no character is non-whitespace, make string clear
 				// the previous version is sline.erase(0), but it can't be accepted by pgCC 11.9-0
-				//sline.erase(0);
 				sline.clear();
+			}
 			whitespacePos = sline.find_first_not_of(sWhiteSpaces);
-			if (whitespacePos != string::npos)
-				if (whitespacePos != 0)
+			if (whitespacePos != string::npos) {
+				if (whitespacePos != 0) {
 					sline.erase(0, whitespacePos);
-			if (sline.length() > 0)
+				}
+			}
+			if (sline.length() > 0){
 				parseConfigLine(sline);
+			}
 		}
-
-//	for ( it=mapConfigKeyValues.begin() ; it != mapConfigKeyValues.end(); it++ )
-//	    cout << (*it).first << " => " << (*it).second << endl;
-	} else
+	} else {
 		cerr << "Can't open configure file " << sFilename << endl;
+	}
 	config_stream.clear();
 	config_stream.close();
 	return bReVal;
@@ -502,13 +489,12 @@ bool ProNovoConfig::getConfigMasterKeyValue(string sMasterKey, map<string, strin
 	return bReVal;
 }
 
-//parse one line in Configfile
+// parse one line in configuration file
 bool ProNovoConfig::parseConfigLine(const std::string& sLine) {
 	bool bReVal = true;
-	size_t equalPos, leftendPos, rightBeginPos; // position of "=", last nonwhitespace before "=", first nonwhitespace after "="
+	size_t equalPos, leftendPos, rightBeginPos; // position of "=", last non-whitespace before "=", first non-whitespace after "="
 	string sKey, sValue;
 	pair<map<string, string>::iterator, bool> ret; // if ret.second == false, key is not unique
-//    cout<<"beg!"<<sLine<<"!end"<<endl;
 	if ((sLine.at(0) == '[') && (sLine.at(sLine.length() - 1) == ']'))
 		sSectionName = sLine;
 	else {
@@ -529,7 +515,6 @@ bool ProNovoConfig::parseConfigLine(const std::string& sLine) {
 					rightBeginPos = sLine.find_first_not_of(" \t\f\v\n\r", equalPos + 1);
 					sKey = sLine.substr(0, leftendPos + 1);
 					sValue = sLine.substr(rightBeginPos);
-					//cout<<"beg!"<<sSectionName+sKey<<"!"<<sValue<<"!end"<<endl;
 					ret = mapConfigKeyValues.insert(pair<string, string>(sSectionName + sKey, sValue));
 					if (ret.second == false) {
 						cerr << "Key " << sSectionName + sKey << " has existed with value of " << ret.first->second
@@ -541,7 +526,6 @@ bool ProNovoConfig::parseConfigLine(const std::string& sLine) {
 		}
 	}
 	return bReVal;
-
 }
 
 bool ProNovoConfig::calculatePeptideMassWindowOffset() {

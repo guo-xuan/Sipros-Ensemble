@@ -217,8 +217,10 @@ bool MVH::CalculateSequenceIons(Peptide * currentPeptide, int maxIonCharge, bool
 		}
 	}
 	int iLenMinus1 = iPeptideLength - 1;
-	if ((int) iPeptideLength < ProNovoConfig::getMinPeptideLength()) {
-		cerr << "ERROR: Peptide sequence is too short " << (*sSequence) << endl;
+	if (iPeptideLength < ProNovoConfig::getMinPeptideLength()) {
+		cerr << "ERROR MVH 1: Peptide sequence is too short " << (*sSequence) << endl;
+		cerr << "ERROR MVH 2: " << currentPeptide->sPeptide << endl;
+		exit(1);
 		return false;
 	}
 	j = 0;

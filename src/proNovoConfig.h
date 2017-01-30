@@ -16,8 +16,6 @@
 
 using namespace std;
 
-//define CLOCKSTART clock_t begin = clock(); cout<<"Currently in file: " << __FILE__ << " Function: "<< __FUNCTION__ << "()" << endl;
-//define CLOCKSTOP clock_t end = clock(); cout << "Function " << __FUNCTION__ << "() finished in " << double(end - begin) / CLOCKS_PER_SEC<< " Seconds." << endl << endl;
 #define CLOCKSTART double begin = omp_get_wtime(); cout<<"Currently in file: " << __FILE__ << " Function: "<< __FUNCTION__ << "()" << endl;
 #define CLOCKSTOP double end = omp_get_wtime(); cout << "Function " << __FUNCTION__ << "() finished in " << double(end - begin) << " Seconds." << endl << endl;
 
@@ -364,7 +362,7 @@ private:
 	// the working directory
 	static string sWorkingDirectory;
 
-	// replace delimitor in a line
+	// replace delimiter in a line
 	static void replaceDelimitor(string & sLine, char cOldDelimitor, char cNewDelimitor);
 
 	// variables from the PEPTIDE_IDENTIFICATION element

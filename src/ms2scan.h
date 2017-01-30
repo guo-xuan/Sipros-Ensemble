@@ -93,7 +93,7 @@ public:
 	char * pClasses;
 	int iPeakSize;
 	int iMassHubSize;
-	int iMassHubSizeMinorOne;
+	int iMassHubPairSizeMinusOne;
 	static char iNULL;
 
 	PeakList(map<double, char> * _peakData);

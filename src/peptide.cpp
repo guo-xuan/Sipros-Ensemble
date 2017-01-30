@@ -172,7 +172,8 @@ void Peptide::preprocessing(string & sPeptide, bool isMS2HighRes, const map<char
 string Peptide::neutralLossProcess(const string& sCurrentPeptide) {
 	string sNewPeptide;
 	vector<pair<string, string> >* vpNeutralLossList;
-	int i, listLength, pos;
+	int i, listLength;
+	std::size_t pos;
 	sNewPeptide = sCurrentPeptide;
 	vpNeutralLossList = ProNovoConfig::getNeutralLossList();
 	listLength = vpNeutralLossList->size();
