@@ -34,20 +34,17 @@ bool CometSearch::Preprocess(struct Query *pScoring, MS2Scan * mstSpectrum, doub
 	int i;
 	int x;
 	int y;
-	struct msdata pTmpSpData[NUM_SP_IONS];
 	struct PreprocessStruct pPre;
-	double dInverseBinWidth = 0, iMinus17 = 0, iMinus18 = 0, dFragmentBinSize = 0;
+	double dInverseBinWidth = 0, iMinus17 = 0, iMinus18 = 0;
 	//mstSpectrum->isMS2HighRes = false;
 	if (mstSpectrum->isMS2HighRes) {
 		dInverseBinWidth = ProNovoConfig::dHighResInverseBinWidth;
 		iMinus17 = ProNovoConfig::precalcMasses.iMinus17HighRes;
 		iMinus18 = ProNovoConfig::precalcMasses.iMinus18HighRes;
-		dFragmentBinSize = ProNovoConfig::dHighResFragmentBinSize;
 	} else {
 		dInverseBinWidth = ProNovoConfig::dLowResInverseBinWidth;
 		iMinus17 = ProNovoConfig::precalcMasses.iMinus17LowRes;
 		iMinus18 = ProNovoConfig::precalcMasses.iMinus18LowRes;
-		dFragmentBinSize = ProNovoConfig::dLowResFragmentBinSize;
 	}
 	pPre.iHighestIon = 0;
 	pPre.dHighestIntensity = 0;

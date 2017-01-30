@@ -79,6 +79,7 @@ double IsotopeDistribution::getLowestMass() {
 Isotopologue::Isotopologue() :
 		MassPrecision(0.01), ProbabilityCutoff(PROBOBILITYACCURACY) {
 	AtomNumber = 0;
+
 }
 
 Isotopologue::~Isotopologue() {

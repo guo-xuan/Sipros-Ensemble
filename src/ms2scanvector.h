@@ -87,6 +87,15 @@ public:
 	void startProcessing(); // start functions to process the loaded FT2 file
 
 	size_t iMaxNumProteins;
+
+	// variables for the MVH thread
+	vector<double> ** _ppdAAforward;
+	vector<double> ** _ppdAAreverse;
+	vector<double> ** psequenceIonMasses;
+	vector<char> ** pSeqs;
+	int num_max_threads;
+	void preMvh();
+	void postMvh();
 };
 
 #endif // MS2SCANVECTOR_H

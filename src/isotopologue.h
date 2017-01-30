@@ -82,6 +82,10 @@ public:
 	map<string, vector<int> > mResidueAtomicComposition;
 	vector<IsotopeDistribution> vAtomIsotopicDistribution;
 	map<string, IsotopeDistribution> vResidueIsotopicDistribution;
+	// when two peaks have a mass difference less than the MassPrecision
+	// they will be merged into one peak with their average mass and sum intensity
+	const double MassPrecision; // 0.01
+	static double MassTolerance;
 	// when a peak have a probability less than the ProbabilityCutoff
 	// this peak will be ingnored, which makes the total probability space less than 1
 	const double ProbabilityCutoff; // 1*10E-9
@@ -100,11 +104,6 @@ private:
 	double minimum(double a, double b) {
 		return (a < b) ? a : b;
 	}
-
-	// when two peaks have a mass difference less than the MassPrecision
-	// they will be merged into one peak with their average mass and sum intensity
-	const double MassPrecision; // 0.01
-	static double MassTolerance;
 	// the name of atoms
 	string AtomName;
 
