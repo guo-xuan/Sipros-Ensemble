@@ -40,16 +40,19 @@ bool MVH::Preprocess(MS2Scan * Spectrum, multimap<double, double> * IntenSortedP
 		double maxObservedMz) {
 	if (Spectrum == NULL) {
 		cout << "Error 60" << endl;
+		exit(1);
 		return true;
 	}
 	vector<double> *vdMZ = &(Spectrum->vdMZ);
 	if (vdMZ == NULL) {
 		Spectrum->bSkip = true;
+		exit(1);
 		return true;
 	}
 	vector<double> *vdIntensity = &(Spectrum->vdIntensity);
 	if (vdIntensity == NULL) {
 		Spectrum->bSkip = true;
+		exit(1);
 		return true;
 	}
 	if (((int) vdMZ->size()) < ProNovoConfig::minIntensityClassCount) {
@@ -63,6 +66,7 @@ bool MVH::Preprocess(MS2Scan * Spectrum, multimap<double, double> * IntenSortedP
 	if (IntenSortedPeakPreData == NULL) {
 		cout << "Error 61" << endl;
 		Spectrum->bSkip = true;
+		exit(1);
 		return true;
 	}
 	IntenSortedPeakPreData->clear();
@@ -108,6 +112,7 @@ bool MVH::Preprocess(MS2Scan * Spectrum, multimap<double, double> * IntenSortedP
 	}
 	if (IntenSortedPeakPreData->empty()) {
 		Spectrum->bSkip = true;
+		cout << "Check MVH::Preprocess 1" << endl;
 		return true;
 	}
 	//Water Loss
@@ -168,6 +173,7 @@ bool MVH::Preprocess(MS2Scan * Spectrum, multimap<double, double> * IntenSortedP
 		}
 	}
 	vector<int> * intenClassCounts = Spectrum->intenClassCounts;
+	intenClassCounts->clear();
 	intenClassCounts->resize(ProNovoConfig::NumIntensityClasses + 1, 0);
 	map<double, char>::iterator itr;
 	for (itr = peakData->begin(); itr != peakData->end(); itr++) {
@@ -183,14 +189,6 @@ bool MVH::Preprocess(MS2Scan * Spectrum, multimap<double, double> * IntenSortedP
 	Spectrum->bSkip = false;
 	IntenSortedPeakPreData->clear();
 	Spectrum->pPeakList = new PeakList(peakData);
-	/*	if (Spectrum->iScanId == 2174) {
-	 cout << intenClassCounts->at(0) << "," << intenClassCounts->at(1) << "," << intenClassCounts->at(2) << ","
-	 << intenClassCounts->at(3) << endl;
-	 return true;
-	 }*/
-	/*	for (itr = peakData->begin(); itr != peakData->end(); itr++) {
-	 cout << itr->first << "\t" << (int) itr->second << endl;
-	 }*/
 	return true;
 }
 

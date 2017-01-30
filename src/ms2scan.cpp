@@ -1128,7 +1128,10 @@ PeakList::PeakList(map<double, char> * _peakData) {
 	iMassHubPairSizeMinusOne = (iHighestMass - iLowestMass);
 	iMassHubSize = (iHighestMass - iLowestMass + 1) * 2;
 	pMassHub = new int[iMassHubSize];
-	fill_n(pMassHub, iMassHubSize, -1);
+	for(j=0;j<iMassHubSize;++j){
+		pMassHub[j] = -1;
+	}
+	// fill_n(pMassHub, iMassHubSize, -1);
 	int iMass = 0, iMassIdx;
 	int iStart, iEnd;
 	for (j = 0; j < iPeakSize;) {
@@ -1146,6 +1149,10 @@ PeakList::PeakList(map<double, char> * _peakData) {
 		}
 		j = iEnd;
 		iMassIdx = 2 * (iMass - iLowestMass);
+		if(iMassIdx+1 >= iMassHubSize){
+			cout << "ERRO PeakList 1" << endl;
+			exit(1);
+		}
 		pMassHub[iMassIdx] = iStart;
 		pMassHub[iMassIdx + 1] = iEnd;
 	}

@@ -393,7 +393,7 @@ void MS2ScanVector::saveScan(MS2Scan * pMS2Scan) { //parentChargeState > 0, save
 
 void MS2ScanVector::preProcessAllMS2() {
 
-	int iScanSize;
+	int iScanSize = 0, ii = 0, i = 0, j = 0;
 	iScanSize = vpAllMS2Scans.size();
 	if (bScreenOutput) {
 		cout << "Preprocessing " << iScanSize << " scans." << endl;
@@ -401,8 +401,8 @@ void MS2ScanVector::preProcessAllMS2() {
 	// ------------------MVH preprocess start-----------------
 	if (ProNovoConfig::bMvhEnable) {
 		{
-#pragma omp parallel for schedule(dynamic)
-			for (int ii = 0; ii < iScanSize; ii++) {
+#pragma omp parallel for schedule(guided)
+			for (ii = 0; ii < iScanSize; ii++) {
 				vpAllMS2Scans.at(ii)->sortPeakList();
 			}
 		}
@@ -420,14 +420,16 @@ void MS2ScanVector::preProcessAllMS2() {
 			vpIntenSortedPeakPreData.push_back(new multimap<double, double>());
 		}
 
-#pragma omp parallel for schedule(dynamic)
-		for (int ii = 0; ii < iScanSize; ii++) {
-			int tid = omp_get_thread_num();
-			vpAllMS2Scans.at(ii)->peakData = new map<double, char>();
-			vpAllMS2Scans.at(ii)->peakData->clear();
-			vpAllMS2Scans.at(ii)->intenClassCounts = new vector<int>();
-			vpAllMS2Scans.at(ii)->intenClassCounts->clear();
-			MVH::Preprocess(vpAllMS2Scans.at(ii), vpIntenSortedPeakPreData.at(tid), minObservedMz, maxObservedMz);
+		{
+#pragma omp parallel for schedule(guided)
+			for (int l = 0; l < iScanSize; l++) {
+				int tid = omp_get_thread_num();
+				vpAllMS2Scans.at(l)->peakData = new map<double, char>();
+				vpAllMS2Scans.at(l)->peakData->clear();
+				vpAllMS2Scans.at(l)->intenClassCounts = new vector<int>();
+				vpAllMS2Scans.at(l)->intenClassCounts->clear();
+				MVH::Preprocess(vpAllMS2Scans.at(l), vpIntenSortedPeakPreData.at(tid), minObservedMz, maxObservedMz);
+			}
 		}
 
 		for (int j = 0; j < num_max_threads; ++j) {
@@ -437,7 +439,7 @@ void MS2ScanVector::preProcessAllMS2() {
 
 		int maxPeakBins = 0;
 		int iNumSkippedScans = 0;
-		for (int ii = 0; ii < iScanSize; ii++) {
+		for (ii = 0; ii < iScanSize; ii++) {
 			if (vpAllMS2Scans.at(ii)->totalPeakBins > maxPeakBins) {
 				maxPeakBins = vpAllMS2Scans.at(ii)->totalPeakBins;
 			}
@@ -459,7 +461,7 @@ void MS2ScanVector::preProcessAllMS2() {
 		vector<double *> vpdTmpCorrelationData;
 		vector<double *> vpdTmpSmoothedSpectrum;
 		vector<double *> vpdTmpPeakExtracted;
-		for (int j = 0; j < num_max_threads; ++j) {
+		for (j = 0; j < num_max_threads; ++j) {
 			vpdTmpRawData.push_back(new double[iArraySize]());
 			vpdTmpFastXcorrData.push_back(new double[iArraySize]());
 			vpdTmpCorrelationData.push_back(new double[iArraySize]());
@@ -467,8 +469,8 @@ void MS2ScanVector::preProcessAllMS2() {
 			vpdTmpPeakExtracted.push_back(new double[iArraySize]());
 		}
 		// pre-processing
-#pragma omp parallel for schedule(dynamic)
-		for (int ii = 0; ii < iScanSize; ii++) {
+#pragma omp parallel for schedule(guided)
+		for (ii = 0; ii < iScanSize; ii++) {
 			int tid = omp_get_thread_num();
 			struct Query * pQuery = new Query();
 			if (!CometSearch::Preprocess(pQuery, vpAllMS2Scans.at(ii), vpdTmpRawData.at(tid),
@@ -480,7 +482,7 @@ void MS2ScanVector::preProcessAllMS2() {
 			vpAllMS2Scans.at(ii)->pQuery = pQuery;
 		}
 		// clear up
-		for (int j = 0; j < num_max_threads; ++j) {
+		for (j = 0; j < num_max_threads; ++j) {
 			delete vpdTmpRawData.at(j);
 			delete vpdTmpFastXcorrData.at(j);
 			delete vpdTmpCorrelationData.at(j);
@@ -489,22 +491,25 @@ void MS2ScanVector::preProcessAllMS2() {
 		}
 	}
 
+	{
 #pragma omp parallel for schedule(guided)
-	for (int i = 0; i < iScanSize; i++) {
-		vpAllMS2Scans.at(i)->preprocess();
+		for (i = 0; i < iScanSize; i++) {
+			vpAllMS2Scans.at(i)->preprocess();
+		}
 	}
 
-	for (int i = 0; i < iScanSize; i++) {
+	for (i = 0; i < iScanSize; i++) {
 		if (vpAllMS2Scans.at(i)->iParentChargeState > ProNovoConfig::iMaxPercusorCharge) {
 			ProNovoConfig::iMaxPercusorCharge = vpAllMS2Scans.at(i)->iParentChargeState;
 		}
 	}
 
 	ProNovoConfig::TOP_N = 50;
-
+	{
 #pragma omp parallel for schedule(guided)
-	for (int i = 0; i < iScanSize; i++) {
-		vpAllMS2Scans.at(i)->sumIntensity();
+		for (i = 0; i < iScanSize; i++) {
+			vpAllMS2Scans.at(i)->sumIntensity();
+		}
 	}
 
 }
@@ -627,18 +632,18 @@ void MS2ScanVector::postMvh() {
 }
 
 void MS2ScanVector::processPeptideArray(vector<Peptide*>& vpPeptideArray) {
-	int iPeptideArraySize, iScanSize;
+	int iPeptideArraySize, iScanSize, i = 0, ii = 0;
 	iPeptideArraySize = vpPeptideArray.size();
 	iScanSize = vpAllMS2Scans.size();
 
 #pragma omp parallel for shared(vpPeptideArray) schedule(guided)
-	for (int i = 0; i < iPeptideArraySize; i++) {
+	for (i = 0; i < iPeptideArraySize; i++) {
 		vpPeptideArray.at(i)->preprocessing();
 	}
 
 	if (ProNovoConfig::bMvhEnable) {
 #pragma omp parallel for schedule(guided)
-		for (int ii = 0; ii < iScanSize; ii++) {
+		for (ii = 0; ii < iScanSize; ii++) {
 			int tid = omp_get_thread_num();
 			if (vpAllMS2Scans.at(ii)->bSkip) {
 				vpAllMS2Scans.at(ii)->vpPeptides.clear();
@@ -664,7 +669,7 @@ void MS2ScanVector::processPeptideArray(vector<Peptide*>& vpPeptideArray) {
 	}
 
 	// free memory of all peptide objects
-	for (int i = 0; i < iPeptideArraySize; i++) {
+	for (i = 0; i < iPeptideArraySize; i++) {
 		delete vpPeptideArray.at(i);
 	}
 

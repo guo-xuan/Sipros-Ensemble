@@ -212,8 +212,9 @@ bool ProteinDatabase::getFirstProtein() {
 	iclCheck = 0;
 	sline.clear();
 	getline(db_stream, sline);
-	if (bScreenOutput)
-		cout << "Processing protein #" << iProteinId << "\r";
+	if (bScreenOutput){
+		// cout << "Processing protein #" << iProteinId << "\r";
+	}
 	if (sline.at(0) == '>') {
 //	cout<<sline<<endl;
 //	cout<<sline.find_first_of(" \t\f\v\n\r")<<endl;
@@ -253,8 +254,9 @@ bool ProteinDatabase::getNextProtein() {
 		snextProteinName = "";
 		scurrentProtein = "";
 		iclCheck = 0;
-		if (bScreenOutput)
-			cout << "Processing protein #" << iProteinId << "\r";
+		if (bScreenOutput){
+			// cout << "Processing protein #" << iProteinId << "\r";
+		}
 		while (!db_stream.eof()) {
 			sline.clear();
 			getline(db_stream, sline);
