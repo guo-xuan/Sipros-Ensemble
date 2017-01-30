@@ -641,74 +641,10 @@ void MS2ScanVector::processPeptideArray(vector<Peptide*>& vpPeptideArray) {
 	for (i = 0; i < iPeptideArraySize; i++) {
 		vpPeptideArray.at(i)->preprocessing(vpAllMS2Scans.at(0)->isMS2HighRes, mapResidueMass);
 	}
-	/*
-
-	 if (ProNovoConfig::bXcorrEnable) {
-	 #pragma omp parallel
-	 {
-	 //MH: Must be equal to largest possible array
-	 int iArraySize = (int) ((ProNovoConfig::dMaxPeptideMass + 100) * ProNovoConfig::dHighResInverseBinWidth);
-	 bool *pbDuplFragment;
-	 double *_pdAAforward;
-	 double *_pdAAreverse;
-	 unsigned int *** _uiBinnedIonMasses;
-	 try {
-	 pbDuplFragment = new bool[iArraySize]();
-	 _pdAAforward = new double[MAX_PEPTIDE_LEN]();
-	 _pdAAreverse = new double[MAX_PEPTIDE_LEN]();
-	 _uiBinnedIonMasses = new unsigned int**[ProNovoConfig::iMaxPercusorCharge + 1]();
-	 for (int ii = 0; ii < ProNovoConfig::iMaxPercusorCharge + 1; ii++) {
-	 _uiBinnedIonMasses[ii] = new unsigned int*[9]();
-	 for (int j = 0; j < 9; j++) {
-	 _uiBinnedIonMasses[ii][j] = new unsigned int[MAX_PEPTIDE_LEN]();
-	 }
-	 }
-	 } catch (std::bad_alloc& ba) {
-	 char szErrorMsg[256];
-	 sprintf(szErrorMsg, " Error - new(pd[%d]). bad_alloc: %s.\n", iArraySize, ba.what());
-	 sprintf(szErrorMsg + strlen(szErrorMsg),
-	 "Comet ran out of memory. Look into \"spectrum_batch_size\"\n");
-	 sprintf(szErrorMsg + strlen(szErrorMsg), "parameters to address mitigate memory use.\n");
-	 string strErrorMsg(szErrorMsg);
-	 logerr(szErrorMsg);
-	 exit(1);
-	 }
-	 #pragma omp for schedule(guided)
-	 for (size_t ii = 0; ii < iScanSize; ii++) {
-	 size_t j = 0, iPeptideArrayPerScan = vpAllMS2Scans.at(ii)->vpPeptides.size();
-	 for (j = 0; j < iPeptideArrayPerScan; j++) {
-	 if (!vpAllMS2Scans.at(ii)->mergePeptide(vpAllMS2Scans.at(ii)->vpWeightSumTopPeptides,
-	 vpAllMS2Scans.at(ii)->vpPeptides.at(j)->getPeptideSeq(),
-	 vpAllMS2Scans.at(ii)->vpPeptides.at(j)->getProteinName())) {
-	 double dXcorr = 0;
-	 CometSearch::ScorePeptides(vpAllMS2Scans.at(ii)->vpPeptides.at(j), pbDuplFragment, _pdAAforward,
-	 _pdAAreverse, vpAllMS2Scans.at(ii), _uiBinnedIonMasses, dXcorr, iArraySize);
-	 vpAllMS2Scans.at(ii)->saveScore(dXcorr, vpAllMS2Scans.at(ii)->vpPeptides.at(j),
-	 vpAllMS2Scans.at(ii)->vpWeightSumTopPeptides,
-	 vpAllMS2Scans.at(ii)->vdWeightSumAllScores, "Comet");
-	 }
-	 }
-	 vpAllMS2Scans.at(ii)->vpPeptides.clear();
-	 }
-	 delete[] pbDuplFragment;
-	 delete[] _pdAAforward;
-	 delete[] _pdAAreverse;
-	 for (int ii = 0; ii < ProNovoConfig::iMaxPercusorCharge + 1; ii++) {
-	 for (int j = 0; j < 9; j++) {
-	 delete[] _uiBinnedIonMasses[ii][j];
-	 }
-	 delete[] _uiBinnedIonMasses[ii];
-	 }
-	 delete[] _uiBinnedIonMasses;
-	 }
-	 } // if (ProNovoConfig::bXcorrEnable) {
-	 */
 
 	if (ProNovoConfig::bMvhEnable) {
 #pragma omp parallel
 		{
-			//double * _pdAAforward = new double[MAX_PEPTIDE_LEN]();
-			//double * _pdAAreverse = new double[MAX_PEPTIDE_LEN]();
 			vector<double> * _pdAAforward = new vector<double>();
 			vector<double> * _pdAAreverse = new vector<double>();
 			vector<double> * sequenceIonMasses = new vector<double>();
