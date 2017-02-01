@@ -393,7 +393,7 @@ void MS2ScanVector::saveScan(MS2Scan * pMS2Scan) { //parentChargeState > 0, save
 
 void MS2ScanVector::preProcessAllMS2() {
 
-	int iScanSize = 0, ii = 0, i = 0, j = 0;
+	int iScanSize = 0, i = 0, j = 0;
 	iScanSize = vpAllMS2Scans.size();
 	if (bScreenOutput) {
 		cout << "Preprocessing " << iScanSize << " scans." << endl;
@@ -402,7 +402,7 @@ void MS2ScanVector::preProcessAllMS2() {
 	if (ProNovoConfig::bMvhEnable) {
 		{
 #pragma omp parallel for schedule(guided)
-			for (ii = 0; ii < iScanSize; ii++) {
+			for (int ii = 0; ii < iScanSize; ii++) {
 				vpAllMS2Scans.at(ii)->sortPeakList();
 			}
 		}
@@ -439,7 +439,7 @@ void MS2ScanVector::preProcessAllMS2() {
 
 		int maxPeakBins = 0;
 		int iNumSkippedScans = 0;
-		for (ii = 0; ii < iScanSize; ii++) {
+		for (int ii = 0; ii < iScanSize; ii++) {
 			if (vpAllMS2Scans.at(ii)->totalPeakBins > maxPeakBins) {
 				maxPeakBins = vpAllMS2Scans.at(ii)->totalPeakBins;
 			}
@@ -470,7 +470,7 @@ void MS2ScanVector::preProcessAllMS2() {
 		}
 		// pre-processing
 #pragma omp parallel for schedule(guided)
-		for (ii = 0; ii < iScanSize; ii++) {
+		for (int ii = 0; ii < iScanSize; ii++) {
 			int tid = omp_get_thread_num();
 			struct Query * pQuery = new Query();
 			if (!CometSearch::Preprocess(pQuery, vpAllMS2Scans.at(ii), vpdTmpRawData.at(tid),
@@ -493,8 +493,8 @@ void MS2ScanVector::preProcessAllMS2() {
 
 	{
 #pragma omp parallel for schedule(guided)
-		for (i = 0; i < iScanSize; i++) {
-			vpAllMS2Scans.at(i)->preprocess();
+		for (int ii = 0; ii < iScanSize; ii++) {
+			vpAllMS2Scans.at(ii)->preprocess();
 		}
 	}
 
