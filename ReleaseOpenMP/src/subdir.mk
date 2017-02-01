@@ -14,8 +14,7 @@ CPP_SRCS += \
 ../src/proNovoConfig.cpp \
 ../src/proteindatabase.cpp \
 ../src/ptm.cpp \
-../src/tokenvector.cpp \
-../src/ProteinDbParser.cpp 
+../src/tokenvector.cpp
 
 OBJS += \
 ./src/directoryStructure.o \
@@ -27,8 +26,7 @@ OBJS += \
 ./src/proNovoConfig.o \
 ./src/proteindatabase.o \
 ./src/ptm.o \
-./src/tokenvector.o \
-./src/ProteinDbParser.o 
+./src/tokenvector.o
 
 CPP_DEPS += \
 ./src/directoryStructure.d \
@@ -41,8 +39,7 @@ CPP_DEPS += \
 ./src/proNovoConfig.d \
 ./src/proteindatabase.d \
 ./src/ptm.d \
-./src/tokenvector.d \
-./src/ProteinDbParser.d 
+./src/tokenvector.d
 
 
 # Each subdirectory must supply rules for building sources it contributes

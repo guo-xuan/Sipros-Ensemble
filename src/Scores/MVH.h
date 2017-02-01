@@ -27,14 +27,7 @@ const double WATER_MONO = 2 * HYDROGEN_MONO + OXYGEN_MONO;
 const double Proton = 1.00727646688;
 
 enum FragmentTypes {
-	FragmentType_A,
-	FragmentType_B,
-	FragmentType_C,
-	FragmentType_X,
-	FragmentType_Y,
-	FragmentType_Z,
-	FragmentType_Z_Radical,
-	FragmentTypes_Size
+	FragmentType_A, FragmentType_B, FragmentType_C, FragmentType_X, FragmentType_Y, FragmentType_Z, FragmentType_Z_Radical, FragmentTypes_Size
 };
 
 class lnFactorialTable {
@@ -48,21 +41,24 @@ public:
 		m_table.clear();
 	}
 
-	double operator[](size_t index) {
+	double operator[](int index) {
 		// Is the table big enough?
-		size_t maxIndex = m_table.size() - 1;
+		int maxIndex = m_table.size() - 1;
+		if (index > maxIndex) {
+			cerr << "error lnFactorialTable " << endl;
+			exit(1);
+		}
+		return m_table.at(index);
+	}
+
+	void resize(int index) {
+		int maxIndex = m_table.size() - 1;
 		if (index > maxIndex) {
 			while (index > maxIndex) {
 				m_table.push_back(m_table.at(maxIndex) + log((float) m_table.size()));
 				++maxIndex;
 			}
 		}
-
-		return m_table.at(index);
-	}
-
-	void resize(size_t maxIndex) {
-		this->operator [](maxIndex);
 	}
 
 private:
@@ -78,16 +74,15 @@ public:
 	static bool bUseSmartPlusThreeModel;
 	static lnFactorialTable * lnTable;
 
-	static bool CalculateSequenceIons(Peptide * currentPeptide, int maxIonCharge, bool useSmartPlusThreeModel,
-			vector<double>* sequenceIonMasses, vector<double> * _pdAAforward, vector<double> * _pdAAreverse);
+	static bool CalculateSequenceIons(string & currentPeptide, int maxIonCharge, bool useSmartPlusThreeModel, vector<double>* sequenceIonMasses,
+			vector<double> * _pdAAforward, vector<double> * _pdAAreverse, vector<char> * seq);
 	static bool destroyLnTable();
 	static multimap<double, char>::iterator findNear(map<double, char> * peakData, double mz, double tolerance);
-	static bool initialLnTable(size_t maxPeakBins);
+	static bool initialLnTable(int maxPeakBins);
 	static double lnCombin(int n, int k);
-	static bool Preprocess(MS2Scan * Spectrum, multimap<double, double> * IntenSortedPeakPreData, double minObservedMz,
-			double maxObservedMz);
-	static bool ScoreSequenceVsSpectrum(Peptide * currentPeptide, MS2Scan * Spectrum, vector<double>* sequenceIonMasses,
-			vector<double> * _pdAAforward, vector<double> * _pdAAreverse, double & dMvh);
+	static bool Preprocess(MS2Scan * Spectrum, multimap<double, double> * IntenSortedPeakPreData);
+	static bool ScoreSequenceVsSpectrum(string & currentPeptide, MS2Scan * Spectrum, vector<double>* sequenceIonMasses, vector<double> * _pdAAforward,
+			vector<double> * _pdAAreverse, double & dMvh, vector<char> * seq);
 };
 
 #endif /* SCORES_MVH_H_ */

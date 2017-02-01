@@ -36,37 +36,28 @@ double round(double f, int precision) {
  * dParentNeutralMass
  * dParentMZ
  */
-bool MVH::Preprocess(MS2Scan * Spectrum, multimap<double, double> * IntenSortedPeakPreData, double minObservedMz,
-		double maxObservedMz) {
-	if (Spectrum == NULL) {
-		cout << "Error 60" << endl;
-		return true;
-	}
+bool MVH::Preprocess(MS2Scan * Spectrum, multimap<double, double> * IntenSortedPeakPreData) {
+
 	vector<double> *vdMZ = &(Spectrum->vdMZ);
-	if (vdMZ == NULL) {
-		Spectrum->bSkip = true;
-		return true;
-	}
 	vector<double> *vdIntensity = &(Spectrum->vdIntensity);
-	if (vdIntensity == NULL) {
-		Spectrum->bSkip = true;
-		return true;
-	}
 	if (((int) vdMZ->size()) < ProNovoConfig::minIntensityClassCount) {
 		Spectrum->bSkip = true;
 		return true;
 	}
-	Spectrum->mzLowerBound = minObservedMz;
-	Spectrum->mzUpperBound = maxObservedMz;
-	double totalPeakSpace = maxObservedMz - minObservedMz;
+	// Spectrum->mzLowerBound = vdMZ->front();
+	// Spectrum->mzUpperBound = vdMZ->back();
+	Spectrum->mzLowerBound = ProNovoConfig::minObservedMz;
+	Spectrum->mzUpperBound = ProNovoConfig::maxObservedMz;
+	double totalPeakSpace = Spectrum->mzUpperBound - Spectrum->mzLowerBound;
 	double totalIonCurrent = 0;
 	if (IntenSortedPeakPreData == NULL) {
-		cout << "Error 61" << endl;
+		cerr << "Error 61" << endl;
+		exit(1);
 		return true;
 	}
 	IntenSortedPeakPreData->clear();
 	multimap<double, double>::iterator ite;
-	for (size_t i = 0; i < vdMZ->size(); i++) {
+	for (int i = 0; i < (int)vdMZ->size(); i++) {
 		if (vdMZ->at(i) <= Spectrum->dParentNeutralMass) {
 			ite = IntenSortedPeakPreData->insert(make_pair(vdIntensity->at(i), vdMZ->at(i)));
 			totalIonCurrent += ite->first;
@@ -76,7 +67,7 @@ bool MVH::Preprocess(MS2Scan * Spectrum, multimap<double, double> * IntenSortedP
 	// Filters out the peaks with the lowest intensities until only <ticCutoffPercentage> of the total ion current remains
 	if (IntenSortedPeakPreData->empty()) {
 		Spectrum->bSkip = true;
-		cout << "error 81" << endl;
+		cerr << "error MVH::Preprocess 1" << endl;
 		return true;
 	}
 	multimap<double, double>::reverse_iterator rite;
@@ -104,10 +95,6 @@ bool MVH::Preprocess(MS2Scan * Spectrum, multimap<double, double> * IntenSortedP
 			}
 			IntenSortedPeakPreData->erase(IntenSortedPeakPreData->begin(), ite);
 		}
-	}
-	if (IntenSortedPeakPreData->empty()) {
-		Spectrum->bSkip = true;
-		return true;
 	}
 	//Water Loss
 	double dMinOneWater = Spectrum->dParentMZ - WATER_MONO / Spectrum->iParentChargeState
@@ -167,6 +154,7 @@ bool MVH::Preprocess(MS2Scan * Spectrum, multimap<double, double> * IntenSortedP
 		}
 	}
 	vector<int> * intenClassCounts = Spectrum->intenClassCounts;
+	intenClassCounts->clear();
 	intenClassCounts->resize(ProNovoConfig::NumIntensityClasses + 1, 0);
 	map<double, char>::iterator itr;
 	for (itr = peakData->begin(); itr != peakData->end(); itr++) {
@@ -181,137 +169,122 @@ bool MVH::Preprocess(MS2Scan * Spectrum, multimap<double, double> * IntenSortedP
 	Spectrum->totalPeakBins = totalPeakBins;
 	Spectrum->bSkip = false;
 	IntenSortedPeakPreData->clear();
-	/*	if (Spectrum->iScanId == 2174) {
-	 cout << intenClassCounts->at(0) << "," << intenClassCounts->at(1) << "," << intenClassCounts->at(2) << ","
-	 << intenClassCounts->at(3) << endl;
-	 return true;
-	 }*/
-	/*	for (itr = peakData->begin(); itr != peakData->end(); itr++) {
-	 cout << itr->first << "\t" << (int) itr->second << endl;
-	 }*/
 	return true;
 }
 
-bool MVH::CalculateSequenceIons(Peptide * currentPeptide, int maxIonCharge, bool useSmartPlusThreeModel,
-		vector<double>* sequenceIonMasses, vector<double> * _pdAAforward, vector<double> * _pdAAreverse) {
-	if (!sequenceIonMasses) {
-		return false;
-	}
+bool MVH::CalculateSequenceIons(string & sSequence, int maxIonCharge, bool useSmartPlusThreeModel,
+		vector<double>* sequenceIonMasses, vector<double> * _pdAAforward, vector<double> * _pdAAreverse, vector<char> * seq) {
 	sequenceIonMasses->clear();
 	_pdAAforward->clear();
 	_pdAAreverse->clear();
-	vector<char> seq;
-	seq.clear();
-	string * sSequence = &(currentPeptide->sNeutralPeptide);
-	size_t i = 0;
-	size_t k = sSequence->length() - 1;
+	seq->clear();
+	int i = 0, j = 0, k = 0, iPeptideLength, iPos;
+	k = ((int)sSequence.length()) - 1;
 	char currentPTM = 0;
-	size_t iPeptideLength = 0;
-	size_t iPos = 0;
-	map<char, double>::iterator iterResidueMonoMass;
+	iPeptideLength = 0;
+	iPos = 0;
+	double iterResidueMonoMass;
 	for (i = 0; i <= k; ++i) {
-		if (isalpha(sSequence->at(i))) {
+		if (isalpha(sSequence.at(i))) {
 			iPeptideLength = iPeptideLength + 1;
-			seq.push_back(sSequence->at(i));
+			seq->push_back(sSequence.at(i));
 		}
 	}
 	int iLenMinus1 = iPeptideLength - 1;
-	if ((int) iPeptideLength < ProNovoConfig::getMinPeptideLength()) {
-		cerr << "ERROR: Peptide sequence is too short " << (*sSequence) << endl;
+	if (iPeptideLength < ProNovoConfig::getMinPeptideLength()) {
+		cerr << "ERROR MVH 1: Peptide sequence is too short " << sSequence << endl;
+		exit(1);
 		return false;
 	}
-	size_t j = 0;
-	if (sSequence->at(j) != '[') {
-		cerr << (*sSequence) << endl;
-		cerr << "ERROR: First character in a peptide sequence must be [." << endl;
+	j = 0;
+	if (sSequence.at(j) != '[') {
+		cerr << "ERROR: First character in a peptide sequence must be [." << sSequence << endl;
 		return false;
 	}
 	double dBion = 0;
 	double dYion = ProNovoConfig::precalcMasses.dCtermOH2;
 	j++;
-	if (!isalpha(sSequence->at(j))) {
-		currentPTM = sSequence->at(j);
+	if (!isalpha(sSequence.at(j))) {
+		currentPTM = sSequence.at(j);
 		iterResidueMonoMass = ProNovoConfig::pdAAMassFragment.find(currentPTM);
 		if (iterResidueMonoMass == ProNovoConfig::pdAAMassFragment.end()) {
 			cerr << "ERROR: cannot find this PTM in the config file " << currentPTM << endl;
 			return false;
 		}
-		dBion += iterResidueMonoMass->second;
+		dBion += iterResidueMonoMass;
 		j++;
 	}
-	if (sSequence->at(k) == ']') {
+	if (sSequence.at(k) == ']') {
 		k--;
 	} else {
-		currentPTM = sSequence->at(k);
+		currentPTM = sSequence.at(k);
 		iterResidueMonoMass = ProNovoConfig::pdAAMassFragment.find(currentPTM);
 		if (iterResidueMonoMass == ProNovoConfig::pdAAMassFragment.end()) {
 			cerr << "ERROR: cannot find this PTM in the config file " << currentPTM << endl;
 			return false;
 		}
-		dYion += iterResidueMonoMass->second;
+		dYion += iterResidueMonoMass;
 		k--;
-		if (sSequence->at(k) != ']') {
+		if (sSequence.at(k) != ']') {
 			cerr << "ERROR: (second) Last character in a peptide sequence must be ]." << endl;
 			return false;
 		}
 		k--;
 	}
 	//
-	for (i = 0; i <= (size_t) iLenMinus1; i++) {
+	for (i = 0; i <= iLenMinus1; i++) {
 		//First forward
-		if (!isalpha(sSequence->at(j))) {
+		if (!isalpha(sSequence.at(j))) {
 			cerr << "ERROR: One residue can only have one PTM (Up to only one symbol after an amino acid)" << endl;
 			exit(1);
 			return false;
 		}
-		currentPTM = sSequence->at(j);
+		currentPTM = sSequence.at(j);
 		iterResidueMonoMass = ProNovoConfig::pdAAMassFragment.find(currentPTM);
 		if (iterResidueMonoMass == ProNovoConfig::pdAAMassFragment.end()) {
 			cerr << "ERROR: One residue can only have one PTM (Up to only one symbol after an amino acid)" << endl;
 			exit(1);
 			return false;
 		}
-		dBion += iterResidueMonoMass->second;
+		dBion += iterResidueMonoMass;
 		j++;
-		if (j < sSequence->length() && !isalpha(sSequence->at(j)) && sSequence->at(j) != ']') {
-			currentPTM = sSequence->at(j);
+		if (j < (int)sSequence.length() && !isalpha(sSequence.at(j)) && sSequence.at(j) != ']') {
+			currentPTM = sSequence.at(j);
 			iterResidueMonoMass = ProNovoConfig::pdAAMassFragment.find(currentPTM);
 			if (iterResidueMonoMass == ProNovoConfig::pdAAMassFragment.end()) {
 				cerr << "ERROR: cannot find this PTM in the config file " << currentPTM << endl;
 				return false;
 			}
-			dBion += iterResidueMonoMass->second;
+			dBion += iterResidueMonoMass;
 			j++;
 		}
-		//_pdAAforward->at(iPos) = dBion;
 		_pdAAforward->push_back(dBion);
-		//Now reverse
-		if (!isalpha(sSequence->at(k))) {
-			currentPTM = sSequence->at(k);
+		// now reverse
+		if (!isalpha(sSequence.at(k))) {
+			currentPTM = sSequence.at(k);
 			iterResidueMonoMass = ProNovoConfig::pdAAMassFragment.find(currentPTM);
 			if (iterResidueMonoMass == ProNovoConfig::pdAAMassFragment.end()) {
 				cerr << "ERROR: cannot find this PTM in the config file " << currentPTM << endl;
 				exit(1);
 				return false;
 			}
-			dYion += iterResidueMonoMass->second;
+			dYion += iterResidueMonoMass;
 			k--;
 		}
-		if (!isalpha(sSequence->at(k))) {
+		if (!isalpha(sSequence.at(k))) {
 			cerr << "ERROR: One residue can only have one PTM (Up to only one symbol after an amino acid)" << endl;
 			exit(1);
 			return false;
 		}
-		currentPTM = sSequence->at(k);
+		currentPTM = sSequence.at(k);
 		iterResidueMonoMass = ProNovoConfig::pdAAMassFragment.find(currentPTM);
 		if (iterResidueMonoMass == ProNovoConfig::pdAAMassFragment.end()) {
 			cerr << "ERROR: cannot find this PTM in the config file" << currentPTM << endl;
 			exit(1);
 			return false;
 		}
-		dYion += iterResidueMonoMass->second;
+		dYion += iterResidueMonoMass;
 		k--;
-		//_pdAAreverse->at(iPos) = dYion;
 		_pdAAreverse->push_back(dYion);
 		iPos++;
 	}
@@ -319,35 +292,35 @@ bool MVH::CalculateSequenceIons(Peptide * currentPeptide, int maxIonCharge, bool
 	// calculate y ion MZs
 	if (maxIonCharge > 2) {
 		if (useSmartPlusThreeModel) {
-			size_t totalStrongBasicCount = 0, totalWeakBasicCount = 0;
-			for (size_t i = 0; i < iPeptideLength; i++) {
-				if (seq.at(i) == 'R' || seq.at(i) == 'K' || seq.at(i) == 'H') {
+			int totalStrongBasicCount = 0, totalWeakBasicCount = 0;
+			for (i = 0; i < iPeptideLength; i++) {
+				if (seq->at(i) == 'R' || seq->at(i) == 'K' || seq->at(i) == 'H') {
 					++totalStrongBasicCount;
-				} else if (seq.at(i) == 'Q' || seq.at(i) == 'N') {
+				} else if (seq->at(i) == 'Q' || seq->at(i) == 'N') {
 					++totalWeakBasicCount;
 				}
 			}
-			size_t totalBasicity = totalStrongBasicCount * 4 + totalWeakBasicCount * 2 + iPeptideLength - 2;
+			int totalBasicity = totalStrongBasicCount * 4 + totalWeakBasicCount * 2 + iPeptideLength - 2;
 			map<double, int> basicityThresholds;
 			basicityThresholds.clear();
 			basicityThresholds[0.0] = 1;
 			for (int z = 1; z < maxIonCharge - 1; ++z) {
 				basicityThresholds[(double) z / (double) (maxIonCharge - 1)] = z + 1;
 			}
-			for (size_t c = 0; c <= iPeptideLength; ++c) {
-				size_t bStrongBasicCount = 0, bWeakBasicCount = 0;
-				for (size_t i = 0; i < c; ++i) {
-					if (seq[i] == 'R' || seq[i] == 'K' || seq[i] == 'H') {
+			for (int c = 0; c <= iPeptideLength; ++c) {
+				int bStrongBasicCount = 0, bWeakBasicCount = 0;
+				for (i = 0; i < c; ++i) {
+					if (seq->at(i) == 'R' || seq->at(i) == 'K' || seq->at(i) == 'H') {
 						++bStrongBasicCount;
-					} else if (seq[i] == 'Q' || seq[i] == 'N') {
+					} else if (seq->at(i) == 'Q' || seq->at(i) == 'N') {
 						++bWeakBasicCount;
 					}
 				}
-				size_t bScore = bStrongBasicCount * 4 + bWeakBasicCount * 2 + c;
+				int bScore = bStrongBasicCount * 4 + bWeakBasicCount * 2 + c;
 				double basicityRatio = (double) bScore / (double) totalBasicity;
 				map<double, int>::iterator itr = basicityThresholds.upper_bound(basicityRatio);
 				if (itr == basicityThresholds.begin()) {
-					cout << "error 83" << endl;
+					cerr << "error 83" << endl;
 				}
 				--itr;
 				int bZ = itr->second;
@@ -390,9 +363,6 @@ bool MVH::CalculateSequenceIons(Peptide * currentPeptide, int maxIonCharge, bool
 			sequenceIonMasses->push_back((_pdAAreverse->at(iLenMinus1) + Proton));
 		}
 	}
-	/*	for (size_t c = 0; c < sequenceIonMasses->size(); c++) {
-	 cout << sequenceIonMasses->at(c) << endl;
-	 }*/
 	return true;
 }
 
@@ -421,7 +391,7 @@ multimap<double, char>::iterator MVH::findNear(map<double, char> * peakData, dou
 	return best;
 }
 
-bool MVH::initialLnTable(size_t maxPeakBins) {
+bool MVH::initialLnTable(int maxPeakBins) {
 	if(MVH::lnTable!=NULL){
 		delete MVH::lnTable;
 	}
@@ -442,32 +412,32 @@ double MVH::lnCombin(int n, int k) {
 	}
 }
 
-bool MVH::ScoreSequenceVsSpectrum(Peptide * currentPeptide, MS2Scan * Spectrum, vector<double>* seqIons,
-		vector<double> * _pdAAforward, vector<double> * _pdAAreverse, double & dMvh) {
+bool MVH::ScoreSequenceVsSpectrum(string & currentPeptide, MS2Scan * Spectrum, vector<double>* seqIons,
+		vector<double> * _pdAAforward, vector<double> * _pdAAreverse, double & dMvh, vector<char> * seq) {
 	if (!CalculateSequenceIons(currentPeptide, Spectrum->iParentChargeState, bUseSmartPlusThreeModel, seqIons,
-			_pdAAforward, _pdAAreverse)) {
+			_pdAAforward, _pdAAreverse, seq)) {
 		return false;
 	}
 	int totalPeaks = (int) seqIons->size();
-	multimap<double, char>::iterator peakItr;
-	map<double, char> *peakData = Spectrum->peakData;
-	if (peakData == NULL) {
-		cout << "Error 82" << endl;
-	}
+	char peakItr;
+	PeakList * pPeakList = Spectrum->pPeakList;
 	vector<int> mvhKey;
+	mvhKey.clear();
 	mvhKey.resize(ProNovoConfig::NumIntensityClasses + 1, 0);
-	for (size_t j = 0; j < seqIons->size(); ++j) {
+
+	for (int j = 0; j < (int)seqIons->size(); ++j) {
 		if (seqIons->at(j) < Spectrum->mzLowerBound || seqIons->at(j) > Spectrum->mzUpperBound) {
 			--totalPeaks;
 			continue;
 		}
-		peakItr = findNear(peakData, seqIons->at(j), ProNovoConfig::getMassAccuracyFragmentIon());
-		if (peakItr != peakData->end() && peakItr->second > 0) {
-			++(mvhKey.at(peakItr->second - 1));
+		peakItr = pPeakList->findNear(seqIons->at(j), ProNovoConfig::getMassAccuracyFragmentIon());
+		if (peakItr != pPeakList->end() && peakItr > 0) {
+			++(mvhKey.at(peakItr - 1));
 		} else {
 			++(mvhKey.at(ProNovoConfig::NumIntensityClasses));
 		}
 	}
+
 	double mvh = 0.0;
 	int fragmentsUnmatched = mvhKey.back();
 
@@ -477,8 +447,8 @@ bool MVH::ScoreSequenceVsSpectrum(Peptide * currentPeptide, MS2Scan * Spectrum, 
 
 		if (fragmentsMatched >= ProNovoConfig::MinMatchedFragments) {
 			int numVoids = Spectrum->intenClassCounts->back();
-			int totalPeakBins = numVoids + peakData->size();
-			for (size_t i = 0; i < Spectrum->intenClassCounts->size(); ++i) {
+			int totalPeakBins = numVoids + pPeakList->size();
+			for (int i = 0; i < (int)Spectrum->intenClassCounts->size(); ++i) {
 				mvh += lnCombin(Spectrum->intenClassCounts->at(i), mvhKey.at(i));
 			}
 			mvh -= lnCombin(totalPeakBins, fragmentsPredicted);
@@ -490,10 +460,6 @@ bool MVH::ScoreSequenceVsSpectrum(Peptide * currentPeptide, MS2Scan * Spectrum, 
 		return false;
 	}
 
-	/*	if (Spectrum->iScanId == 2174 && currentPeptide->sPeptide == "[MEAQAQATK]") {
-	 cout << dMvh << endl;
-	 return true;
-	 }*/
 	return true;
 }
 

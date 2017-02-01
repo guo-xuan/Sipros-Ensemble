@@ -14,7 +14,6 @@
 #include "proteindatabase.h"
 #include "./Scores/CometSearch.h"
 #include "./Scores/MVH.h"
-#include "ProteinDbParser.h"
 
 #define ZERO            0.00000001
 #define PEPTIDE_ARRAY_SIZE  1000000
@@ -46,53 +45,43 @@ class MS2ScanVector {
 	static bool mylessScanId(MS2Scan * pMS2Scan1, MS2Scan * pMS2Scan2);
 	void preProcessAllMS2();  // Preprocessing all MS2 scans by multi-threading
 	void searchDatabase(); // Search all MS2 scans against the protein list by multi-threading
-	void searchDatabaseSnp(); // Search all MS2 scans against the protein list by multi-threading
 	// find every MS2 scan whose precursor mass matches peptide mass
 	bool assignPeptides2Scans(Peptide * currentPeptide);
 	void processPeptideArray(vector<Peptide*>& vpPeptideArray);
+	void processPeptideArrayMVH(vector<Peptide*>& vpPeptideArray);
 	pair<int, int> GetRangeFromMass(double lb, double ub);
 	// Postprocessing all MS2 scans' results by multi-threading
 	void postProcessAllMS2();
+	void postProcessAllMS2WDP();
+	void postProcessAllMS2Xcorr();
 	// write results to a SIP file
 	// the SIP file will the same base file name as sFT2Filename
 	// change the extension filename to ".SIP"
-	void setOutputFile(const string & sFT2FilenameInput,
-			const string & sOutputDirectory);
+	void setOutputFile(const string & sFT2FilenameInput, const string & sOutputDirectory);
 	void writeOutput();
-	void writeOutputMultiScoresPin();
-	void writeOutputMultiScoresSip();
-	void writeOutputMultiScoresSpectrum2MutiPep();
+	void writeOutputEnsemble();
 	//calculate mean and standard deviation of scores of a ms2 scan
-	void calculateMeanAndDeviation(int inumberScore, double dScoreSum,
-			double dScoreSquareSum, double & dMean, double & dDeviation);
-	void GetAllRangeFromMass(double dPeptideMass,
-			vector<pair<int, int> > & vpPeptideMassRanges);
+	void calculateMeanAndDeviation(int inumberScore, double dScoreSum, double dScoreSquareSum, double & dMean, double & dDeviation);
+	void GetAllRangeFromMass(double dPeptideMass, vector<pair<int, int> > & vpPeptideMassRanges);
 	string ParsePath(string sPath);
 
 public:
-	MS2ScanVector(const string & sFT2FilenameInput,
-			const string & sOutputDirectory, const string & sConfigFilename,
-			bool bScreenOutput);
+	MS2ScanVector(const string & sFT2FilenameInput, const string & sOutputDirectory, const string & sConfigFilename, bool bScreenOutput);
 	~MS2ScanVector();
 
 	// Populate vpAllMS2Scans from the input FT2 file
 	// Determine the charge state of every scan by calling the function MS2Scan::isSinglyCharged().
 	// Creat a +2 scan and a +3 scan for an unknown multipe charged scan.
 	// Return false if there is a problem with the file
-	bool loadFile();
 	bool loadFT2file();
-	bool loadMs2File();
 	bool ReadFT2File();    //Read FT2 files
-	bool ReadMs2File();//Read Ms2 files
 	void startProcessing(); // start functions to process the loaded FT2 file
 
-	size_t iMaxNumProteins;
-
 	// variables for the MVH thread
-	vector<double> ** _ppdAAforward;
-	vector<double> ** _ppdAAreverse;
-	vector<double> ** psequenceIonMasses;
-	vector<char> ** pSeqs;
+	vector<vector<double> *> _ppdAAforward;
+	vector<vector<double> *> _ppdAAreverse;
+	vector<vector<double> *> psequenceIonMasses;
+	vector<vector<char> *> pSeqs;
 	int num_max_threads;
 	void preMvh();
 	void postMvh();

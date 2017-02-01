@@ -12,15 +12,6 @@
 
 using namespace std;
 
-// 1*10E-9
-#define PROBOBILITYACCURACY 0.000000001
-//#define PROBOBILITYACCURACY 0.0000001
-
-struct sMassProb {
-	double dMass;
-	double dProb;
-};
-
 /**/
 class IsotopeDistribution {
 public:
@@ -41,8 +32,6 @@ public:
 	// this is mainly used for debuging
 	void print();
 
-	void swap();
-	void clear();
 };
 
 class Isotopologue {
@@ -54,7 +43,8 @@ public:
 	bool setupIsotopologue(const string & sTable, const string & AtomNameInput);
 
 	// get the MostAbundant masses of  residues
-	bool getSingleResidueMostAbundantMasses(vector<string> & vsResidues, vector<double> & vdMostAbundantMasses, double & dTerminusMassN, double & dTerminusMassC);
+	bool getSingleResidueMostAbundantMasses(vector<string> & vsResidues, vector<double> & vdMostAbundantMasses, double & dTerminusMassN,
+			double & dTerminusMassC);
 
 	// compute the mass of the most abundant isotopologue
 	double computeMostAbundantMass(string sSequence);
@@ -66,7 +56,8 @@ public:
 	// The first dimension of vvdYionMass and vvdYionProb is from y1, y2, ...
 	// The first dimension of vvdBionMass and vvdBionProb is from b1, b2, ...
 	// the mass is calculated assuming cleavage of the peptide bond
-	bool computeProductIon(const string & sSequence, vector<vector<double> > & vvdYionMass, vector<vector<double> > & vvdYionProb, vector<vector<double> > & vvdBionMass, vector<vector<double> > & vvdBionProb);
+	bool computeProductIon(string sSequence, vector<vector<double> > & vvdYionMass, vector<vector<double> > & vvdYionProb,
+			vector<vector<double> > & vvdBionMass, vector<vector<double> > & vvdBionProb);
 
 	// compute isotoptic distribution for an amino acid sequence
 	bool computeIsotopicDistribution(string sSequence, IsotopeDistribution & myIsotopeDistribution);
@@ -78,22 +69,11 @@ public:
 	// compute the atomic composition for an amino acid sequence
 	bool computeAtomicComposition(string sSequence, vector<int> & myAtomicComposition);
 
-	// variables for this isotopologue
-	map<string, vector<int> > mResidueAtomicComposition;
-	vector<IsotopeDistribution> vAtomIsotopicDistribution;
-	map<string, IsotopeDistribution> vResidueIsotopicDistribution;
-	// when two peaks have a mass difference less than the MassPrecision
-	// they will be merged into one peak with their average mass and sum intensity
-	const double MassPrecision; // 0.01
-	static double MassTolerance;
-	// when a peak have a probability less than the ProbabilityCutoff
-	// this peak will be ingnored, which makes the total probability space less than 1
-	const double ProbabilityCutoff; // 1*10E-9
-
 private:
-	// functions for IsotopeDistribution's arithmetic
+	// emass functions for IsotopeDistribution's arithmetic
 	IsotopeDistribution sum(const IsotopeDistribution & distribution0, const IsotopeDistribution & distribution1);
-	IsotopeDistribution sum2(const IsotopeDistribution & distribution0, const IsotopeDistribution & distribution1);
+	// functions for IsotopeDistribution's arithmetic
+	IsotopeDistribution sum_backup(const IsotopeDistribution & distribution0, const IsotopeDistribution & distribution1);
 	IsotopeDistribution multiply(const IsotopeDistribution & distribution0, int count);
 	void shiftMass(IsotopeDistribution & distribution0, double dMass);
 
@@ -104,12 +84,29 @@ private:
 	double minimum(double a, double b) {
 		return (a < b) ? a : b;
 	}
+
+	// when two peaks have a mass difference less than the MassPrecision
+	// they will be merged into one peak with their average mass and sum intensity
+	const double MassPrecision; // 0.01
+
+	// when a peak have a probability less than the ProbabilityCutoff
+	// this peak will be ingnored, which makes the total probability space less than 1
+	const double ProbabilityCutoff; // 1*10E-9
+
 	// the name of atoms
 	string AtomName;
 
 	// the number of natural CHONPS and enriched CHONPS
 	unsigned int AtomNumber;
 
+	// variables for this isotopologue
+	map<string, vector<int> > mResidueAtomicComposition;
+	vector<IsotopeDistribution> vAtomIsotopicDistribution;
+	map<string, IsotopeDistribution> vResidueIsotopicDistribution;
+
+	// Sipros Ensemble
+	// emass needs the mass to be one nucleus difference
+	bool CheckMass(vector<double> & vdMass, vector<double> & vdNaturalCompositionTemp);
 };
 
 #endif //ISOTOPOLOGUE_H

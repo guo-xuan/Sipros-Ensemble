@@ -11,6 +11,13 @@
 using namespace std;
 
 class Peptide {
+public:
+	// the sequence of the peptide
+	string sPeptide;
+	// the sequence of the original peptide
+	string sOriginalPeptide;
+	// the sequence of the neutral loss peptide
+	string sNeutralLossPeptide;
 	// the protein name
 	string sProteinName;
 	// the begining position of the original peptide on the the protein
@@ -30,13 +37,6 @@ class Peptide {
 	// suffix residue of original peptide,  or "-"
 	char cOriginalSuffix;
 
-public:
-	// the sequence of the peptide
-	string sPeptide;
-	// the sequence of the original peptide
-	string sOriginalPeptide;
-	// Neutral lost peptide
-	string sNeutralPeptide;
 	// Low-res MS2 scan just need
 	// the most abundant isotopic masses of predicted Y and B ions of the peptide
 	vector<double> vdYionMasses;
@@ -52,29 +52,24 @@ public:
 	Peptide();
 	~Peptide();
 
-	void setPeptide(const string & sPeptide, const string & sOriginalPeptide, const string & sProteinName,
-			const int & ibeginPos, const double & dPeptideMass, const char & cIdentifyPrefix,
-			const char & cIdentifySuffix, const char & cOriginalPrefix, const char & cOriginalSuffix);
+	void setPeptide(const string & sPeptide, const string & sOriginalPeptide, const string & sProteinName, const int & ibeginPos, const double & dPeptideMass,
+			const char & cIdentifyPrefix, const char & cIdentifySuffix, const char & cOriginalPrefix, const char & cOriginalSuffix);
 	string getPeptideSeq() const {
 		return sPeptide;
 	}
-
-	string getPeptideForScoring() const{
-		return sNeutralPeptide;
-	}
-
+	;
 	string getOriginalPeptideSeq() const {
 		return sOriginalPeptide;
 	}
-
+	;
 	string getProteinName() const {
 		return sProteinName;
 	}
-
+	;
 	int getBeginPosProtein() const {
 		return ibeginPos;
 	}
-
+	;
 	double getPeptideMass() const {
 		return dPeptideMass;
 	}
@@ -82,23 +77,23 @@ public:
 	double getPeptideScore() const {
 		return dscore;
 	}
-
+	;
 	int getPeptideLength() const {
 		return iPeptideLength;
 	}
-
+	;
 	char getIdentifyPrefix() const {
 		return cIdentifyPrefix;
 	}
-
+	;
 	char getIdentifySuffix() const {
 		return cIdentifySuffix;
 	}
-
+	;
 	char getOriginalPrefix() const {
 		return cOriginalPrefix;
 	}
-
+	;
 	char getOriginalSuffix() const {
 		return cOriginalSuffix;
 	}
@@ -107,25 +102,30 @@ public:
 	void setPeptideScore(double dscore) {
 		this->dscore = dscore;
 	}
-
+	;
 
 	// calculate all expected y and b ions from sPeptide
 	void calculateExpectedFragments(const string & sNewPeptide, const map<char, double> & mapResidueMass);
-	void static calculateExpectedFragments(const string & sNewPeptide, const map<char, double> & mapResidueMass,
-			vector<double> * pvdYionMass, vector<double> * pvvdBionMass);
 
 	void preprocessing(bool isMS2HighRes, const map<char, double> & mapResidueMass);
-	void static preprocessing(string & sPeptide, bool isMS2HighRes, const map<char, double> & mapResidueMass,
-			vector<vector<double> > * vvdYionMass, vector<vector<double> > * vvdYionProb,
-			vector<vector<double> > * vvdBionMass, vector<vector<double> > * vvdBionProb, vector<double> * pvdYionMass,
-			vector<double> * pvvdBionMass);
+
+	void preprocessingMVH();
 
 	// this function doesn't need mapResidueMass as input
 	void calculateIsotope(const string & sNewPeptide, const map<char, double> & mapResidueMass);
 
 	string neutralLossProcess(const string & sCurrentPeptide);
-	string static neutralLossProcess2(const string & sCurrentPeptide);
-	int getEnzInt() const;
+
+	// Sipros Ensemble, neutral loss peptide
+	string getPeptideForScoring() const {
+		return sNeutralLossPeptide;
+	}
+	;
+	void static preprocessing(string & sPeptide, bool isMS2HighRes, const map<char, double> & mapResidueMass, vector<vector<double> > * vvdYionMass,
+			vector<vector<double> > * vvdYionProb, vector<vector<double> > * vvdBionMass, vector<vector<double> > * vvdBionProb, vector<double> * pvdYionMass,
+			vector<double> * pvvdBionMass);
+	void static calculateExpectedFragments(const string & sNewPeptide, const map<char, double> & mapResidueMass, vector<double> * pvdYionMass,
+			vector<double> * pvvdBionMass);
 };
 
 #endif // PEPTIDE_H

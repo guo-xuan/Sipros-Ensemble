@@ -23,7 +23,7 @@ using namespace std;
 
 class TokenVector : public vector <string>
 {
-
+	
 public:
 	TokenVector() {}
 	~TokenVector() {}
@@ -32,8 +32,6 @@ public:
 	string Join(const string& splice = " ");
 	string Shift();
 	string Pop();
-	static void Parse(const string& str, const string& delimiters, vector<string> & _vs);
-
 };
 
 #endif /*TOKENVECTOR_H_*/

@@ -15,7 +15,7 @@ string ProNovoConfig::sSearchName = "Null";
 string ProNovoConfig::sFragmentationMethod = "CID";
 
 int ProNovoConfig::iMaxPTMcount = 0;
-int ProNovoConfig::iNumPrecalcuatedResidues = 0;
+
 int ProNovoConfig::iMinPeptideLength = 6;
 int ProNovoConfig::iMaxPeptideLength = 60;
 
@@ -45,19 +45,18 @@ vector<pair<double, double> > ProNovoConfig::vpPeptideMassWindowOffset;
 
 vector<pair<string, string> > ProNovoConfig::vpNeutralLossList;
 
-bool ProNovoConfig::bSnpFeature = true;
-
 //---------------Comet Begin---------------------
 bool ProNovoConfig::bXcorrEnable = false;
 Options ProNovoConfig::options;
 double ProNovoConfig::dInverseBinWidth = 0; // this is used in BIN() many times so use inverse binWidth to do multiply vs. divide
-double ProNovoConfig::dOneMinusBinOffset = 0;  // this is used in BIN() many times so calculate once
+double ProNovoConfig::dOneMinusBinOffset = 0; // this is used in BIN() many times so calculate once
 IonInfo ProNovoConfig::ionInformation;
 int ProNovoConfig::iXcorrProcessingOffset = 75;
 PrecalcMasses ProNovoConfig::precalcMasses;
 double ProNovoConfig::dMaxMS2ScanMass = 0;
 double ProNovoConfig::dMaxPeptideMass = 0;
-map<char, double> ProNovoConfig::pdAAMassFragment;
+// map<char, double> ProNovoConfig::pdAAMassFragment;
+AminoAcidMasses ProNovoConfig::pdAAMassFragment;
 double ProNovoConfig::dHighResFragmentBinSize = 0.02;
 double ProNovoConfig::dHighResFragmentBinStartOffset = 0;
 double ProNovoConfig::dLowResFragmentBinSize = 1.0005;
@@ -73,11 +72,12 @@ int ProNovoConfig::iMaxPercusorCharge = 0;
 bool ProNovoConfig::bMvhEnable = true;
 double ProNovoConfig::ClassSizeMultiplier = 2;
 int ProNovoConfig::NumIntensityClasses = 3;
-int ProNovoConfig::minIntensityClassCount = int(
-		(pow(ClassSizeMultiplier, NumIntensityClasses) - 1) / (ClassSizeMultiplier - 1));
+int ProNovoConfig::minIntensityClassCount = int((pow(ClassSizeMultiplier, NumIntensityClasses) - 1) / (ClassSizeMultiplier - 1));
 double ProNovoConfig::ticCutoffPercentage = 0.98;
 int ProNovoConfig::MaxPeakCount = 300;
 int ProNovoConfig::MinMatchedFragments = 5;
+double ProNovoConfig::minObservedMz = numeric_limits<double>::max();
+double ProNovoConfig::maxObservedMz = 0;
 //---------------Myrimatch End-------------------
 
 //---------------Sipros Score--------------------
@@ -85,10 +85,55 @@ bool ProNovoConfig::bWeightDotSumEnable = false;
 bool ProNovoConfig::bLessIsotopicDistribution = false;
 bool ProNovoConfig::bMultiScores = true;
 string ProNovoConfig::sDecoyPrefix = "";
-size_t ProNovoConfig::TOP_N = 5;
-double ProNovoConfig::Log_TOP_N_Output = log(5);
+int ProNovoConfig::INTTOPKEEP = 5;
 int ProNovoConfig::iRank = 0;
 //---------------Sipros Score--------------------
+
+double AminoAcidMasses::dNULL = -1;
+double AminoAcidMasses::dERROR = -2;
+
+AminoAcidMasses::AminoAcidMasses() {
+	for (int i = 0; i < AminoAcidMassesSize; i++) {
+		vdMasses[i] = dNULL;
+	}
+}
+
+void AminoAcidMasses::clear() {
+	for (int i = 0; i < AminoAcidMassesSize; i++) {
+		vdMasses[i] = dNULL;
+	}
+}
+
+double AminoAcidMasses::end() {
+	return dNULL;
+}
+
+double AminoAcidMasses::find(char _cAminoAcid) {
+	if (_cAminoAcid >= AminoAcidMassesSize || _cAminoAcid < 0) {
+		cerr << "error AminoAcidMasses. " << endl;
+		exit(1);
+		return dERROR;
+	}
+	return vdMasses[(int) _cAminoAcid];
+}
+
+double AminoAcidMasses::operator[](char _cAminoAcid) const {
+	if (_cAminoAcid >= AminoAcidMassesSize || _cAminoAcid < 0) {
+		cerr << "error AminoAcidMasses. " << endl;
+		exit(1);
+		return dERROR;
+	}
+	return vdMasses[(int) _cAminoAcid];
+}
+
+double & AminoAcidMasses::operator[](char _cAminoAcid) {
+	if (_cAminoAcid >= AminoAcidMassesSize || _cAminoAcid < 0) {
+		cerr << "error AminoAcidMasses. " << endl;
+		exit(1);
+		return dERROR;
+	}
+	return vdMasses[(int) _cAminoAcid];;
+}
 
 ProNovoConfig::ProNovoConfig() {
 }
@@ -113,13 +158,6 @@ bool ProNovoConfig::setFilename(const string & sConfigFileName) {
 	//parse neutral loss
 	ProNovoConfigSingleton->NeutralLoss();
 
-	/*//pre calculation of residues
-	if (iNumPrecalcuatedResidues > 0 && iMaxPTMcount == 0) {
-		ProNovoConfigSingleton->tid = new TableIsotopeDistribution();
-		ProNovoConfigSingleton->tid->initializeEverything(iNumPrecalcuatedResidues);
-		ProNovoConfigSingleton->tid->startPrecalculation();
-	}*/
-
 	// If everything goes fine return 0.
 	return true;
 
@@ -143,8 +181,7 @@ char ProNovoConfig::getSeparator() {
 #endif
 }
 
-bool ProNovoConfig::getAtomIsotopicComposition(char cAtom, vector<double> & vdAtomicMass,
-		vector<double> & vdComposition) {
+bool ProNovoConfig::getAtomIsotopicComposition(char cAtom, vector<double> & vdAtomicMass, vector<double> & vdComposition) {
 
 	// clear the input vectors
 	vdAtomicMass.clear();
@@ -252,11 +289,6 @@ bool ProNovoConfig::getParameters() {
 		issStream >> iMaxPTMcount;
 	}
 
-	/*getConfigValue("[Peptide_Identification]Max_Resides_Count", sTemp);
-	 issStream.clear();
-	 issStream.str(sTemp);
-	 issStream >> iNumPrecalcuatedResidues;*/
-
 	getConfigValue("[Peptide_Identification]Mass_Tolerance_Parent_Ion", sTemp);
 	issStream.clear();
 	issStream.str(sTemp);
@@ -278,9 +310,6 @@ bool ProNovoConfig::getParameters() {
 		issField >> iWindow;
 		viParentMassWindows.push_back(iWindow);
 	}
-
-	getConfigValue("[Protein_Identification]Decoy_Prefix", sTemp);
-	sDecoyPrefix = sTemp;
 
 	// read Peptide_Length
 	getConfigValue("[Peptide_Identification]Minimum_Peptide_Length", sTemp);
@@ -329,8 +358,7 @@ bool ProNovoConfig::getParameters() {
 	string sResidueElementalComposition;
 	getResidueElementalComposition(sResidueElementalComposition);
 	configIsotopologue.setupIsotopologue(sResidueElementalComposition, sElementList);
-	configIsotopologue.getSingleResidueMostAbundantMasses(vsSingleResidueNames, vdSingleResidueMasses, dTerminusMassN,
-			dTerminusMassC);
+	configIsotopologue.getSingleResidueMostAbundantMasses(vsSingleResidueNames, vdSingleResidueMasses, dTerminusMassN, dTerminusMassC);
 
 	return true;
 }
@@ -458,8 +486,8 @@ bool ProNovoConfig::getConfigMasterKeyValue(string sMasterKey, map<string, strin
 	for (iter = mapConfigKeyValues.begin(); iter != mapConfigKeyValues.end(); iter++) {
 		//cout << (*it).first << " => " << (*it).second << endl;
 		sCurrentKey = (*iter).first;
-		if ((sCurrentKey.substr(0, iKeyLength + 1) == (sMasterKey + "{"))
-				&& (sCurrentKey.at(sCurrentKey.length() - 1) == '}') && (sCurrentKey.length() > (iKeyLength + 2))) {
+		if ((sCurrentKey.substr(0, iKeyLength + 1) == (sMasterKey + "{")) && (sCurrentKey.at(sCurrentKey.length() - 1) == '}')
+				&& (sCurrentKey.length() > (iKeyLength + 2))) {
 			sCurrentCoreKey = sCurrentKey.substr(iKeyLength + 1, sCurrentKey.length() - iKeyLength - 2);
 			mapKeyValueSet.insert(pair<string, string>(sCurrentCoreKey, (*iter).second));
 		}
@@ -498,8 +526,7 @@ bool ProNovoConfig::parseConfigLine(const std::string& sLine) {
 					//cout<<"beg!"<<sSectionName+sKey<<"!"<<sValue<<"!end"<<endl;
 					ret = mapConfigKeyValues.insert(pair<string, string>(sSectionName + sKey, sValue));
 					if (ret.second == false) {
-						cerr << "Key " << sSectionName + sKey << " has existed with value of " << ret.first->second
-								<< endl;
+						cerr << "Key " << sSectionName + sKey << " has existed with value of " << ret.first->second << endl;
 						bReVal = false;
 					}
 				}

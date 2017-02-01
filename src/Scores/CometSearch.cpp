@@ -34,17 +34,20 @@ bool CometSearch::Preprocess(struct Query *pScoring, MS2Scan * mstSpectrum, doub
 	int i;
 	int x;
 	int y;
+	// struct msdata pTmpSpData[NUM_SP_IONS];
 	struct PreprocessStruct pPre;
-	double dInverseBinWidth = 0, iMinus17 = 0, iMinus18 = 0;
+	double dInverseBinWidth = 0, iMinus17 = 0, iMinus18 = 0; // dFragmentBinSize = 0;
 	//mstSpectrum->isMS2HighRes = false;
 	if (mstSpectrum->isMS2HighRes) {
 		dInverseBinWidth = ProNovoConfig::dHighResInverseBinWidth;
 		iMinus17 = ProNovoConfig::precalcMasses.iMinus17HighRes;
 		iMinus18 = ProNovoConfig::precalcMasses.iMinus18HighRes;
+		// dFragmentBinSize = ProNovoConfig::dHighResFragmentBinSize;
 	} else {
 		dInverseBinWidth = ProNovoConfig::dLowResInverseBinWidth;
 		iMinus17 = ProNovoConfig::precalcMasses.iMinus17LowRes;
 		iMinus18 = ProNovoConfig::precalcMasses.iMinus18LowRes;
+		// dFragmentBinSize = ProNovoConfig::dLowResFragmentBinSize;
 	}
 	pPre.iHighestIon = 0;
 	pPre.dHighestIntensity = 0;
@@ -987,7 +990,8 @@ bool CometSearch::ScorePeptides(string * currentPeptide, bool *pbDuplFragment, d
 	char currentPTM = 0;
 	size_t iPeptideLength = 0;
 	size_t iPos = 0;
-	map<char, double>::iterator iterResidueMonoMass;
+	// map<char, double>::iterator iterResidueMonoMass;
+	double iterResidueMonoMass;
 	for (i = 0; i <= k; ++i) {
 		if (isalpha(sSequence->at(i))) {
 			iPeptideLength = iPeptideLength + 1;
@@ -1020,7 +1024,7 @@ bool CometSearch::ScorePeptides(string * currentPeptide, bool *pbDuplFragment, d
 			exit(1);
 			return false;
 		}
-		dBion += iterResidueMonoMass->second;
+		dBion += iterResidueMonoMass;
 		j++;
 	}
 	if (sSequence->at(k) == ']') {
@@ -1033,7 +1037,7 @@ bool CometSearch::ScorePeptides(string * currentPeptide, bool *pbDuplFragment, d
 			exit(1);
 			return false;
 		}
-		dYion += iterResidueMonoMass->second;
+		dYion += iterResidueMonoMass;
 		k--;
 		if (sSequence->at(k) != ']') {
 			cerr << "ERROR: (second) Last character in a peptide sequence must be ]." << endl;
@@ -1056,7 +1060,7 @@ bool CometSearch::ScorePeptides(string * currentPeptide, bool *pbDuplFragment, d
 			exit(1);
 			return false;
 		}
-		dBion += iterResidueMonoMass->second;
+		dBion += iterResidueMonoMass;
 		j++;
 		if (!isalpha(sSequence->at(j))) {
 			currentPTM = sSequence->at(j);
@@ -1066,7 +1070,7 @@ bool CometSearch::ScorePeptides(string * currentPeptide, bool *pbDuplFragment, d
 				exit(1);
 				return false;
 			}
-			dBion += iterResidueMonoMass->second;
+			dBion += iterResidueMonoMass;
 			j++;
 		}
 		//seg debug b
@@ -1085,7 +1089,7 @@ bool CometSearch::ScorePeptides(string * currentPeptide, bool *pbDuplFragment, d
 				exit(1);
 				return false;
 			}
-			dYion += iterResidueMonoMass->second;
+			dYion += iterResidueMonoMass;
 			k--;
 		}
 		if (!isalpha(sSequence->at(k))) {
@@ -1100,7 +1104,7 @@ bool CometSearch::ScorePeptides(string * currentPeptide, bool *pbDuplFragment, d
 			exit(1);
 			return false;
 		}
-		dYion += iterResidueMonoMass->second;
+		dYion += iterResidueMonoMass;
 		k--;
 		//seg debug b
 		if ((int) iPos >= iMAX_PEPTIDE_LEN) {
@@ -1128,8 +1132,8 @@ bool CometSearch::ScorePeptides(string * currentPeptide, bool *pbDuplFragment, d
 	}
 	if (bxx) {
 		cout << (*sSequence) << endl;
-		cout << ProNovoConfig::pdAAMassFragment.find('o')->second << endl;
-		cout << ProNovoConfig::pdAAMassFragment.find('h')->second << endl;
+		cout << ProNovoConfig::pdAAMassFragment.find('o') << endl;
+		cout << ProNovoConfig::pdAAMassFragment.find('h') << endl;
 		dYion = ProNovoConfig::precalcMasses.dCtermOH2Proton;
 		cout << dYion << endl;
 		k = sSequence->length() - 1;
@@ -1143,8 +1147,8 @@ bool CometSearch::ScorePeptides(string * currentPeptide, bool *pbDuplFragment, d
 				cerr << "ERROR: cannot find this PTM in the config file " << currentPTM << endl;
 				return false;
 			}
-			dYion += iterResidueMonoMass->second;
-			cout << ".. " << iterResidueMonoMass->second << endl;
+			dYion += iterResidueMonoMass;
+			cout << ".. " << iterResidueMonoMass << endl;
 			cout << ", " << dYion << endl;
 			k--;
 			if (sSequence->at(k) != ']') {
@@ -1163,8 +1167,8 @@ bool CometSearch::ScorePeptides(string * currentPeptide, bool *pbDuplFragment, d
 					cerr << "ERROR: cannot find this PTM in the config file " << currentPTM << endl;
 					return false;
 				}
-				dYion += iterResidueMonoMass->second;
-				cout << ".. " << iterResidueMonoMass->second << endl;
+				dYion += iterResidueMonoMass;
+				cout << ".. " << iterResidueMonoMass << endl;
 				k--;
 			}
 			if (!isalpha(sSequence->at(k))) {
@@ -1178,8 +1182,8 @@ bool CometSearch::ScorePeptides(string * currentPeptide, bool *pbDuplFragment, d
 				cerr << "ERROR: cannot find this PTM in the config file" << currentPTM << endl;
 				return false;
 			}
-			dYion += iterResidueMonoMass->second;
-			cout << ".. " << iterResidueMonoMass->second << endl;
+			dYion += iterResidueMonoMass;
+			cout << ".. " << iterResidueMonoMass << endl;
 			k--;
 			cout << i << ", " << dYion << endl;
 		}

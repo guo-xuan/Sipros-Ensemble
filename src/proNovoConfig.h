@@ -11,49 +11,14 @@
 #include <math.h>
 #include <stdio.h>
 #include "isotopologue.h"
-#include "directoryStructure.h"
+#include <limits>
 #include "omp.h"
 
 using namespace std;
 
-//define CLOCKSTART clock_t begin = clock(); cout<<"Currently in file: " << __FILE__ << " Function: "<< __FUNCTION__ << "()" << endl;
-//define CLOCKSTOP clock_t end = clock(); cout << "Function " << __FUNCTION__ << "() finished in " << double(end - begin) / CLOCKS_PER_SEC<< " Seconds." << endl << endl;
-#define CLOCKSTART double begin = omp_get_wtime(); cout<<"Currently in file: " << __FILE__ << " Function: "<< __FUNCTION__ << "()" << endl;
-#define CLOCKSTOP double end = omp_get_wtime(); cout << "Function " << __FUNCTION__ << "() finished in " << double(end - begin) << " Seconds." << endl << endl;
-
-#define CURTIME time_t curr=time(0);cout << "current time is: " << ctime(&curr) <<endl;
-#define CURMEM INT64 mem = checkMemoryUsage();cout<<"Memory used: " << mem <<  " MB."<< endl;
-
-// To keep time information of functions.
-#define MEMORYSTART INT64 mem_start = checkMemoryUsage(); cout<<"Currently in file: " << __FILE__ << " Function: "<< __FUNCTION__ << "()" << endl;
-#define MEMORYSTOP INT64 mem_end = checkMemoryUsage(); cout << "Function " << __FUNCTION__ << "() finished. " << "Memory used: " << mem_end << " - " <<  mem_start << " = "<< mem_end - mem_start << " MB."<< endl;
-
-// Get the memory usage with a Linux kernel.
-inline unsigned int checkMemoryUsage() {
-	// get KB memory into count
-	unsigned int count = 0;
-
-#if defined(__linux__)
-	ifstream f("/proc/self/status"); // read the linux file
-	while (!f.eof()) {
-		string key;
-		f >> key;
-		if (key == "VmData:") {     // size of data
-			f >> count;
-			break;
-		}
-
-	}
-	f.close();
-#endif
-
-	// return MBs memory (size of data)
-	return (count / 1024);
-}
-
 class Isotopologue;
 
-//--------------Comet------------
+//--------------Comet Begin------------
 #define PROTON_MASS 1.00727646688
 #define NUM_ION_SERIES 9
 #define NUM_SP_IONS 200 // num ions for preliminary scoring
@@ -112,6 +77,7 @@ struct IonInfo {
 		piSelectedIonSeries[1] = 4;
 	}
 };
+
 struct PrecalcMasses {
 	double dNtermProton;          // dAddNterminusPeptide + PROTON_MASS
 	double dCtermOH2Proton;       // dAddCterminusPeptide + dOH2fragment + PROTON_MASS
@@ -126,8 +92,30 @@ struct PrecalcMasses {
 	double dNH2;
 	double dCOminusH2;
 };
-//--------------Comet End------------
 
+#define AminoAcidMassesSize 256
+// store the mass for different amino acids
+class AminoAcidMasses{
+public:
+	static double dNULL;
+	static double dERROR;
+	double vdMasses[AminoAcidMassesSize];
+
+	// construct function
+	AminoAcidMasses();
+	// clear vdMasses
+	void clear();
+	// reach an empty spot
+	double end();
+	// return the mass for the given amino acid
+	double find(char _cAminoAcid);
+
+	double operator[](char _cAminoAcid) const;
+
+	double & operator[](char _cAminoAcid);
+
+};
+//--------------Comet End------------
 class ProNovoConfig {
 public:
 	/*
@@ -139,8 +127,8 @@ public:
 
 	static bool setWorkingDirectory(const string & sDirectoryName);
 
-	static vector<pair<string, string> > * getNeutralLossList() {
-		return &vpNeutralLossList;
+	static vector<pair<string, string> > getNeutralLossList() {
+		return vpNeutralLossList;
 	}
 
 	static string getWorkingDirectory() {
@@ -192,14 +180,8 @@ public:
 		return viParentMassWindows;
 	}
 
-	static bool getPeptideMassWindows(double dPeptideMass, vector<pair<double, double> > & vpPeptideMassWindows);
-
-	static bool isPrecalculationEnabled() {
-		if (iMaxPTMcount == 0 && iNumPrecalcuatedResidues > 1) {
-			return true;
-		}
-		return false;
-	}
+	static bool getPeptideMassWindows(double dPeptideMass,
+			vector<pair<double, double> > & vpPeptideMassWindows);
 
 	// retrieve <Max_PTM_Count>
 	static int getMaxPTMcount() {
@@ -224,7 +206,8 @@ public:
 
 	// retrieve <ATOM_ISOTOPIC_COMPOSITION>
 	// the input character is the atom name CHONPS
-	static bool getAtomIsotopicComposition(char cAtom, vector<double> & vdAtomicMass, vector<double> & vdComposition);
+	static bool getAtomIsotopicComposition(char cAtom,
+			vector<double> & vdAtomicMass, vector<double> & vdComposition);
 
 	static Isotopologue configIsotopologue;
 	static vector<string> vsSingleResidueNames;
@@ -253,7 +236,8 @@ public:
 		return exp(-a * a / 2) / (SQRT2PI * sd);
 	}
 
-	static double pnorm(double dMean, double dStandardDeviation, double dRandomVariable) {
+	static double pnorm(double dMean, double dStandardDeviation,
+			double dRandomVariable) {
 		double dZScore = (dRandomVariable - dMean) / dStandardDeviation;
 		double dProbability = 0.5 * erfc(-dZScore / sqrt(2.0));
 		return dProbability;
@@ -262,7 +246,9 @@ public:
 	static double scoreError(double dMassError) {
 
 		//	pnorm function
-		return (1.0 - pnorm(0, (getMassAccuracyFragmentIon() / 2), fabs(dMassError))) * 2.0;
+		return (1.0
+				- pnorm(0, (getMassAccuracyFragmentIon() / 2), fabs(dMassError)))
+				* 2.0;
 
 		//	dnorm function
 		//	return  ( dnorm( 0, (getMassAccuracyFragmentIon() / 2.0), fabs(dMassError) ) ) /
@@ -273,21 +259,18 @@ public:
 
 	}
 
-	static bool isSnpFeatureOn() {
-		return bSnpFeature;
-	}
-
 	//---------------Comet Begin---------------------
 	static bool bXcorrEnable;
 	static Options options;
 	static double dInverseBinWidth; // this is used in BIN() many times so use inverse binWidth to do multiply vs. divide
-	static double dOneMinusBinOffset;  // this is used in BIN() many times so calculate once
+	static double dOneMinusBinOffset; // this is used in BIN() many times so calculate once
 	static IonInfo ionInformation;
 	static int iXcorrProcessingOffset;
 	static PrecalcMasses precalcMasses;
 	static double dMaxMS2ScanMass;
 	static double dMaxPeptideMass;
-	static map<char, double> pdAAMassFragment;
+	// static map<char, double> pdAAMassFragment;
+	static AminoAcidMasses pdAAMassFragment;
 	static double dHighResFragmentBinSize;
 	static double dHighResFragmentBinStartOffset;
 	static double dLowResFragmentBinSize;
@@ -307,6 +290,8 @@ public:
 	static double ticCutoffPercentage;
 	static int MaxPeakCount;
 	static int MinMatchedFragments;
+	static double minObservedMz;
+	static double maxObservedMz;
 	//---------------Myrimatch End-------------------
 
 	//---------------Sipros Score Begin--------------
@@ -314,12 +299,12 @@ public:
 	static bool bLessIsotopicDistribution;
 	static bool bMultiScores;
 	static string sDecoyPrefix;
-	static size_t TOP_N; // the top n PSM for calculation of other two scores
-	static double Log_TOP_N_Output; // the logarithm value of the top n PSM written in the output
+	static int INTTOPKEEP; // the top n PSM for calculation of other two scores
 	static int iRank;
 	//---------------Sipros Score End----------------
 	static string sCleavageAfterResidues;
 	static string sCleavageBeforeResidues;
+	static int num_threads;
 
 protected:
 	ProNovoConfig();
@@ -333,13 +318,12 @@ private:
 
 	string sSectionName;
 
-	static int iNumPrecalcuatedResidues;
-
 	// the working directory
 	static string sWorkingDirectory;
 
 	// replace delimitor in a line
-	static void replaceDelimitor(string & sLine, char cOldDelimitor, char cNewDelimitor);
+	static void replaceDelimitor(string & sLine, char cOldDelimitor,
+			char cNewDelimitor);
 
 	// variables from the PEPTIDE_IDENTIFICATION element
 	static string sFASTAFilename;
@@ -368,11 +352,10 @@ private:
 
 	static string sElementList;
 
-	static bool bSnpFeature;
-
 	// this is used to setup configIsotopologue
 	// retrieve Elemental composition of amino acid residues
-	static bool getResidueElementalComposition(string & sResidueElementalComposition);
+	static bool getResidueElementalComposition(
+			string & sResidueElementalComposition);
 
 	static bool calculatePeptideMassWindowOffset();
 
@@ -394,7 +377,8 @@ private:
 
 	// get a set of key-value pairs, given a master key
 	// return false, if can't find the key in the mapConfigKeyValues
-	static bool getConfigMasterKeyValue(string sMasterKey, map<string, string> & mapKeyValueSet);
+	static bool getConfigMasterKeyValue(string sMasterKey,
+			map<string, string> & mapKeyValueSet);
 
 	// new version based on cfg config files
 	bool getParameters();

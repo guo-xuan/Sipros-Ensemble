@@ -13,6 +13,7 @@ class MS2Scan;
 #include "../proNovoConfig.h"
 #include "../ms2scan.h"
 #include <ctype.h>
+#include <cstring>
 
 // Redefined how the bin offset is interpreted and applied.  The valid range for the offset is
 // now between 0.0 and 1.0 and scales to the binWidth.
