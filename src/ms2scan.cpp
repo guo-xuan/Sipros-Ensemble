@@ -12,6 +12,25 @@ MS2Scan::MS2Scan() {
 	pPeakList = NULL;
 	intenClassCounts = NULL;
 	sRTime = "0.0";
+	totalPeakBins = 0;
+	pQuery = NULL;
+	mzUpperBound = 0;
+	dParentMass = 0;
+	dMaxIntensity = 0;
+	mzLowerBound  = 0;
+	bSkip = false;
+	iNumPeptideAssigned = 0;
+	dSumIntensity = 0;
+	iScanId = 0;
+	iParentChargeState = 0;
+	bSetMS2Flag  = false;
+	isMS1HighRes = true;
+	dParentNeutralMass = 0;
+	dParentMZ = 0;
+	isMS2HighRes = true;
+	iMaxMZ = 0;
+	bin_res = 0;
+	iMinMZ = 0;
 }
 
 MS2Scan::~MS2Scan() {
@@ -901,6 +920,8 @@ void MS2Scan::preprocessMvh(multimap<double, double> * pIntenSortedPeakPreData) 
 	this->intenClassCounts = new vector<int>();
 	MVH::Preprocess(this, pIntenSortedPeakPreData);
 	this->pPeakList = new PeakList(peakData);
+	delete peakData;
+	peakData = NULL;
 }
 
 bool MS2Scan::findProductIon(const vector<double> & vdIonMass, const vector<double> & vdIonProb, const int & iCharge, double & dScoreWeight,
@@ -1573,7 +1594,7 @@ PeakList::PeakList(map<double, char> * _peakData) {
 	iHighestMass = (int) pPeaks[iPeakSize - 1];
 	iMassHubPairSizeMinusOne = (iHighestMass - iLowestMass);
 	iMassHubSize = (iHighestMass - iLowestMass + 1) * 2;
-	pMassHub = new int[iMassHubSize];
+	pMassHub = new short[iMassHubSize];
 	for (j = 0; j < iMassHubSize; ++j) {
 		pMassHub[j] = -1;
 	}

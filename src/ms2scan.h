@@ -91,7 +91,7 @@ public:
 	int iLowestMass;
 	// excluded
 	int iHighestMass;
-	int * pMassHub;
+	short * pMassHub;
 	double * pPeaks;
 	char * pClasses;
 	int iPeakSize;
