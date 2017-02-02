@@ -507,6 +507,7 @@ void MS2ScanVector::searchDatabase() {
 	}
 	this->postMvh();
 	PeptideUnit::iNumScores = 1;
+	cout << endl << "Search done." << endl;
 }
 
 void MS2ScanVector::startProcessing() {

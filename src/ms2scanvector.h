@@ -85,6 +85,9 @@ public:
 	int num_max_threads;
 	void preMvh();
 	void postMvh();
+
+	// multiple input format support
+
 };
 
 #endif // MS2SCANVECTOR_H

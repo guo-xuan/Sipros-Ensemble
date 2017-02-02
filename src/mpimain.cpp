@@ -145,7 +145,7 @@ void handleScan(const string & sFT2filename, const string & sOutputDirectory, co
 	if (bScreenOutput) {
 		cout << "Reading MS2 scan file " << sFT2filename << endl;
 	}
-	if (!pMainMS2ScanVector->loadFile()) {
+	if (!pMainMS2ScanVector->loadFT2file()) {
 		cerr << "Error: Failed to load file: " << sFT2filename << endl;
 	} else {
 		// search all MS2 scans and write output to a file
