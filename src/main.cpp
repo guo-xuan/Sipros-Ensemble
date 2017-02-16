@@ -65,6 +65,9 @@ void initializeArguments(int argc, char **argv, vector<string> & vsFT2Filenames,
 			cout << "-o output directory. If not specified, it is the same as that of the input scan file," << endl;
 			cout << "-s silence all standard output." << endl;
 			exit(0);
+		} else if(vsArguments[i] == "-p"){
+			MVH::ProbabilityCutOff = atof(vsArguments[++i].c_str());
+			CometSearch::ProbabilityCutOff = MVH::ProbabilityCutOff;
 		} else {
 			cerr << "Unknown option " << vsArguments[i] << endl << endl;
 			exit(1);
@@ -97,7 +100,11 @@ void handleScan(const string & sFT2filename, const string & sOutputDirectory, co
 		cerr << "Error: Failed to load file: " << sFT2filename << endl;
 	else {
 		// search all MS2 scans and write output to a file
-		pMainMS2ScanVector->startProcessing();
+		// pMainMS2ScanVector->startProcessing();
+		// pMainMS2ScanVector->startProcessingXcorr();
+		// pMainMS2ScanVector->startProcessingMVHTask();
+		// pMainMS2ScanVector->startProcessingXcorrTask();
+		pMainMS2ScanVector->startProcessingXcorrTaskSIP();
 	}
 	delete pMainMS2ScanVector; //free memory of vpAllMS2Scans
 }
@@ -111,7 +118,7 @@ int main(int argc, char **argv) {
 	string sWorkingDirectory, sConfigFilename, sSingleWorkingFile, sOutputDirectory;
 	initializeArguments(argc, argv, vsFT2Filenames, sWorkingDirectory, sConfigFilename, sSingleWorkingFile, sOutputDirectory, bScreenOutput);
 	// Load config file
-	// omp_set_num_threads(1);
+	// omp_set_num_threads(2);
 	if (!ProNovoConfig::setFilename(sConfigFilename)) {
 		cerr << "Could not load config file " << sConfigFilename << endl;
 		exit(1);

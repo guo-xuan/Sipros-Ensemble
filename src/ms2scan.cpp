@@ -17,13 +17,13 @@ MS2Scan::MS2Scan() {
 	mzUpperBound = 0;
 	dParentMass = 0;
 	dMaxIntensity = 0;
-	mzLowerBound  = 0;
+	mzLowerBound = 0;
 	bSkip = false;
 	iNumPeptideAssigned = 0;
 	dSumIntensity = 0;
 	iScanId = 0;
 	iParentChargeState = 0;
-	bSetMS2Flag  = false;
+	bSetMS2Flag = false;
 	isMS1HighRes = true;
 	dParentNeutralMass = 0;
 	dParentMZ = 0;
@@ -48,6 +48,10 @@ MS2Scan::~MS2Scan() {
 
 	if (intenClassCounts != NULL) {
 		delete intenClassCounts;
+	}
+
+	if (pQuery != NULL) {
+		delete pQuery;
 	}
 }
 
@@ -611,6 +615,32 @@ void MS2Scan::saveScore(const double & dScore, const Peptide * currentPeptide, v
 	}
 }
 
+void MS2Scan::saveScoreSIP(const double & dScore, const Peptide * currentPeptide, vector<PeptideUnit *> & vpTopPeptides, vector<double> & vdAllScores,
+		string sScoreFunction) {
+	PeptideUnit * copyPeptide;
+
+	if (sScoreFunction == "WeightSum") {
+		inumberofWeightSumScore++;
+		dsumofWeightScore += dScore;
+		dsumofSquareWeightSumScore += dScore * dScore;
+	}
+
+	if ((int) vpTopPeptides.size() < TOP_N) {
+		copyPeptide = new PeptideUnit;
+		copyPeptide->setPeptideUnitInfo(currentPeptide, dScore, sScoreFunction);
+		copyPeptide->setIonMassProb(currentPeptide);
+		vpTopPeptides.push_back(copyPeptide);
+		sort(vpTopPeptides.begin(), vpTopPeptides.end(), GreaterScore);
+	} else if (dScore > vpTopPeptides.at(TOP_N - 1)->dScore) {
+		copyPeptide = new PeptideUnit;
+		copyPeptide->setPeptideUnitInfo(currentPeptide, dScore, sScoreFunction);
+		copyPeptide->setIonMassProb(currentPeptide);
+		delete vpTopPeptides.at(TOP_N - 1);
+		vpTopPeptides.at(TOP_N - 1) = copyPeptide;
+		sort(vpTopPeptides.begin(), vpTopPeptides.end(), GreaterScore);
+	}
+}
+
 bool MS2Scan::GreaterScore(PeptideUnit * p1, PeptideUnit * p2) {
 	return ((p1->dScore) > (p2->dScore));
 }
@@ -643,6 +673,23 @@ void MS2Scan::scorePeptidesMVH(vector<double> * sequenceIonMasses, vector<double
 	} else {
 		// cerr << "error scorePeptidesMVH" << endl;
 		// exit(1);
+	}
+	vpPeptides.clear();
+}
+
+void MS2Scan::scorePeptidesXcorr(bool *pbDuplFragment, double * _pdAAforward, double * _pdAAreverse, unsigned int *** _uiBinnedIonMasses, int test) {
+	int i = 0;
+	double dXcorr = 0;
+	for (i = 0; i < (int) vpPeptides.size(); i++) {
+		dXcorr = 0;
+		if (!mergePeptide(vpWeightSumTopPeptides, vpPeptides.at(i)->getPeptideSeq(), vpPeptides.at(i)->getProteinName())) {
+			if (CometSearch::ScorePeptides(&(vpPeptides.at(i)->sNeutralLossPeptide), pbDuplFragment, _pdAAforward, _pdAAreverse, this, _uiBinnedIonMasses,
+					dXcorr, test)) {
+				if (dXcorr > 0) {
+					saveScore(dXcorr, vpPeptides.at(i), vpWeightSumTopPeptides, vdWeightSumAllScores);
+				}
+			}
+		}
 	}
 	vpPeptides.clear();
 }
@@ -916,12 +963,28 @@ void MS2Scan::preprocess() {
 void MS2Scan::preprocessMvh(multimap<double, double> * pIntenSortedPeakPreData) {
 	sortPeakList();
 	// MVH
+	if (peakData != NULL) {
+		delete peakData;
+		peakData = NULL;
+	}
+	if (intenClassCounts != NULL) {
+		delete intenClassCounts;
+		intenClassCounts = NULL;
+	}
+	if (pPeakList != NULL) {
+		delete pPeakList;
+		pPeakList = NULL;
+	}
 	this->peakData = new map<double, char>();
 	this->intenClassCounts = new vector<int>();
 	MVH::Preprocess(this, pIntenSortedPeakPreData);
 	this->pPeakList = new PeakList(peakData);
 	delete peakData;
 	peakData = NULL;
+}
+
+void MS2Scan::preprocessXcorr() {
+
 }
 
 bool MS2Scan::findProductIon(const vector<double> & vdIonMass, const vector<double> & vdIonProb, const int & iCharge, double & dScoreWeight,
@@ -1315,26 +1378,47 @@ void MS2Scan::scoreFeatureCalculation() {
 	if (vpWeightSumTopPeptides.size() <= 0) {
 		return;
 	}
+	// if any score equals to zero, remove that peptide
+	for (int j = 0; j < (int) vpWeightSumTopPeptides.size(); j++) {
+		for (int i = 0; i < PeptideUnit::iNumScores; i++) {
+			if (vpWeightSumTopPeptides.at(j)->vdScores.at(i) == 0) {
+				delete vpWeightSumTopPeptides.at(j);
+				vpWeightSumTopPeptides.at(j) = NULL;
+				break;
+			}
+		}
+	}
+	vector<PeptideUnit *>::iterator i = vpWeightSumTopPeptides.begin();
+	while (i != vpWeightSumTopPeptides.end()) {
+		if ((*i) == NULL) {
+			i = vpWeightSumTopPeptides.erase(i);
+		} else {
+			++i;
+		}
+	}
+	if (vpWeightSumTopPeptides.size() <= 0) {
+		return;
+	}
+	// rank all peptide
 	for (int i = 0; i < PeptideUnit::iNumScores; i++) {
 		vp.clear();
-		for (int j = 0; j < (int)vpWeightSumTopPeptides.size(); j++) {
+		for (int j = 0; j < (int) vpWeightSumTopPeptides.size(); j++) {
 			vp.push_back(make_pair(vpWeightSumTopPeptides.at(j)->vdScores.at(i), j));
 		}
 		sort(vp.begin(), vp.end(), scoreSort);
 		dMax = vp.at(0).first;
 		if (vp.size() == 1) {
-			vpWeightSumTopPeptides.at(0)->vdRank.push_back(0);
+			vpWeightSumTopPeptides.at(0)->vdRank.push_back(1);
 
 		} else {
 			for (int j = 0; j < vpWeightSumTopPeptides.size(); j++) {
-				vpWeightSumTopPeptides.at(vp.at(j).second)->vdRank.push_back(j);
+				vpWeightSumTopPeptides.at(vp.at(j).second)->vdRank.push_back(j + 1);
 			}
 		}
 	}
 }
 
-double MS2Scan::scoreWeightSum(string * currentPeptide, vector<double> * pvdYionMasses,
-		vector<double> * pvdBionMasses) {
+double MS2Scan::scoreWeightSum(string * currentPeptide, vector<double> * pvdYionMasses, vector<double> * pvdBionMasses) {
 	double dScore = 0;
 	// calculate score
 	vector<bool> vbFragmentZ2; //true: y side gets the +2; false: b ion gets +2, only calculated for +3 peptides
@@ -1351,13 +1435,11 @@ double MS2Scan::scoreWeightSum(string * currentPeptide, vector<double> * pvdYion
 		dBweight = 0;
 		dExpectedMZ = (*pvdYionMasses)[n] + ProNovoConfig::getProtonMass();
 		if (searchMZ2D(dExpectedMZ, iIndex4MostAbundunt)) {
-			dYweight = ProNovoConfig::scoreError(fabs(vdpreprocessedMZ[iIndex4MostAbundunt] - dExpectedMZ))
-					+ vdpreprocessedIntensity[iIndex4MostAbundunt];
+			dYweight = ProNovoConfig::scoreError(fabs(vdpreprocessedMZ[iIndex4MostAbundunt] - dExpectedMZ)) + vdpreprocessedIntensity[iIndex4MostAbundunt];
 		}
 		dExpectedMZ = (*pvdBionMasses)[iNumFragments - n - 1] + ProNovoConfig::getProtonMass();
 		if (searchMZ2D(dExpectedMZ, iIndex4MostAbundunt)) {
-			dBweight = ProNovoConfig::scoreError(fabs(vdpreprocessedMZ[iIndex4MostAbundunt] - dExpectedMZ))
-					+ vdpreprocessedIntensity[iIndex4MostAbundunt];
+			dBweight = ProNovoConfig::scoreError(fabs(vdpreprocessedMZ[iIndex4MostAbundunt] - dExpectedMZ)) + vdpreprocessedIntensity[iIndex4MostAbundunt];
 		}
 		if (iParentChargeState >= 3) {
 			if (vbFragmentZ2[n]) {
@@ -1425,9 +1507,8 @@ double MS2Scan::scoreWeightSum(string * currentPeptide, vector<double> * pvdYion
 	return dScore;
 }
 
-double MS2Scan::scoreWeightSumHighMS2(string * currentPeptide, vector<vector<double> > * vvdYionMass,
-		vector<vector<double> > * vvdYionProb, vector<vector<double> > * vvdBionMass,
-		vector<vector<double> > * vvdBionProb) {
+double MS2Scan::scoreWeightSumHighMS2(string * currentPeptide, vector<vector<double> > * vvdYionMass, vector<vector<double> > * vvdYionProb,
+		vector<vector<double> > * vvdBionMass, vector<vector<double> > * vvdBionProb) {
 
 	double dScore = 0;
 	int iPeptideLength = 0;
@@ -1440,22 +1521,19 @@ double MS2Scan::scoreWeightSumHighMS2(string * currentPeptide, vector<vector<dou
 	int n; // Ion number starting from one
 	int z; // charge state
 	vector<ProductIon> vFoundIons;
-	double dScoreWeight = 0, dMZError = 1, dMostAbundantObservedMZ = 0, dAverageMZError = 0,
-			dBonus4ComplementaryFragmentObserved = 1.0;
+	double dScoreWeight = 0, dMZError = 1, dMostAbundantObservedMZ = 0, dAverageMZError = 0, dBonus4ComplementaryFragmentObserved = 1.0;
 
 	for (n = 0; n < (int) vvdYionMass->size(); ++n) {
 		for (z = 1; z <= iParentChargeState; ++z) {
 			ProductIon currentIon;
 			currentIon.setProductIon('y', n + 1, z);
 			if (ProNovoConfig::getSearchType() == "SIP") {
-				if (findProductIonSIP((*vvdYionMass)[n], (*vvdYionProb)[n], z, dScoreWeight, dMZError,
-						dMostAbundantObservedMZ, iMostAbundantPeakIndex)) {
+				if (findProductIonSIP((*vvdYionMass)[n], (*vvdYionProb)[n], z, dScoreWeight, dMZError, dMostAbundantObservedMZ, iMostAbundantPeakIndex)) {
 					currentIon.setObservedInfo(dMZError, dScoreWeight, dMostAbundantObservedMZ, iMostAbundantPeakIndex);
 					vFoundIons.push_back(currentIon);
 				}
 			} else {
-				if (findProductIon((*vvdYionMass)[n], (*vvdYionProb)[n], z, dScoreWeight, dMZError,
-						dMostAbundantObservedMZ, iMostAbundantPeakIndex)) {
+				if (findProductIon((*vvdYionMass)[n], (*vvdYionProb)[n], z, dScoreWeight, dMZError, dMostAbundantObservedMZ, iMostAbundantPeakIndex)) {
 					currentIon.setObservedInfo(dMZError, dScoreWeight, dMostAbundantObservedMZ, iMostAbundantPeakIndex);
 					vFoundIons.push_back(currentIon);
 				}
@@ -1468,14 +1546,12 @@ double MS2Scan::scoreWeightSumHighMS2(string * currentPeptide, vector<vector<dou
 			ProductIon currentIon;
 			currentIon.setProductIon('b', n + 1, z);
 			if (ProNovoConfig::getSearchType() == "SIP") {
-				if (findProductIonSIP((*vvdBionMass)[n], (*vvdBionProb)[n], z, dScoreWeight, dMZError,
-						dMostAbundantObservedMZ, iMostAbundantPeakIndex)) {
+				if (findProductIonSIP((*vvdBionMass)[n], (*vvdBionProb)[n], z, dScoreWeight, dMZError, dMostAbundantObservedMZ, iMostAbundantPeakIndex)) {
 					currentIon.setObservedInfo(dMZError, dScoreWeight, dMostAbundantObservedMZ, iMostAbundantPeakIndex);
 					vFoundIons.push_back(currentIon);
 				}
 			} else {
-				if (findProductIon((*vvdBionMass)[n], (*vvdBionProb)[n], z, dScoreWeight, dMZError,
-						dMostAbundantObservedMZ, iMostAbundantPeakIndex)) {
+				if (findProductIon((*vvdBionMass)[n], (*vvdBionProb)[n], z, dScoreWeight, dMZError, dMostAbundantObservedMZ, iMostAbundantPeakIndex)) {
 					currentIon.setObservedInfo(dMZError, dScoreWeight, dMostAbundantObservedMZ, iMostAbundantPeakIndex);
 					vFoundIons.push_back(currentIon);
 				}
@@ -1510,11 +1586,10 @@ double MS2Scan::scoreWeightSumHighMS2(string * currentPeptide, vector<vector<dou
 			dBonus4ComplementaryFragmentObserved = 1.0;
 		}
 		if (ProNovoConfig::getSearchType() == "SIP") {
-			dScore += ProNovoConfig::scoreError(fabs(vFoundIons[i].getMZError() - dAverageMZError))
-					* vFoundIons[i].getScoreWeight() * dBonus4ComplementaryFragmentObserved;
-		} else {	// no mass error calibration
-			dScore += ProNovoConfig::scoreError(fabs(vFoundIons[i].getMZError())) * vFoundIons[i].getScoreWeight()
+			dScore += ProNovoConfig::scoreError(fabs(vFoundIons[i].getMZError() - dAverageMZError)) * vFoundIons[i].getScoreWeight()
 					* dBonus4ComplementaryFragmentObserved;
+		} else {	// no mass error calibration
+			dScore += ProNovoConfig::scoreError(fabs(vFoundIons[i].getMZError())) * vFoundIons[i].getScoreWeight() * dBonus4ComplementaryFragmentObserved;
 		}
 	}
 	return dScore;
@@ -1530,6 +1605,7 @@ ProductIon::ProductIon() {
 	dMassError = 0;
 	dScoreWeight = 1.0;
 	bComplementaryFragmentObserved = false;
+	iMostAbundantPeakIndex = 0;
 }
 
 ProductIon::~ProductIon() {
@@ -1578,10 +1654,23 @@ void PeptideUnit::setPeptideUnitInfo(const Peptide* currentPeptide, const double
 	sPeptideForScoring = currentPeptide->getPeptideForScoring();
 }
 
+void PeptideUnit::setIonMassProb(const Peptide * currentPeptide) {
+	this->vvdBionMass = currentPeptide->vvdBionMass;
+	this->vvdBionProb = currentPeptide->vvdBionProb;
+	this->vvdYionMass = currentPeptide->vvdYionMass;
+	this->vvdYionProb = currentPeptide->vvdYionProb;
+}
+
 char PeakList::iNULL = 255;
 
 PeakList::PeakList(map<double, char> * _peakData) {
+	pMassHub = NULL;
+	pPeaks = NULL;
+	pClasses = NULL;
 	iPeakSize = _peakData->size();
+	if (iPeakSize == 0) {
+		return;
+	}
 	pPeaks = new double[iPeakSize];
 	pClasses = new char[iPeakSize];
 	int j = 0, k = 0;
@@ -1626,9 +1715,18 @@ PeakList::PeakList(map<double, char> * _peakData) {
 }
 
 PeakList::~PeakList() {
-	delete[] pMassHub;
-	delete[] pPeaks;
-	delete[] pClasses;
+	if (pMassHub != NULL) {
+		delete[] pMassHub;
+		pMassHub = NULL;
+	}
+	if (pPeaks != NULL) {
+		delete[] pPeaks;
+		pPeaks = NULL;
+	}
+	if (pClasses != NULL) {
+		delete[] pClasses;
+		pClasses = NULL;
+	}
 }
 
 char PeakList::end() {
@@ -1636,6 +1734,9 @@ char PeakList::end() {
 }
 
 char PeakList::findNear(double mz, double tolerance) {
+	if (iPeakSize == 0) {
+		return iNULL;
+	}
 	double dMin = 1000000, dDiff;
 	int iMzU, iMzL, i, j;
 	char iClass = iNULL;

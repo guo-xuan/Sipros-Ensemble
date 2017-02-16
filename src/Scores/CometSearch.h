@@ -115,8 +115,7 @@ struct Query {
 		}
 
 		if (ProNovoConfig::ionInformation.bUseNeutralLoss
-				&& (ProNovoConfig::ionInformation.iIonVal[ION_SERIES_A]
-						|| ProNovoConfig::ionInformation.iIonVal[ION_SERIES_B]
+				&& (ProNovoConfig::ionInformation.iIonVal[ION_SERIES_A] || ProNovoConfig::ionInformation.iIonVal[ION_SERIES_B]
 						|| ProNovoConfig::ionInformation.iIonVal[ION_SERIES_Y])) {
 			if (ppfSparseFastXcorrDataNL != NULL) {
 				for (i = 0; i < iFastXcorrDataNL; i++) {
@@ -144,17 +143,16 @@ public:
 	static int iMaxPercusorCharge;
 	static int iDimesion2;
 	static int iMAX_PEPTIDE_LEN;
+	// for SIP mode, only larger than this cutoff, peak will be considered
+	static double ProbabilityCutOff;
 
 	CometSearch();
 	~CometSearch();
 
-	static bool Preprocess(struct Query *pScoring, MS2Scan * mstSpectrum, double *pdTmpRawData,
-			double *pdTmpFastXcorrData, double *pdTmpCorrelationData, double *pdSmoothedSpectrum,
-			double *pdTmpPeakExtracted);
-	static bool LoadIons(struct Query *pScoring, double *pdTmpRawData, MS2Scan * mstSpectrum,
-			struct PreprocessStruct *pPre);
-	static void MakeCorrData(double *pdTmpRawData, double *pdTmpCorrelationData, struct Query *pScoring,
-			struct PreprocessStruct *pPre);
+	static bool Preprocess(struct Query *pScoring, MS2Scan * mstSpectrum, double *pdTmpRawData, double *pdTmpFastXcorrData, double *pdTmpCorrelationData,
+			double *pdSmoothedSpectrum, double *pdTmpPeakExtracted);
+	static bool LoadIons(struct Query *pScoring, double *pdTmpRawData, MS2Scan * mstSpectrum, struct PreprocessStruct *pPre);
+	static void MakeCorrData(double *pdTmpRawData, double *pdTmpCorrelationData, struct Query *pScoring, struct PreprocessStruct *pPre);
 	static bool Smooth(double *data, int iArraySize, double *pdSmoothedSpectrum);
 	static bool PeakExtract(double *data, int iArraySize, double *pdTmpPeakExtracted);
 	static void GetTopIons(double *pdTmpRawData, struct msdata *pTmpSpData, int iArraySize);
@@ -163,16 +161,16 @@ public:
 	static void print(struct Query *pScoring);
 
 	/*static bool ScorePeptides(Peptide * currentPeptide, bool *pbDuplFragment, double* _pdAAforward,
-			double * _pdAAreverse, MS2Scan * mstSpectrum, unsigned int *** _uiBinnedIonMasses, double & dXcorr,
-			int test);*/
-	static bool ScorePeptides(string * currentPeptide, bool *pbDuplFragment, double* _pdAAforward,
-			double * _pdAAreverse, MS2Scan * mstSpectrum, unsigned int *** _uiBinnedIonMasses, double & dXcorr,
-			int test);
-	static double GetFragmentIonMass(int iWhichIonSeries, int i, int ctCharge, double *_pdAAforward,
-			double *_pdAAreverse);
+	 double * _pdAAreverse, MS2Scan * mstSpectrum, unsigned int *** _uiBinnedIonMasses, double & dXcorr,
+	 int test);*/
+	static bool ScorePeptides(string * currentPeptide, bool *pbDuplFragment, double* _pdAAforward, double * _pdAAreverse, MS2Scan * mstSpectrum,
+			unsigned int *** _uiBinnedIonMasses, double & dXcorr, int test);
+	static bool ScorePeptidesSIP(vector<vector<double> > & vvdYionMass, vector<vector<double> > & vvdYionProb, vector<vector<double> > & vvdBionMass,
+			vector<vector<double> > & vvdBionProb, MS2Scan * mstSpectrum, vector<bool> & pbDuplFragment, vector<double> & vdBinnedIonMasses,
+			vector<int> & vdBin, double & dXcorr);
+	static double GetFragmentIonMass(int iWhichIonSeries, int i, int ctCharge, double *_pdAAforward, double *_pdAAreverse);
 
-	static bool CalculateSP(double & fScoreSp, double* _pdAAforward, double * _pdAAreverse, MS2Scan * mstSpectrum,
-			int iLenPeptide);
+	static bool CalculateSP(double & fScoreSp, double* _pdAAforward, double * _pdAAreverse, MS2Scan * mstSpectrum, int iLenPeptide);
 	static double FindSpScore(Query *pQuery, int bin);
 };
 

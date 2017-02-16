@@ -73,9 +73,14 @@ public:
 	static bitset<FragmentTypes_Size> fragmentTypes;
 	static bool bUseSmartPlusThreeModel;
 	static lnFactorialTable * lnTable;
+	// for SIP mode, only larger than this cutoff, peak will be considered
+	static double ProbabilityCutOff;
 
 	static bool CalculateSequenceIons(string & currentPeptide, int maxIonCharge, bool useSmartPlusThreeModel, vector<double>* sequenceIonMasses,
 			vector<double> * _pdAAforward, vector<double> * _pdAAreverse, vector<char> * seq);
+	static bool CalculateSequenceIonsSIP(string & currentPeptide, int maxIonCharge, bool useSmartPlusThreeModel, vector<double>* sequenceIonMasses,
+			vector<vector<double> > & vvdYionMass, vector<vector<double> > & vvdYionProb, vector<vector<double> > & vvdBionMass,
+			vector<vector<double> > & vvdBionProb, vector<char> * seq);
 	static bool destroyLnTable();
 	static multimap<double, char>::iterator findNear(map<double, char> * peakData, double mz, double tolerance);
 	static bool initialLnTable(int maxPeakBins);
@@ -83,6 +88,9 @@ public:
 	static bool Preprocess(MS2Scan * Spectrum, multimap<double, double> * IntenSortedPeakPreData);
 	static bool ScoreSequenceVsSpectrum(string & currentPeptide, MS2Scan * Spectrum, vector<double>* sequenceIonMasses, vector<double> * _pdAAforward,
 			vector<double> * _pdAAreverse, double & dMvh, vector<char> * seq);
+	static bool ScoreSequenceVsSpectrumSIP(string & currentPeptide, MS2Scan * Spectrum, vector<double>* sequenceIonMasses,
+			vector<vector<double> > & vvdYionMass, vector<vector<double> > & vvdYionProb, vector<vector<double> > & vvdBionMass,
+			vector<vector<double> > & vvdBionProb, double & dMvh, vector<char> * seq);
 };
 
 #endif /* SCORES_MVH_H_ */

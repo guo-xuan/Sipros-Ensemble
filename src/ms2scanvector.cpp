@@ -11,6 +11,8 @@ MS2ScanVector::MS2ScanVector(const string & sFT2FilenameInput, const string & sO
 	this->bScreenOutput = bScreenOutput;
 	for (n = 0; n < vsSingleResidueNames.size(); ++n)
 		mapResidueMass[vsSingleResidueNames[n][0]] = vdSingleResidueMasses[n];
+
+	iOpenMPTaskNum = 0;
 }
 
 MS2ScanVector::~MS2ScanVector() {
@@ -290,6 +292,56 @@ void MS2ScanVector::preProcessAllMS2() {
 	}
 }
 
+void MS2ScanVector::preProcessAllMS2Xcorr() {
+	int iScanSize;
+	iScanSize = (int) vpAllMS2Scans.size();
+	if (bScreenOutput)
+		cout << "Preprocessing " << vpAllMS2Scans.size() << " scans " << endl;
+
+	//MH: Must be equal to largest possible array
+	int iArraySizePreprocess = (int) ((ProNovoConfig::dMaxMS2ScanMass + 3 + 2.0) * ProNovoConfig::dHighResInverseBinWidth);
+	CometSearch::iArraySizePreprocess = iArraySizePreprocess;
+	CometSearch::iDimesion2 = 9;
+	CometSearch::iMAX_PEPTIDE_LEN = MAX_PEPTIDE_LEN;
+	CometSearch::iMaxPercusorCharge = ProNovoConfig::iMaxPercusorCharge + 1;
+
+	vector<double *> vpdTmpRawData;
+	vector<double *> vpdTmpFastXcorrData;
+	vector<double *> vpdTmpCorrelationData;
+	vector<double *> vpdTmpSmoothedSpectrum;
+	vector<double *> vpdTmpPeakExtracted;
+	num_max_threads = omp_get_max_threads();
+	for (int i = 0; i < num_max_threads; ++i) {
+		vpdTmpRawData.push_back(new double[iArraySizePreprocess]());
+		vpdTmpFastXcorrData.push_back(new double[iArraySizePreprocess]());
+		vpdTmpCorrelationData.push_back(new double[iArraySizePreprocess]());
+		vpdTmpSmoothedSpectrum.push_back(new double[iArraySizePreprocess]());
+		vpdTmpPeakExtracted.push_back(new double[iArraySizePreprocess]());
+	}
+
+#pragma omp parallel for \
+    schedule(guided)
+	for (int i = 0; i < iScanSize; i++) {
+		int iThreadId = omp_get_thread_num();
+		struct Query * pQuery = new Query();
+		CometSearch::Preprocess(pQuery, vpAllMS2Scans.at(i), vpdTmpRawData.at(iThreadId), vpdTmpFastXcorrData.at(iThreadId),
+				vpdTmpCorrelationData.at(iThreadId), vpdTmpSmoothedSpectrum.at(iThreadId), vpdTmpPeakExtracted.at(iThreadId));
+		vpAllMS2Scans.at(i)->pQuery = pQuery;
+	}
+
+	for (int i = 0; i < num_max_threads; ++i) {
+		delete[] vpdTmpRawData.at(i);
+		delete[] vpdTmpFastXcorrData.at(i);
+		delete[] vpdTmpCorrelationData.at(i);
+		delete[] vpdTmpSmoothedSpectrum.at(i);
+		delete[] vpdTmpPeakExtracted.at(i);
+	}
+
+	if (bScreenOutput) {
+		cout << "Preprocessing Done." << endl;
+	}
+}
+
 void MS2ScanVector::GetAllRangeFromMass(double dPeptideMass, vector<std::pair<int, int> >& vpPeptideMassRanges)
 // all ranges of MS2 scans are stored in  vpPeptideMassWindows
 		{
@@ -438,6 +490,39 @@ void MS2ScanVector::processPeptideArray(vector<Peptide*>& vpPeptideArray) {
 
 }
 
+void MS2ScanVector::processPeptideArrayXcorr(vector<Peptide*>& vpPeptideArray) {
+	int i, iPeptideArraySize, iScanSize;
+	iPeptideArraySize = (int) vpPeptideArray.size();
+
+#pragma omp parallel for \
+    shared(vpPeptideArray) private(i) \
+    schedule(guided)
+
+	for (i = 0; i < iPeptideArraySize; i++) {
+		vpPeptideArray.at(i)->preprocessingMVH();
+	}
+
+	// every MS2 scans scores their matched peptides
+
+	iScanSize = (int) vpAllMS2Scans.size();
+#pragma omp parallel for  \
+    schedule(guided)
+
+	for (i = 0; i < iScanSize; i++) {
+		int iThreadId = omp_get_thread_num();
+		vpAllMS2Scans[i]->scorePeptidesXcorr(vpbDuplFragmentGlobal.at(iThreadId), v_pdAAforwardGlobal.at(iThreadId), v_pdAAreverseGlobal.at(iThreadId),
+				v_uiBinnedIonMassesGlobal.at(iThreadId), CometSearch::iArraySizeScore);
+	}
+
+	// free memory of all peptide objects
+	for (i = 0; i < (int) vpPeptideArray.size(); i++)
+		delete vpPeptideArray.at(i);
+
+	// empty peptide array
+	vpPeptideArray.clear();
+
+}
+
 void MS2ScanVector::processPeptideArrayMVH(vector<Peptide*>& vpPeptideArray) {
 	int i, iPeptideArraySize, iScanSize;
 	iPeptideArraySize = (int) vpPeptideArray.size();
@@ -467,7 +552,227 @@ void MS2ScanVector::processPeptideArrayMVH(vector<Peptide*>& vpPeptideArray) {
 
 	// empty peptide array
 	vpPeptideArray.clear();
+}
 
+void MS2ScanVector::processPeptideArrayMVHTask(vector<Peptide*>& vpPeptideArray, omp_lock_t * pLck) {
+	int i, j, k, iPeptideArraySize;
+	vector<pair<int, int> > vpPeptideMassRanges;
+	pair<int, int> pairMS2Range;
+	bool bAssigned = false;
+	bool bMerged = false, bScored = false, bProcessed = false;
+	double dMvh = 0;
+	int iThreadId = omp_get_thread_num();
+
+	iPeptideArraySize = vpPeptideArray.size();
+
+	for (i = 0; i < iPeptideArraySize; i++) {
+		bAssigned = false;
+		bProcessed = false;
+		// assign peptide to scan
+		GetAllRangeFromMass(vpPeptideArray.at(i)->getPeptideMass(), vpPeptideMassRanges);
+		for (j = 0; j < (int) vpPeptideMassRanges.size(); j++) {
+			pairMS2Range = vpPeptideMassRanges.at(j);
+			if ((pairMS2Range.first > -1) && (pairMS2Range.second > -1)) {
+				bAssigned = true;
+				if (bAssigned && !bProcessed) {
+					vpPeptideArray.at(i)->preprocessingMVH();
+					bProcessed = true;
+				}
+				// calculate the score
+				for (k = pairMS2Range.first; k <= pairMS2Range.second; ++k) {
+					if (vpAllMS2Scans.at(k)->bSkip) {
+						continue;
+					}
+					omp_set_lock(&(pLck[k]));
+					bMerged = vpAllMS2Scans.at(k)->mergePeptide(vpAllMS2Scans.at(k)->vpWeightSumTopPeptides, vpPeptideArray.at(i)->getPeptideForScoring(),
+							vpPeptideArray.at(i)->getProteinName());
+					omp_unset_lock(&(pLck[k]));
+					// not merged then score
+					if (!bMerged) {
+						bScored = MVH::ScoreSequenceVsSpectrum(vpPeptideArray.at(i)->sNeutralLossPeptide, vpAllMS2Scans.at(k), psequenceIonMasses.at(iThreadId),
+								_ppdAAforward.at(iThreadId), _ppdAAreverse.at(iThreadId), dMvh, pSeqs.at(iThreadId));
+						if (bScored) {
+							omp_set_lock(&(pLck[k]));
+							vpAllMS2Scans.at(k)->saveScore(dMvh, vpPeptideArray.at(i), vpAllMS2Scans.at(k)->vpWeightSumTopPeptides,
+									vpAllMS2Scans.at(k)->vdWeightSumAllScores, "MVH");
+							omp_unset_lock(&(pLck[k]));
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// free memory of all peptide objects
+	for (i = 0; i < iPeptideArraySize; i++) {
+		delete vpPeptideArray.at(i);
+	}
+
+	// empty peptide array
+	vpPeptideArray.clear();
+
+	omp_set_lock(&lckOpenMpTaskNum);
+	iOpenMPTaskNum--;
+	if (iOpenMPTaskNum < TASKRESUME_SIZE) {
+		if (omp_test_lock(&lckOpenMpTaskNumHalfed) == 0) {
+			// lock is set'
+			omp_unset_lock(&lckOpenMpTaskNumHalfed);
+			// cout << endl << "Resume" << endl;
+		} else {
+			omp_unset_lock(&lckOpenMpTaskNumHalfed);
+		}
+	}
+	omp_unset_lock(&lckOpenMpTaskNum);
+}
+
+void MS2ScanVector::processPeptideArrayXcorrTask(vector<Peptide*>& vpPeptideArray, omp_lock_t * pLck) {
+	int i, j, k, iPeptideArraySize;
+	vector<pair<int, int> > vpPeptideMassRanges;
+	pair<int, int> pairMS2Range;
+	bool bAssigned = false;
+	bool bMerged = false, bScored = false, bProcessed = false;
+	double dXcorr = 0;
+	int iThreadId = omp_get_thread_num();
+
+	iPeptideArraySize = vpPeptideArray.size();
+
+	for (i = 0; i < iPeptideArraySize; i++) {
+		// i = 12;
+		bAssigned = false;
+		bProcessed = false;
+		// assign peptide to scan
+		GetAllRangeFromMass(vpPeptideArray.at(i)->getPeptideMass(), vpPeptideMassRanges);
+		for (j = 0; j < (int) vpPeptideMassRanges.size(); j++) {
+			// j = 1;
+			pairMS2Range = vpPeptideMassRanges.at(j);
+			if ((pairMS2Range.first > -1) && (pairMS2Range.second > -1)) {
+				bAssigned = true;
+				if (bAssigned && !bProcessed) {
+					vpPeptideArray.at(i)->preprocessingMVH();
+					bProcessed = true;
+				}
+				// calculate the score
+				for (k = pairMS2Range.first; k <= pairMS2Range.second; ++k) {
+					if (vpAllMS2Scans.at(k)->bSkip) {
+						continue;
+					}
+					omp_set_lock(&(pLck[k]));
+					bMerged = vpAllMS2Scans.at(k)->mergePeptide(vpAllMS2Scans.at(k)->vpWeightSumTopPeptides, vpPeptideArray.at(i)->getPeptideForScoring(),
+							vpPeptideArray.at(i)->getProteinName());
+					omp_unset_lock(&(pLck[k]));
+					// not merged then score
+					if (!bMerged) {
+						bScored = CometSearch::ScorePeptides(&(vpPeptideArray.at(i)->sNeutralLossPeptide), vpbDuplFragmentGlobal.at(iThreadId),
+								v_pdAAforwardGlobal.at(iThreadId), v_pdAAreverseGlobal.at(iThreadId), vpAllMS2Scans.at(k),
+								v_uiBinnedIonMassesGlobal.at(iThreadId), dXcorr, CometSearch::iArraySizeScore);
+						if (bScored) {
+							omp_set_lock(&(pLck[k]));
+							vpAllMS2Scans.at(k)->saveScore(dXcorr, vpPeptideArray.at(i), vpAllMS2Scans.at(k)->vpWeightSumTopPeptides,
+									vpAllMS2Scans.at(k)->vdWeightSumAllScores, "MVH");
+							omp_unset_lock(&(pLck[k]));
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// free memory of all peptide objects
+	for (i = 0; i < iPeptideArraySize; i++) {
+		delete vpPeptideArray.at(i);
+	}
+
+	// empty peptide array
+	vpPeptideArray.clear();
+
+	omp_set_lock(&lckOpenMpTaskNum);
+	iOpenMPTaskNum--;
+	if (iOpenMPTaskNum < TASKRESUME_SIZE) {
+		if (omp_test_lock(&lckOpenMpTaskNumHalfed) == 0) {
+			// lock is set'
+			omp_unset_lock(&lckOpenMpTaskNumHalfed);
+			// cout << endl << "Resume" << endl;
+		} else {
+			omp_unset_lock(&lckOpenMpTaskNumHalfed);
+		}
+	}
+	omp_unset_lock(&lckOpenMpTaskNum);
+}
+
+void MS2ScanVector::processPeptideArrayXcorrTaskSIP(vector<Peptide*>& vpPeptideArray, omp_lock_t * pLck) {
+	int i, j, k, iPeptideArraySize;
+	vector<pair<int, int> > vpPeptideMassRanges;
+	pair<int, int> pairMS2Range;
+	bool bAssigned = false;
+	bool bMerged = false, bScored = false, bProcessed = false;
+	double dXcorr = 0;
+	int iThreadId = omp_get_thread_num();
+
+	iPeptideArraySize = vpPeptideArray.size();
+	Peptide * pPep = NULL;
+
+	for (i = 0; i < iPeptideArraySize; i++) {
+		// i = 12;
+		bAssigned = false;
+		bProcessed = false;
+		// assign peptide to scan
+		GetAllRangeFromMass(vpPeptideArray.at(i)->getPeptideMass(), vpPeptideMassRanges);
+		for (j = 0; j < (int) vpPeptideMassRanges.size(); j++) {
+			// j = 1;
+			pairMS2Range = vpPeptideMassRanges.at(j);
+			if ((pairMS2Range.first > -1) && (pairMS2Range.second > -1)) {
+				bAssigned = true;
+				if (bAssigned && !bProcessed) {
+					vpPeptideArray.at(i)->preprocessingSIP(mapResidueMass);
+					bProcessed = true;
+				}
+				// calculate the score
+				for (k = pairMS2Range.first; k <= pairMS2Range.second; ++k) {
+					if (vpAllMS2Scans.at(k)->bSkip) {
+						continue;
+					}
+					omp_set_lock(&(pLck[k]));
+					bMerged = vpAllMS2Scans.at(k)->mergePeptide(vpAllMS2Scans.at(k)->vpWeightSumTopPeptides, vpPeptideArray.at(i)->getPeptideForScoring(),
+							vpPeptideArray.at(i)->getProteinName());
+					omp_unset_lock(&(pLck[k]));
+					// not merged then score
+					if (!bMerged) {
+						dXcorr = 0;
+						pPep = vpPeptideArray.at(i);
+						bScored = CometSearch::ScorePeptidesSIP(pPep->vvdYionMass, pPep->vvdYionProb, pPep->vvdBionMass, pPep->vvdBionProb, vpAllMS2Scans.at(k),
+								vvpbDuplFragmentGlobal.at(iThreadId), vvdBinnedIonMassesGlobal.at(iThreadId), vvdBinGlobal.at(iThreadId), dXcorr);
+						if (bScored) {
+							omp_set_lock(&(pLck[k]));
+							vpAllMS2Scans.at(k)->saveScoreSIP(dXcorr, vpPeptideArray.at(i), vpAllMS2Scans.at(k)->vpWeightSumTopPeptides,
+									vpAllMS2Scans.at(k)->vdWeightSumAllScores, "MVH");
+							omp_unset_lock(&(pLck[k]));
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// free memory of all peptide objects
+	for (i = 0; i < iPeptideArraySize; i++) {
+		delete vpPeptideArray.at(i);
+	}
+
+	// empty peptide array
+	vpPeptideArray.clear();
+
+	omp_set_lock(&lckOpenMpTaskNum);
+	iOpenMPTaskNum--;
+	if (iOpenMPTaskNum < TASKRESUME_SIZE) {
+		if (omp_test_lock(&lckOpenMpTaskNumHalfed) == 0) {
+			// lock is set'
+			omp_unset_lock(&lckOpenMpTaskNumHalfed);
+			// cout << endl << "Resume" << endl;
+		} else {
+			omp_unset_lock(&lckOpenMpTaskNumHalfed);
+		}
+	}
+	omp_unset_lock(&lckOpenMpTaskNum);
 }
 
 void MS2ScanVector::searchDatabase() {
@@ -506,6 +811,267 @@ void MS2ScanVector::searchDatabase() {
 			processPeptideArrayMVH(vpPeptideArray);
 	}
 	this->postMvh();
+	MVH::destroyLnTable();
+	PeptideUnit::iNumScores = 1;
+	cout << endl << "Search done." << endl;
+}
+
+void MS2ScanVector::searchDatabaseMVHTask() {
+	ProteinDatabase myProteinDatabase(bScreenOutput);
+	vector<Peptide *> vpPeptideArray;
+	Peptide * currentPeptide;
+	myProteinDatabase.loadDatabase();
+	this->preMvh();
+
+	int iScanNum = this->vpAllMS2Scans.size();
+	omp_lock_t * pLck = new omp_lock_t[iScanNum];
+	iOpenMPTaskNum = 0;
+#pragma omp parallel for schedule(guided)
+	for (int i = 0; i < iScanNum; ++i) {
+		omp_init_lock(&(pLck[i]));
+	}
+	omp_init_lock(&lckOpenMpTaskNum);
+	omp_init_lock(&lckOpenMpTaskNumHalfed);
+	// omp_set_lock(&lckOpenMpTaskNumHalfed);
+#pragma omp parallel
+	{
+#pragma omp single
+		{
+			if (myProteinDatabase.getFirstProtein()) {
+				currentPeptide = new Peptide();
+				// get one peptide from the database at a time, until there is no more peptide
+				while (myProteinDatabase.getNextPeptide(currentPeptide)) {
+					if (currentPeptide->getPeptideMass() > ProNovoConfig::dMaxPeptideMass) {
+						ProNovoConfig::dMaxPeptideMass = currentPeptide->getPeptideMass();
+					}
+					vpPeptideArray.push_back(currentPeptide);
+					if (vpPeptideArray.size() >= TASKPEPTIDE_ARRAY_SIZE) {
+						omp_set_lock(&lckOpenMpTaskNum);
+						iOpenMPTaskNum++;
+						omp_unset_lock(&lckOpenMpTaskNum);
+#pragma omp task firstprivate(vpPeptideArray)
+						{
+							processPeptideArrayMVHTask(vpPeptideArray, pLck);
+						}
+
+						vpPeptideArray.clear();
+
+						if (iOpenMPTaskNum >= TASKWAIT_SIZE) {
+							// cout << endl << "Stop" << endl;
+							omp_set_lock(&lckOpenMpTaskNumHalfed);
+						}
+					}
+					currentPeptide = new Peptide();
+				}
+				delete currentPeptide;
+			}
+			if (!vpPeptideArray.empty()) {
+#pragma omp task firstprivate(vpPeptideArray)
+				{
+					processPeptideArrayMVHTask(vpPeptideArray, pLck);
+				}
+				vpPeptideArray.clear();
+			}
+#pragma omp taskwait
+		}
+	}
+
+	omp_destroy_lock(&lckOpenMpTaskNumHalfed);
+	omp_destroy_lock(&lckOpenMpTaskNum);
+
+#pragma omp parallel for schedule(guided)
+	for (int i = 0; i < iScanNum; ++i) {
+		omp_destroy_lock(&(pLck[i]));
+	}
+
+	this->postMvh();
+	MVH::destroyLnTable();
+	PeptideUnit::iNumScores = 1;
+	cout << endl << "Search done." << endl;
+}
+
+void MS2ScanVector::searchDatabaseXcorrTask() {
+	ProteinDatabase myProteinDatabase(bScreenOutput);
+	vector<Peptide *> vpPeptideArray;
+	Peptide * currentPeptide;
+	myProteinDatabase.loadDatabase();
+	this->preXcorr();
+
+	int iScanNum = this->vpAllMS2Scans.size();
+	omp_lock_t * pLck = new omp_lock_t[iScanNum];
+	iOpenMPTaskNum = 0;
+#pragma omp parallel for schedule(guided)
+	for (int i = 0; i < iScanNum; ++i) {
+		omp_init_lock(&(pLck[i]));
+	}
+	omp_init_lock(&lckOpenMpTaskNum);
+	omp_init_lock(&lckOpenMpTaskNumHalfed);
+
+#pragma omp parallel
+	{
+#pragma omp single
+		{
+			if (myProteinDatabase.getFirstProtein()) {
+				currentPeptide = new Peptide();
+				// get one peptide from the database at a time, until there is no more peptide
+				while (myProteinDatabase.getNextPeptide(currentPeptide)) {
+					if (currentPeptide->getPeptideMass() > ProNovoConfig::dMaxPeptideMass) {
+						ProNovoConfig::dMaxPeptideMass = currentPeptide->getPeptideMass();
+					}
+					vpPeptideArray.push_back(currentPeptide);
+					if (vpPeptideArray.size() >= TASKPEPTIDE_ARRAY_SIZE) {
+						omp_set_lock(&lckOpenMpTaskNum);
+						iOpenMPTaskNum++;
+						omp_unset_lock(&lckOpenMpTaskNum);
+#pragma omp task firstprivate(vpPeptideArray)
+						{
+							processPeptideArrayXcorrTask(vpPeptideArray, pLck);
+						}
+
+						vpPeptideArray.clear();
+
+						if (iOpenMPTaskNum >= TASKWAIT_SIZE) {
+							// cout << endl << "Stop" << endl;
+							omp_set_lock(&lckOpenMpTaskNumHalfed);
+						}
+					}
+					currentPeptide = new Peptide();
+				}
+				delete currentPeptide;
+			}
+			if (!vpPeptideArray.empty()) {
+#pragma omp task firstprivate(vpPeptideArray)
+				{
+					processPeptideArrayXcorrTask(vpPeptideArray, pLck);
+				}
+				vpPeptideArray.clear();
+			}
+#pragma omp taskwait
+		}
+	}
+
+	omp_destroy_lock(&lckOpenMpTaskNumHalfed);
+	omp_destroy_lock(&lckOpenMpTaskNum);
+
+#pragma omp parallel for schedule(guided)
+	for (int i = 0; i < iScanNum; ++i) {
+		omp_destroy_lock(&(pLck[i]));
+	}
+
+	this->postXcorr();
+	PeptideUnit::iNumScores = 1;
+	cout << endl << "Search done." << endl;
+}
+
+void MS2ScanVector::searchDatabaseXcorrTaskSIP() {
+	ProteinDatabase myProteinDatabase(bScreenOutput);
+	vector<Peptide *> vpPeptideArray;
+	Peptide * currentPeptide;
+	myProteinDatabase.loadDatabase();
+	this->preXcorr();
+
+	int iScanNum = this->vpAllMS2Scans.size();
+	omp_lock_t * pLck = new omp_lock_t[iScanNum];
+	iOpenMPTaskNum = 0;
+#pragma omp parallel for schedule(guided)
+	for (int i = 0; i < iScanNum; ++i) {
+		omp_init_lock(&(pLck[i]));
+	}
+	omp_init_lock(&lckOpenMpTaskNum);
+	omp_init_lock(&lckOpenMpTaskNumHalfed);
+
+#pragma omp parallel
+	{
+#pragma omp single
+		{
+			if (myProteinDatabase.getFirstProtein()) {
+				currentPeptide = new Peptide();
+				// get one peptide from the database at a time, until there is no more peptide
+				while (myProteinDatabase.getNextPeptide(currentPeptide)) {
+					if (currentPeptide->getPeptideMass() > ProNovoConfig::dMaxPeptideMass) {
+						ProNovoConfig::dMaxPeptideMass = currentPeptide->getPeptideMass();
+					}
+					vpPeptideArray.push_back(currentPeptide);
+					if (vpPeptideArray.size() >= TASKPEPTIDE_ARRAY_SIZE) {
+						omp_set_lock(&lckOpenMpTaskNum);
+						iOpenMPTaskNum++;
+						omp_unset_lock(&lckOpenMpTaskNum);
+#pragma omp task firstprivate(vpPeptideArray)
+						{
+							processPeptideArrayXcorrTaskSIP(vpPeptideArray, pLck);
+						}
+
+						vpPeptideArray.clear();
+
+						if (iOpenMPTaskNum >= TASKWAIT_SIZE) {
+							// cout << endl << "Stop" << endl;
+							omp_set_lock(&lckOpenMpTaskNumHalfed);
+						}
+					}
+					currentPeptide = new Peptide();
+				}
+				delete currentPeptide;
+			}
+			if (!vpPeptideArray.empty()) {
+#pragma omp task firstprivate(vpPeptideArray)
+				{
+					processPeptideArrayXcorrTaskSIP(vpPeptideArray, pLck);
+				}
+				vpPeptideArray.clear();
+			}
+#pragma omp taskwait
+		}
+	}
+
+	omp_destroy_lock(&lckOpenMpTaskNumHalfed);
+	omp_destroy_lock(&lckOpenMpTaskNum);
+
+#pragma omp parallel for schedule(guided)
+	for (int i = 0; i < iScanNum; ++i) {
+		omp_destroy_lock(&(pLck[i]));
+	}
+
+	this->postXcorr();
+	PeptideUnit::iNumScores = 1;
+	cout << endl << "Search done." << endl;
+}
+
+void MS2ScanVector::searchDatabaseXcorr() {
+	ProteinDatabase myProteinDatabase(bScreenOutput);
+	vector<Peptide *> vpPeptideArray;
+	Peptide * currentPeptide;
+	myProteinDatabase.loadDatabase();
+	this->preXcorr();
+	if (myProteinDatabase.getFirstProtein()) {
+		currentPeptide = new Peptide;
+		// get one peptide from the database at a time, until there is no more peptide
+		while (myProteinDatabase.getNextPeptide(currentPeptide)) {
+			// assign the pointers of peptides to appropriete MS2Scans
+			if (assignPeptides2Scans(currentPeptide)) {
+				// save the new peptide to the array
+				vpPeptideArray.push_back(currentPeptide);
+				if (currentPeptide->getPeptideMass() > ProNovoConfig::dMaxPeptideMass) {
+					ProNovoConfig::dMaxPeptideMass = currentPeptide->getPeptideMass();
+				}
+			} else {
+				delete currentPeptide;
+			}
+			// create a new peptide for the next iteration
+			currentPeptide = new Peptide;
+			// when the vpPeptideArray is full
+			if (vpPeptideArray.size() >= PEPTIDE_ARRAY_SIZE)
+				processPeptideArrayXcorr(vpPeptideArray);
+		}
+		// the last peptide object is an empty object and need to be deleted
+		delete currentPeptide;
+		// there are still unprocessed peptides in the vpPeptideArray
+		// need to process them in the same manner
+		// the following code is the same as inside if(vpPeptideArray.size() >= PEPTIDE_ARRAY_SIZE )
+		//    cout<<vpPeptideArray.size()<<endl;
+		if (!vpPeptideArray.empty())
+			processPeptideArrayXcorr(vpPeptideArray);
+	}
+	this->postXcorr();
 	PeptideUnit::iNumScores = 1;
 	cout << endl << "Search done." << endl;
 }
@@ -526,6 +1092,69 @@ void MS2ScanVector::startProcessing() {
 
 }
 
+void MS2ScanVector::startProcessingMVHTask() {
+	// Preprocessing all MS2 scans by mult-threading
+	preProcessAllMS2();
+
+	// Search all MS2 scans against the database by mult-threading
+	searchDatabaseMVHTask();
+
+	// Postprocessing all MS2 scans' results by mult-threading
+	postProcessAllMS2();
+
+	// write results to a SIP file
+	// writeOutput();
+	writeOutputEnsemble();
+}
+
+void MS2ScanVector::startProcessingXcorrTaskSIP() {
+	// Preprocessing all MS2 scans by mult-threading
+	preProcessAllMS2Xcorr();
+
+	// Search all MS2 scans against the database by mult-threading
+	searchDatabaseXcorrTaskSIP();
+
+	// Postprocessing all MS2 scans' results by mult-threading
+	postProcessXcorrSIP();
+
+	// write results to a SIP file
+	// writeOutput();
+	// writeOutputEnsemble();
+	writeOutputOneScore(0); // Xcorr
+	writeOutputOneScore(1); // MVH
+	writeOutputOneScore(2); // WDP
+}
+
+void MS2ScanVector::startProcessingXcorrTask() {
+	// Preprocessing all MS2 scans by mult-threading
+	preProcessAllMS2Xcorr();
+
+	// Search all MS2 scans against the database by mult-threading
+	searchDatabaseXcorrTask();
+
+	// Postprocessing all MS2 scans' results by mult-threading
+	postProcessXcorr();
+
+	// write results to a SIP file
+	// writeOutput();
+	writeOutputEnsemble();
+}
+
+void MS2ScanVector::startProcessingXcorr() {
+	// Preprocessing all MS2 scans by mult-threading
+	preProcessAllMS2Xcorr();
+
+	// Search all MS2 scans against the database by mult-threading
+	searchDatabaseXcorr();
+
+	// Postprocessing all MS2 scans' results by mult-threading
+	postProcessXcorr();
+
+	// write results to a SIP file
+	// writeOutput();
+	writeOutputEnsemble();
+}
+
 void MS2ScanVector::postProcessAllMS2() {
 
 	int i, iScanSize;
@@ -533,7 +1162,41 @@ void MS2ScanVector::postProcessAllMS2() {
 
 	postProcessAllMS2Xcorr();
 
+	// postProcessAllMS2MVH();
+
 	postProcessAllMS2WDP();
+
+#pragma omp parallel for \
+    schedule(guided)
+	for (i = 0; i < iScanSize; i++) {
+		vpAllMS2Scans.at(i)->scoreFeatureCalculation();
+	}
+}
+
+void MS2ScanVector::postProcessXcorr() {
+	int i, iScanSize;
+	iScanSize = (int) vpAllMS2Scans.size();
+
+	// postProcessAllMS2Xcorr();
+
+	postProcessAllMS2MVH();
+
+	postProcessAllMS2WDP();
+
+#pragma omp parallel for \
+    schedule(guided)
+	for (i = 0; i < iScanSize; i++) {
+		vpAllMS2Scans.at(i)->scoreFeatureCalculation();
+	}
+}
+
+void MS2ScanVector::postProcessXcorrSIP() {
+	int i, iScanSize;
+	iScanSize = (int) vpAllMS2Scans.size();
+
+	postProcessAllMS2MVHSIP();
+
+	postProcessAllMS2WDPSIP();
 
 #pragma omp parallel for \
     schedule(guided)
@@ -577,6 +1240,61 @@ void MS2ScanVector::postProcessAllMS2WDP() {
 				dWeightSum = vpAllMS2Scans.at(i)->scoreWeightSumHighMS2(&(vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->sPeptideForScoring),
 						vpvvdYionMass.at(iThreadId), vpvvdYionProb.at(iThreadId), vpvvdBionMass.at(iThreadId), vpvvdBionProb.at(iThreadId));
 			} else {
+				dWeightSum = vpAllMS2Scans.at(i)->scoreWeightSum(&(vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->sPeptideForScoring),
+						vpvdYionMass.at(iThreadId), vpvdBionMass.at(iThreadId));
+			}
+			vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->vdScores.push_back(dWeightSum);
+		}
+
+	}
+
+	for (int i = 0; i < num_max_threads; ++i) {
+		delete vpvvdYionMass.at(i);
+		delete vpvvdYionProb.at(i);
+		delete vpvvdBionMass.at(i);
+		delete vpvvdBionProb.at(i);
+		delete vpvdYionMass.at(i);
+		delete vpvdBionMass.at(i);
+	}
+	++PeptideUnit::iNumScores;
+}
+
+void MS2ScanVector::postProcessAllMS2WDPSIP() {
+	vector<vector<vector<double> > *> vpvvdYionMass;
+	vector<vector<vector<double> > *> vpvvdYionProb;
+	vector<vector<vector<double> > *> vpvvdBionMass;
+	vector<vector<vector<double> > *> vpvvdBionProb;
+	vector<vector<double> *> vpvdYionMass;
+	vector<vector<double> *> vpvdBionMass;
+	num_max_threads = omp_get_max_threads();
+	for (int i = 0; i < num_max_threads; ++i) {
+		vpvvdYionMass.push_back(new vector<vector<double> >());
+		vpvvdYionProb.push_back(new vector<vector<double> >());
+		vpvvdBionMass.push_back(new vector<vector<double> >());
+		vpvvdBionProb.push_back(new vector<vector<double> >());
+		vpvdYionMass.push_back(new vector<double>());
+		vpvdBionMass.push_back(new vector<double>());
+	}
+
+	int iScanSize;
+	iScanSize = (int) vpAllMS2Scans.size();
+
+#pragma omp parallel for \
+    schedule(guided)
+	for (int i = 0; i < iScanSize; i++) {
+		vpAllMS2Scans.at(i)->preprocess();
+		bool bHighRes = vpAllMS2Scans.at(i)->isMS2HighRes;
+		int iThreadId = omp_get_thread_num();
+		for (int j = 0; j < ((int) vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.size()); j++) {
+			double dWeightSum = 0;
+			if (bHighRes) {
+				PeptideUnit * pPepUnit = vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j);
+				dWeightSum = vpAllMS2Scans.at(i)->scoreWeightSumHighMS2(&(pPepUnit->sPeptideForScoring), &(pPepUnit->vvdYionMass), &(pPepUnit->vvdYionProb),
+						&(pPepUnit->vvdBionMass), &(pPepUnit->vvdBionProb));
+			} else {
+				Peptide::preprocessing(vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->sPeptideForScoring, bHighRes, mapResidueMass,
+						vpvvdYionMass.at(iThreadId), vpvvdYionProb.at(iThreadId), vpvvdBionMass.at(iThreadId), vpvvdBionProb.at(iThreadId),
+						vpvdYionMass.at(iThreadId), vpvdBionMass.at(iThreadId));
 				dWeightSum = vpAllMS2Scans.at(i)->scoreWeightSum(&(vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->sPeptideForScoring),
 						vpvdYionMass.at(iThreadId), vpvdBionMass.at(iThreadId));
 			}
@@ -649,6 +1367,10 @@ void MS2ScanVector::postProcessAllMS2Xcorr() {
 			cout << "Error Post Xcorr." << endl;
 			exit(1);
 		} else {
+			if (vpAllMS2Scans.at(i)->pQuery != NULL) {
+				delete vpAllMS2Scans.at(i)->pQuery;
+				vpAllMS2Scans.at(i)->pQuery = NULL;
+			}
 			vpAllMS2Scans.at(i)->pQuery = pQuery;
 			for (int j = 0; j < (int) vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.size(); j++) {
 				double dXcorr = 0;
@@ -680,6 +1402,119 @@ void MS2ScanVector::postProcessAllMS2Xcorr() {
 		}
 		delete[] v_uiBinnedIonMasses.at(i);
 	}
+	++PeptideUnit::iNumScores;
+}
+
+double roundMy(double f, int precision) {
+	if (f == 0.0f)
+		return +0.0f;
+
+	double multiplier = pow(10.0, (double) precision); // moves f over <precision> decimal places
+	f *= multiplier;
+	f = floor(f + 0.5f);
+	return f / multiplier;
+}
+
+void MS2ScanVector::postProcessAllMS2MVH() {
+	int num_threads = omp_get_max_threads();
+	vector<multimap<double, double> *> vpIntenSortedPeakPreData;
+	for (int j = 0; j < num_threads; ++j) {
+		vpIntenSortedPeakPreData.push_back(new multimap<double, double>());
+	}
+	this->preMvh();
+	int iScanSize;
+	iScanSize = (int) vpAllMS2Scans.size();
+
+	double totalPeakSpace = ProNovoConfig::maxObservedMz - ProNovoConfig::minObservedMz;
+	int totalPeakBins = (int) roundMy(totalPeakSpace / (ProNovoConfig::getMassAccuracyFragmentIon() * 2.0f), 0);
+	MVH::initialLnTable(totalPeakBins);
+
+#pragma omp parallel for \
+    schedule(guided)
+	for (int i = 0; i < iScanSize; i++) {
+		int iThreadId = omp_get_thread_num();
+		vpAllMS2Scans.at(i)->preprocessMvh(vpIntenSortedPeakPreData.at(iThreadId));
+		if (!vpAllMS2Scans.at(i)->bSkip) {
+			for (int j = 0; j < (int) vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.size(); j++) {
+				double dMvh = 0;
+				MVH::ScoreSequenceVsSpectrum(vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->sPeptideForScoring, vpAllMS2Scans.at(i),
+						psequenceIonMasses.at(iThreadId), _ppdAAforward.at(iThreadId), _ppdAAreverse.at(iThreadId), dMvh, pSeqs.at(iThreadId));
+				vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->vdScores.push_back(dMvh);
+			}
+		} else {
+			for (int j = 0; j < (int) vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.size(); j++) {
+				double dMvh = 0;
+				vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->vdScores.push_back(dMvh);
+			}
+		}
+		if (vpAllMS2Scans.at(i)->pPeakList != NULL) {
+			delete vpAllMS2Scans.at(i)->pPeakList;
+			vpAllMS2Scans.at(i)->pPeakList = NULL;
+		}
+		if (vpAllMS2Scans.at(i)->intenClassCounts != NULL) {
+			delete vpAllMS2Scans.at(i)->intenClassCounts;
+			vpAllMS2Scans.at(i)->intenClassCounts = NULL;
+		}
+	}
+
+	for (int j = 0; j < num_threads; ++j) {
+		delete vpIntenSortedPeakPreData.at(j);
+	}
+	vpIntenSortedPeakPreData.clear();
+	this->postMvh();
+	MVH::destroyLnTable();
+	++PeptideUnit::iNumScores;
+}
+
+void MS2ScanVector::postProcessAllMS2MVHSIP() {
+	int num_threads = omp_get_max_threads();
+	vector<multimap<double, double> *> vpIntenSortedPeakPreData;
+	for (int j = 0; j < num_threads; ++j) {
+		vpIntenSortedPeakPreData.push_back(new multimap<double, double>());
+	}
+	this->preMvh();
+	int iScanSize;
+	iScanSize = (int) vpAllMS2Scans.size();
+
+	double totalPeakSpace = ProNovoConfig::maxObservedMz - ProNovoConfig::minObservedMz;
+	int totalPeakBins = (int) roundMy(totalPeakSpace / (ProNovoConfig::getMassAccuracyFragmentIon() * 2.0f), 0);
+	MVH::initialLnTable(totalPeakBins);
+
+#pragma omp parallel for \
+    schedule(guided)
+	for (int i = 0; i < iScanSize; i++) {
+		int iThreadId = omp_get_thread_num();
+		vpAllMS2Scans.at(i)->preprocessMvh(vpIntenSortedPeakPreData.at(iThreadId));
+		if (!vpAllMS2Scans.at(i)->bSkip) {
+			for (int j = 0; j < (int) vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.size(); j++) {
+				double dMvh = 0;
+				PeptideUnit * pepUnit = vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j);
+				MVH::ScoreSequenceVsSpectrumSIP(pepUnit->sPeptideForScoring, vpAllMS2Scans.at(i), psequenceIonMasses.at(iThreadId), pepUnit->vvdYionMass,
+						pepUnit->vvdYionProb, pepUnit->vvdBionMass, pepUnit->vvdBionProb, dMvh, pSeqs.at(iThreadId));
+				vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->vdScores.push_back(dMvh);
+			}
+		} else {
+			for (int j = 0; j < (int) vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.size(); j++) {
+				double dMvh = 0;
+				vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->vdScores.push_back(dMvh);
+			}
+		}
+		if (vpAllMS2Scans.at(i)->pPeakList != NULL) {
+			delete vpAllMS2Scans.at(i)->pPeakList;
+			vpAllMS2Scans.at(i)->pPeakList = NULL;
+		}
+		if (vpAllMS2Scans.at(i)->intenClassCounts != NULL) {
+			delete vpAllMS2Scans.at(i)->intenClassCounts;
+			vpAllMS2Scans.at(i)->intenClassCounts = NULL;
+		}
+	}
+
+	for (int j = 0; j < num_threads; ++j) {
+		delete vpIntenSortedPeakPreData.at(j);
+	}
+	vpIntenSortedPeakPreData.clear();
+	this->postMvh();
+	MVH::destroyLnTable();
 	++PeptideUnit::iNumScores;
 }
 
@@ -859,6 +1694,78 @@ void MS2ScanVector::writeOutput() {
 	outputFile.close();
 }
 
+void MS2ScanVector::writeOutputOneScore(int idx) {
+	int i, j;
+	ofstream outputFile;
+	ifstream configStream;
+	string sline, sTailFT2FileName;
+
+	double dcurrentMeanWeightSum, dcurrentDeviationWeightSum;
+
+	sTailFT2FileName = ParsePath(sFT2Filename);
+
+	sort(vpAllMS2Scans.begin(), vpAllMS2Scans.end(), mylessScanId);
+	string sPureFileName = sOutputFile.substr(sOutputFile.find_last_of('/') + 1);
+	string sFolder = sOutputFile.substr(0, sOutputFile.find_last_of('/'));
+	stringstream ss;
+	ss << idx;
+	string sIdx;
+	ss >> sIdx;
+	string sNewOutputFile = sFolder + '/' + sIdx + '_' + sPureFileName;
+	outputFile.open(sNewOutputFile.c_str());
+
+	configStream.open(sConfigFile.c_str());
+	while (!configStream.eof()) {
+		sline.clear();
+		getline(configStream, sline);
+		outputFile << "#\t" << sline << endl;
+	}
+
+	outputFile << "Filename\tScanNumber\tParentCharge\tMeasuredParentMass\t";
+	outputFile << "CalculatedParentMass\tScanType\tSearchName\tScoringFunction\tRank\tScore\t";
+	outputFile << "IdentifiedPeptide\tOriginalPeptide\tProteinNames" << endl;
+	for (i = 0; i < (int) vpAllMS2Scans.size(); i++)
+		if (!vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.empty()) {
+			if (vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(0)->sScoringFunction == "WeightSum")
+				calculateMeanAndDeviation(vpAllMS2Scans.at(i)->inumberofWeightSumScore, vpAllMS2Scans.at(i)->dsumofWeightScore,
+						vpAllMS2Scans.at(i)->dsumofSquareWeightSumScore, dcurrentMeanWeightSum, dcurrentDeviationWeightSum);
+			for (j = 0; j < (int) vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.size(); j++) {
+				outputFile << sTailFT2FileName << "\t";
+				outputFile << vpAllMS2Scans.at(i)->iScanId << "\t";
+				outputFile << vpAllMS2Scans.at(i)->iParentChargeState << "\t";
+				outputFile << setiosflags(ios::fixed) << setprecision(5) << vpAllMS2Scans.at(i)->dParentNeutralMass << "\t";
+				outputFile << setiosflags(ios::fixed) << setprecision(5) << vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->dCalculatedParentMass << "\t";
+
+				outputFile << vpAllMS2Scans.at(i)->getScanType() << "\t";
+				outputFile << ProNovoConfig::getSearchName() << "\t";
+
+				outputFile << vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->sScoringFunction << "\t";
+				outputFile << ((int)vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->vdRank.at(idx)) << "\t";
+				outputFile << setiosflags(ios::fixed) << setprecision(2) << vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->vdScores.at(idx) << "\t";
+				//outputFile<<((vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->dScore-dcurrentMeanWeightSum)/dcurrentDeviationWeightSum)<<"\t";
+
+				if (vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->cIdentifyPrefix != '-')
+					outputFile << vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->cIdentifyPrefix;
+				outputFile << vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->sIdentifiedPeptide;
+				if (vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->cIdentifySuffix != '-')
+					outputFile << vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->cIdentifySuffix;
+				outputFile << "\t";
+
+				if (vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->cOriginalPrefix != '-')
+					outputFile << vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->cOriginalPrefix;
+				outputFile << vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->sOriginalPeptide;
+				if (vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->cOriginalSuffix != '-')
+					outputFile << vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->cOriginalSuffix;
+				outputFile << "\t";
+
+				outputFile << "{" << vpAllMS2Scans.at(i)->vpWeightSumTopPeptides.at(j)->sProteinNames << "}" << endl;
+			}
+		}
+	configStream.clear();
+	configStream.close();
+	outputFile.close();
+}
+
 void MS2ScanVector::calculateMeanAndDeviation(int inumberScore, double dScoreSum, double dScoreSquareSum, double& dMean, double& dDeviation) {
 	dMean = dScoreSum / inumberScore;
 	//dDeviation is sample standard deviation
@@ -888,5 +1795,62 @@ void MS2ScanVector::postMvh() {
 		delete psequenceIonMasses.at(i);
 		delete pSeqs.at(i);
 	}
+	_ppdAAforward.clear();
+	_ppdAAreverse.clear();
+	psequenceIonMasses.clear();
+	pSeqs.clear();
+}
+
+void MS2ScanVector::preXcorr() {
+	//MH: Must be equal to largest possible array
+	int iArraySizeScore = (int) ((ProNovoConfig::dMaxMS2ScanMass * 2 + 100) * ProNovoConfig::dHighResInverseBinWidth);
+	CometSearch::iArraySizeScore = iArraySizeScore;
+	num_max_threads = omp_get_max_threads();
+	for (int i = 0; i < num_max_threads; ++i) {
+		vpbDuplFragmentGlobal.push_back(new bool[iArraySizeScore]());
+		v_pdAAforwardGlobal.push_back(new double[MAX_PEPTIDE_LEN]());
+		v_pdAAreverseGlobal.push_back(new double[MAX_PEPTIDE_LEN]());
+		unsigned int *** _uiBinnedIonMasses = new unsigned int**[ProNovoConfig::iMaxPercusorCharge + 1]();
+		for (int ii = 0; ii < ProNovoConfig::iMaxPercusorCharge + 1; ii++) {
+			_uiBinnedIonMasses[ii] = new unsigned int*[9]();
+			for (int j = 0; j < 9; j++) {
+				_uiBinnedIonMasses[ii][j] = new unsigned int[MAX_PEPTIDE_LEN]();
+			}
+		}
+		v_uiBinnedIonMassesGlobal.push_back(_uiBinnedIonMasses);
+	}
+	// SIP mode variable
+	for (int i = 0; i < num_max_threads; ++i) {
+		vvpbDuplFragmentGlobal.push_back(vector<bool>());
+		vvpbDuplFragmentGlobal.back().clear();
+		vvpbDuplFragmentGlobal.back().resize(iArraySizeScore, false);
+		vvdBinnedIonMassesGlobal.push_back(vector<double>());
+		vvdBinnedIonMassesGlobal.back().clear();
+		vvdBinnedIonMassesGlobal.back().resize(iArraySizeScore, 0);
+		vvdBinGlobal.push_back(vector<int>());
+	}
+}
+
+void MS2ScanVector::postXcorr() {
+	for (int i = 0; i < num_max_threads; ++i) {
+		delete[] vpbDuplFragmentGlobal.at(i);
+		delete[] v_pdAAforwardGlobal.at(i);
+		delete[] v_pdAAreverseGlobal.at(i);
+		for (int ii = 0; ii < ProNovoConfig::iMaxPercusorCharge + 1; ii++) {
+			for (int j = 0; j < 9; j++) {
+				delete[] v_uiBinnedIonMassesGlobal.at(i)[ii][j];
+			}
+			delete[] v_uiBinnedIonMassesGlobal.at(i)[ii];
+		}
+		delete[] v_uiBinnedIonMassesGlobal.at(i);
+	}
+	vpbDuplFragmentGlobal.clear();
+	v_pdAAforwardGlobal.clear();
+	v_pdAAreverseGlobal.clear();
+	v_uiBinnedIonMassesGlobal.clear();
+	// SIP mode variable
+	vvpbDuplFragmentGlobal.clear();
+	vvdBinnedIonMassesGlobal.clear();
+	vvdBinGlobal.clear();
 }
 

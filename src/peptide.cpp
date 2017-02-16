@@ -98,6 +98,51 @@ void Peptide::preprocessingMVH() {
 	sNeutralLossPeptide = neutralLossProcess(sPeptide);
 }
 
+void Peptide::preprocessingSIP(const map<char, double>& mapResidueMass) {
+	int i;
+	iPeptideLength = 0;
+	for (i = 0; i < (int) sPeptide.length(); ++i) {
+		if (isalpha(sPeptide.at(i))) {
+			iPeptideLength = iPeptideLength + 1;
+		}
+	}
+
+	sNeutralLossPeptide = neutralLossProcess(sPeptide);
+	// get isotope distribution
+	calculateIsotope(sNeutralLossPeptide, mapResidueMass); // just for weightsum
+	// re-scale the probability
+	int iLen2 = 0, j = 0;
+	double dMaxProb = 0;
+	// y-ion
+	int iLen1 = this->vvdYionProb.size();
+	for (i = 0; i < iLen1; ++i) {
+		iLen2 = vvdYionProb.at(i).size();
+		dMaxProb = 0;
+		for (j = 0; j < iLen2; ++j) {
+			if (dMaxProb < vvdYionProb.at(i).at(j)) {
+				dMaxProb = vvdYionProb.at(i).at(j);
+			}
+		}
+		for (j = 0; j < iLen2; ++j) {
+			vvdYionProb.at(i).at(j) /= dMaxProb;
+		}
+	}
+	// b-ion
+	iLen1 = this->vvdBionProb.size();
+	for (i = 0; i < iLen1; ++i) {
+		iLen2 = vvdBionProb.at(i).size();
+		dMaxProb = 0;
+		for (j = 0; j < iLen2; ++j) {
+			if (dMaxProb < vvdBionProb.at(i).at(j)) {
+				dMaxProb = vvdBionProb.at(i).at(j);
+			}
+		}
+		for (j = 0; j < iLen2; ++j) {
+			vvdBionProb.at(i).at(j) /= dMaxProb;
+		}
+	}
+}
+
 string Peptide::neutralLossProcess(const string& sCurrentPeptide) {
 	string sNewPeptide;
 	vector<pair<string, string> > vpNeutralLossList;

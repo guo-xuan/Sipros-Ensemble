@@ -16,7 +16,10 @@
 #include "./Scores/MVH.h"
 
 #define ZERO            0.00000001
-#define PEPTIDE_ARRAY_SIZE  1000000
+#define PEPTIDE_ARRAY_SIZE  2000000
+#define TASKWAIT_SIZE 64
+#define TASKRESUME_SIZE 32
+#define TASKPEPTIDE_ARRAY_SIZE  20000
 
 using namespace std;
 
@@ -44,21 +47,36 @@ class MS2ScanVector {
 	static bool myless(MS2Scan * pMS2Scan1, MS2Scan * pMS2Scan2);
 	static bool mylessScanId(MS2Scan * pMS2Scan1, MS2Scan * pMS2Scan2);
 	void preProcessAllMS2();  // Preprocessing all MS2 scans by multi-threading
+	void preProcessAllMS2Xcorr();  // Preprocessing all MS2 scans by multi-threading
 	void searchDatabase(); // Search all MS2 scans against the protein list by multi-threading
+	void searchDatabaseXcorr(); // Search all MS2 scans against the protein list by multi-threading
+	void searchDatabaseMVHTask();// task version of search database
+	void searchDatabaseXcorrTask();// task version of search database
+	void searchDatabaseXcorrTaskSIP();// task version of search database
 	// find every MS2 scan whose precursor mass matches peptide mass
 	bool assignPeptides2Scans(Peptide * currentPeptide);
 	void processPeptideArray(vector<Peptide*>& vpPeptideArray);
 	void processPeptideArrayMVH(vector<Peptide*>& vpPeptideArray);
+	void processPeptideArrayMVHTask(vector<Peptide*>& vpPeptideArray, omp_lock_t * pLck);
+	void processPeptideArrayXcorr(vector<Peptide*>& vpPeptideArray);
+	void processPeptideArrayXcorrTask(vector<Peptide*>& vpPeptideArray, omp_lock_t * pLck);
+	void processPeptideArrayXcorrTaskSIP(vector<Peptide*>& vpPeptideArray, omp_lock_t * pLck);
 	pair<int, int> GetRangeFromMass(double lb, double ub);
 	// Postprocessing all MS2 scans' results by multi-threading
 	void postProcessAllMS2();
+	void postProcessXcorr();
+	void postProcessXcorrSIP();
 	void postProcessAllMS2WDP();
+	void postProcessAllMS2WDPSIP();
 	void postProcessAllMS2Xcorr();
+	void postProcessAllMS2MVH();
+	void postProcessAllMS2MVHSIP();
 	// write results to a SIP file
 	// the SIP file will the same base file name as sFT2Filename
 	// change the extension filename to ".SIP"
 	void setOutputFile(const string & sFT2FilenameInput, const string & sOutputDirectory);
 	void writeOutput();
+	void writeOutputOneScore(int idx);
 	void writeOutputEnsemble();
 	//calculate mean and standard deviation of scores of a ms2 scan
 	void calculateMeanAndDeviation(int inumberScore, double dScoreSum, double dScoreSquareSum, double & dMean, double & dDeviation);
@@ -76,6 +94,10 @@ public:
 	bool loadFT2file();
 	bool ReadFT2File();    //Read FT2 files
 	void startProcessing(); // start functions to process the loaded FT2 file
+	void startProcessingXcorr(); // start functions to process the loaded FT2 file
+	void startProcessingMVHTask(); // start functions to process the loaded FT2 file
+	void startProcessingXcorrTask(); // start functions to process the loaded FT2 file
+	void startProcessingXcorrTaskSIP(); // start functions to process the loaded FT2 file
 
 	// variables for the MVH thread
 	vector<vector<double> *> _ppdAAforward;
@@ -85,7 +107,19 @@ public:
 	int num_max_threads;
 	void preMvh();
 	void postMvh();
-
+	// variables for the Xcorr thread
+	vector<bool *> vpbDuplFragmentGlobal;
+	vector<double *> v_pdAAforwardGlobal;
+	vector<double *> v_pdAAreverseGlobal;
+	vector<unsigned int ***> v_uiBinnedIonMassesGlobal;
+	vector<vector<bool> > vvpbDuplFragmentGlobal;
+	vector<vector<double> > vvdBinnedIonMassesGlobal;
+	vector<vector<int> >  vvdBinGlobal;
+	void preXcorr();
+	void postXcorr();
+	int iOpenMPTaskNum;
+	omp_lock_t lckOpenMpTaskNum;
+	omp_lock_t lckOpenMpTaskNumHalfed;
 	// multiple input format support
 
 };
