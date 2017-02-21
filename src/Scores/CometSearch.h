@@ -66,7 +66,6 @@ struct Query {
 	float **ppfSparseFastXcorrDataNL;
 
 	// Standard array representation of data
-	float *pfSpScoreData;
 	float *pfFastXcorrData;
 	float *pfFastXcorrDataNL;  // pfFastXcorrData with NH3, H2O contributions
 
@@ -82,7 +81,6 @@ struct Query {
 		ppfSparseFastXcorrData = NULL;
 		ppfSparseFastXcorrDataNL = NULL;          // pfFastXcorrData with NH3, H2O contributions
 
-		pfSpScoreData = NULL;
 		pfFastXcorrData = NULL;
 		pfFastXcorrDataNL = NULL;              // pfFastXcorrData with NH3, H2O contributions
 
@@ -93,6 +91,14 @@ struct Query {
 	}
 
 	~Query() {
+		if(pfFastXcorrData != NULL){
+			delete[] pfFastXcorrData;
+		}
+
+		if(pfFastXcorrDataNL != NULL){
+			delete[] pfFastXcorrDataNL;
+		}
+
 		int i;
 		if (ppfSparseSpScoreData != NULL) {
 			for (i = 0; i < iSpScoreData; i++) {
