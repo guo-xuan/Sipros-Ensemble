@@ -8,6 +8,7 @@ after running of sipros_peptides_filtering.py for assembling
 peptides to identify proteins.
 
 Created by Tae-Hyuk (Ted) Ahn on 10/10/2012.
+Modified by Xuan Guo on 02/20/2017
 Copyright (c) 2012 Tae-Hyuk Ahn (ORNL). Allrights reserved.
 """
 
@@ -27,7 +28,7 @@ csv.field_size_limit(1000000000)
 
 ## Version control
 def get_version():
-    return "4.0.1 (Alpha)"
+    return "Sipros Ensemble 1.0.1 (Alpha)"
 """
 1. for Sipros4.0 (added two columns in sip file)
    new program should handle both types of sip files

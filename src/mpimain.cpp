@@ -105,6 +105,9 @@ void initializeArguments(int argc, char **argv, vector<string> & vsFT2Filenames,
 			cout << "-o output directory. If not specified, it is the same as that of the input scan file," << endl;
 			cout << "-g configure file directory. -s silence all standard output." << endl;
 			exit(0);
+		} else if (vsArguments[i] == "-p") {
+			MVH::ProbabilityCutOff = atof(vsArguments[++i].c_str());
+			CometSearch::ProbabilityCutOff = MVH::ProbabilityCutOff;
 		} else {
 			cerr << "Unknown option " << vsArguments[i] << endl << endl;
 			exit(1);
