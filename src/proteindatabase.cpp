@@ -262,7 +262,13 @@ bool ProteinDatabase::getNextProtein() {
 			if (sline.find_first_not_of(" \r\n") != string::npos) {
 				if (sline.at(0) == '>') {
 					snextProteinName = sline.substr(1, sline.find_first_of(" \t\f\v\n\r") - 1);
-					break;
+					if (scurrentProtein != "") {
+						break;
+					}else{
+						scurrentProteinName = snextProteinName;
+						snextProteinName = "";
+						// cout << "check" << endl;
+					}
 				} else {
 					RemoveIllegalResidue(sline);
 					scurrentProtein = scurrentProtein + sline.substr(0, sline.find_last_not_of("\r\n") + 1);
