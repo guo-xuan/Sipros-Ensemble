@@ -29,6 +29,8 @@ curr_time = sipros_post_module.curr_time
 ## Format time as a pretty string
 format_time = sipros_post_module.format_time
 
+get_file_list_with_ext =  sipros_post_module.get_file_list_with_ext
+
 # Some hard-coded parameters
 rev_str = 'Rev_' # 'Rev_'
 shu_str = 'TestRev_' # 'Shu_'
@@ -305,7 +307,7 @@ def protein_type(protein_sequence, lProtein=None):
         for sProtein in asProteins:
             sProtein = sProtein.strip()
             if sProtein not in lProtein:
-                lProtein.extend(asProteins[:])
+                lProtein.append(sProtein)
     for sProtein in asProteins:
         if not (sProtein.startswith(rev_str) or sProtein.startswith(shu_str)):
             return LabelFwd
@@ -320,19 +322,33 @@ def protein_type(protein_sequence, lProtein=None):
 
 # # read the psm table
 def read_psm_table(input_file):
+    
+    sip_files_list = []
+    
+    # check if it is a folder
+    if os.path.isdir(input_file) == True:
+        lFileList = get_file_list_with_ext(input_file, 'Spe2Pep.txt')
+        for sFileName in lFileList:
+            sip_files_list.append(sFileName)
+    elif ',' in input_file:
+        file_split_list = input_file.split(',')
+        for file_str in file_split_list:
+            sip_files_list.append(file_str)
+    else:
+        sip_files_list.append(input_file)
 
     psm_list = []
     
     # read line with csv
-    f = csv.reader(CommentedFile(open(input_file, 'rb')),
-                            delimiter='\t')
-    # skip header
-    _sHeader = f.next()
-    # get data
-    for sLine in f:
-        PsmFields_obj = PsmFields4._make(sLine)
-        psm_obj = PSM(PsmFields_obj)
-        psm_list.append(psm_obj)
+    for file_str in sip_files_list:
+        f = csv.reader(CommentedFile(open(file_str, 'rb')), delimiter='\t')
+        # skip header
+        _sHeader = f.next()
+        # get data
+        for sLine in f:
+            PsmFields_obj = PsmFields4._make(sLine)
+            psm_obj = PSM(PsmFields_obj)
+            psm_list.append(psm_obj)
         
     i = 0
     for oPsm in psm_list:
@@ -615,13 +631,13 @@ def generate_Prophet_features_test(lPsm, config_dict):
         if oPsm.OriginalPeptide in peptide_protein_dict:
             pro_list = peptide_protein_dict[oPsm.OriginalPeptide]
             for protein in oPsm.protein_list:
-                if not protein in pro_list:
+                if protein not in pro_list:
                     pro_list.append(protein)
         else:
             pro_list = []
             for pro in oPsm.protein_list:
                 if pro not in pro_list:
-                    pro_list.extend(oPsm.protein_list)
+                    pro_list.append(pro)
             peptide_protein_dict[oPsm.OriginalPeptide] = pro_list
             
 
@@ -649,14 +665,22 @@ def generate_Prophet_features_test(lPsm, config_dict):
     pro_shared_pep_dict = {}
     for oPsm in lPsm:
         pro_list = peptide_protein_dict[oPsm.OriginalPeptide]
+        if len(oPsm.protein_list) != len(pro_list):
+            print 'check 3'
+            print oPsm.protein_list
+            print pro_list
+            
         changed_flag = False
         for protein in pro_list:
             if not protein in oPsm.protein_list:
                 oPsm.protein_list.append(protein)
                 changed_flag = True
         if len(oPsm.protein_list) != len(pro_list):
-            print 'check 3'
-        
+            print 'check 4'
+            print oPsm.protein_list
+            print pro_list
+            exit(1)
+            
         if changed_flag:
             oPsm.set_protein_names()
             oPsm.RealLabel = protein_type(oPsm.ProteinNames)
@@ -715,7 +739,8 @@ def generate_Prophet_features_test(lPsm, config_dict):
                     l = []
                     l.append(oPsm.OriginalPeptide)
                     pro_shared_pep_dict[pro] = l
-    # print "num changed %d" % num_changed
+    if num_changed != 0:
+        print "num changed %d" % num_changed
     
     # collect features
     num_unique_per_pro = 0

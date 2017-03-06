@@ -8,7 +8,7 @@ after running of sipros_peptides_filtering.py for assembling
 peptides to identify proteins.
 
 Created by Tae-Hyuk (Ted) Ahn on 10/10/2012.
-Modified by Xuan Guo on 02/20/2017
+Updated by Xuan Guo on 02/20/2017.
 Copyright (c) 2012 Tae-Hyuk Ahn (ORNL). Allrights reserved.
 """
 
@@ -18,6 +18,7 @@ import sys, getopt, warnings, os, re
 from datetime import datetime, date, time
 from collections import defaultdict
 import csv 
+from sets import Set
 
 ## Import Sipros package modules
 import sipros_post_module
@@ -124,8 +125,8 @@ psm_file_ext = '.psm.txt'
 
 pep_iden_str = '[Peptide_Identification]'
 fasta_database_str = 'FASTA_Database'
-pep_iden_str = '[Protein_Identification]'
-decoy_prefix_str = 'Decoy_Prefix'
+pro_iden_str = '[Protein_Identification]'
+decoy_prefix_str = 'Testing_Decoy_Prefix'
 min_peptide_per_protein_str = 'Min_Peptide_Per_Protein'
 min_unique_peptide_per_protein_str = 'Min_Unique_Peptide_Per_Protein'
 remove_decoy_identification_str = 'Remove_Decoy_Identification'
@@ -199,13 +200,13 @@ def parse_config(config_filename):
     for key, value in all_config_dict.items():
         if key == (pep_iden_str + fasta_database_str):
             config_dict[fasta_database_str] = value
-        elif key == (pep_iden_str + decoy_prefix_str):
+        elif key == (pro_iden_str + decoy_prefix_str):
             config_dict[decoy_prefix_str] = value
-        elif key == (pep_iden_str + min_peptide_per_protein_str):
+        elif key == (pro_iden_str + min_peptide_per_protein_str):
             config_dict[min_peptide_per_protein_str] = value
-        elif key == (pep_iden_str + min_unique_peptide_per_protein_str):
+        elif key == (pro_iden_str + min_unique_peptide_per_protein_str):
             config_dict[min_unique_peptide_per_protein_str] = value
-        elif key == (pep_iden_str + remove_decoy_identification_str):
+        elif key == (pro_iden_str + remove_decoy_identification_str):
             config_dict[remove_decoy_identification_str] = value
         else:
             continue
@@ -269,6 +270,87 @@ def read_fasta_file(working_dir, config_dict):
 
     return fasta_ID_dict
 
+
+## Read fasta file and only save the description in the filtered PSM
+def read_fasta_necessary_file(working_dir, config_dict, pro_greedy_list):
+    
+    pro_set = Set()
+    # if pro_greedy_list length > 0
+    if len(pro_greedy_list) > 0:
+
+        # loop pro_greedy_list
+        for protein_one in pro_greedy_list:
+
+            # Column1: Protein ID
+            ProteinID = protein_one
+    
+            if (ProteinID.startswith('{')) and (ProteinID.endswith('}')):
+            # multiple proteins exist
+                protein_ID_list = get_item_list(ProteinID.strip())
+                for protein_ID_one in protein_ID_list:
+                    pro_set.add(protein_ID_one)
+
+            # single ProteinID
+            else:
+                # check protein ID exist
+                pro_set.add(ProteinID)
+
+    # get fasta filename from config file
+    fasta_filename = config_dict[fasta_database_str].strip()
+    fasta_filename_only = fasta_filename.split("/")[-1]
+
+    # get working_dir
+    if working_dir[-1] != '/':
+        working_dir = working_dir + '/'
+
+    fasta_filename_dir = working_dir + fasta_filename_only
+
+    # check file exist and open the file
+    try:
+        with open(fasta_filename) as f: pass
+        fasta_file = open(fasta_filename, 'r')
+    except:
+        try:
+            with open(fasta_filename_only) as f: pass
+            fasta_file = open(fasta_filename_only, 'r')
+        except:
+            try:
+                with open(fasta_filename_dir) as f: pass
+                fasta_file = open(fasta_filename_dir, 'r')
+            except:
+                print >> sys.stderr, '\nCannot open', fasta_filename
+                print >> sys.stderr, 'Check your config file!'
+                die("Program exit!")
+
+    # save the fasta ID and description to the fasta_ID_dict
+    fasta_ID_dict = {}    # initialize dictionary
+
+    # FASTA ID is space delimited file
+    fasta_ID_del = ' '
+    
+    # print str(len(pro_set))
+    
+    # read lines
+    for line in fasta_file:
+        line = line.strip()
+        # check line start with '>'
+        if line.startswith('>'):
+            # protein ID is the first word without '>'
+            protein_ID = line.split(fasta_ID_del)[0][1:]
+            # 
+            if protein_ID not in pro_set:
+                continue
+            # protein description is the whole line without '>'
+            protein_desc = line[1:]
+            # replace "#" to "$"
+            protein_desc = re.sub('#', '$', protein_desc)
+            # replace tab to " "
+            protein_desc = re.sub('\t', ' ', protein_desc)
+
+            # save the fasta ID and description to the fasta_ID_dict
+            fasta_ID_dict[protein_ID] = protein_desc    # initialize dictionary
+
+    return fasta_ID_dict
 
 ## check pep and psm files pair set, and save run#
 def get_run_num(pep_file_list, psm_file_list):
@@ -680,13 +762,7 @@ def report_output(config_dict,
                   pro_pep_dict,
                   pep_pro_dict,
                   pro_greedy_list,
-                  fasta_ID_dict,
-                  base_out='None'):
-    
-    # Open output files
-    pro_out_file = open(base_out + ".pro.txt", 'wb')
-    pro2pep_out_file = open(base_out + ".pro2pep.txt", 'wb')
-    pro2psm_out_file = open(base_out + ".pro2psm.txt", 'wb')
+                  fasta_ID_dict):
 
 
     # save .pro.txt data
@@ -1193,7 +1269,7 @@ def main(argv=None):
             # Call parse_config to open and read config file
             config_dict = parse_config(config_filename)
             # Read fasta file and retrieve protein ID and description
-            fasta_ID_dict = read_fasta_file(working_dir, config_dict)
+            # fasta_ID_dict = read_fasta_file(working_dir, config_dict)
             # Get .pep.txt output file(s) in working directory
             pep_file_list = get_file_list_with_ext(working_dir, pep_file_ext)
             # Get .psm.txt output file(s) in working directory
@@ -1217,6 +1293,8 @@ def main(argv=None):
             # then iteratively extract a protein at a time that covers the most peptides
             sys.stderr.write('[Step 4] Greedy algorithm for identifying a list of proteins: Running -> ')
             (pro_greedy_list) = greedy_alg(config_dict, pro_pep_dict, pep_pro_dict)
+            # Read fasta file and retrieve protein ID and description
+            fasta_ID_dict = read_fasta_necessary_file(working_dir, config_dict, pro_greedy_list)
             sys.stderr.write('Done!\n')
 
             # Report output
