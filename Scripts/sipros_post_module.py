@@ -1296,16 +1296,18 @@ def writePsm(sOutputFile, qPsmProcessed, iNumRankers):
             del psm
             iNumProcessedScans += 1
             if iNumProcessedScans % 100 == 0:
-                print " Processed & Saved %i Scans\r" % iNumProcessedScans
+                pass
+                # print " Processed & Saved %i Scans\r" % iNumProcessedScans
     
     if bExtraNegativePsm:
         fExtra.close()
-    
+    '''
     print "\nTarget #: %d\tReverse #: %d\tShuffle #: %d" % (iNumTarget, iNumReverse, iNumShuffle)
     print liAgreeRecord
     print liTarget
     print liReverse
     print liShuffle
+    '''
 
 from lxml.etree import ElementTree, Element, SubElement
 

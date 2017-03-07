@@ -514,9 +514,10 @@ def main(argv=None):
     iQueueSize = 10000
     qPsmUnprocessed = Queue(iQueueSize)
     qPsmProcessed = Queue(iQueueSize)
+    sys.stderr.write('done')
     
-    sys.stderr.write('[Step 2] Generate PSM table: Running -> \n')
     
+    sys.stderr.write('[Step 2] Generate PSM table:                Running -> \n')
     # File Reader (Producer)
     DataReader = Spe2PepReader(queue=qPsmUnprocessed, 
                                name='FileReader', 
@@ -534,10 +535,14 @@ def main(argv=None):
     base_out_filename = base_out.split('/')[-1]
     base_out = output_folder + base_out_filename
     writePsm(base_out + '.tab', qPsmProcessed, iNumThreads - 2)
+    sys.stderr.write('done')
+    
     
     # base_out_filename = base_out.split('/')[-1]
     # base_out = output_folder + base_out_filename
+    sys.stderr.write('[Step 3] Merge Protein list:                Running -> \n')
     refine_proteins(base_out+'.tab')
+    sys.stderr.write('done')
     #writePin(base_out + '.tab', qPsmProcessed, iNumThreads - 2)
     #write_PepXML(output_folder, qPsmProcessed, iNumThreads - 2, config_dict)
 
