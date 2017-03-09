@@ -149,7 +149,7 @@ class PSM:
             self.score_differential_list.extend(float(i) for i in psm_field[14:])
         
         if len(self.score_differential_list) != 18:
-            print 'error score'
+            sys.stderr.write('error score\n')
         
         self.NMC = 0
         self.IPSC = 0
@@ -398,7 +398,7 @@ def show_Fdr(psm_list, fdr_float):
         elif oPsm.RealLabel == LabelShu:
             Shu_num += 1
         else:
-            print 'error 768.'
+            sys.stderr.write('error 768.\n')
         (FDR_accept, FDR_value) = FDR_calculator(Shu_num, Fwd_num)
         if (FDR_accept is True) and (FDR_value <= fdr_float):
             if (Best_list[0] + Best_list[2]) < (Fwd_num + Shu_num):
@@ -444,7 +444,7 @@ def show_Fdr_Pep(psm_list, fdr_float):
                 num_rev_pep += 1
                 peptide_set.add(pep_str)
             else:
-                print 'Error 71341'
+                sys.stderr.write('Error 71341\n')
 
         (FDR_accept, FDR_value) = FDR_calculator(num_shu_pep, num_fwr_pep)
         if (FDR_accept is True) and (FDR_value <= fdr_float):
@@ -665,16 +665,22 @@ def generate_Prophet_features_test(lPsm, config_dict):
     pro_shared_pep_dict = {}
     for oPsm in lPsm:
         pro_list = peptide_protein_dict[oPsm.OriginalPeptide]
+        '''
         if len(oPsm.protein_list) != len(pro_list):
             print 'check 3'
             print oPsm.protein_list
             print pro_list
-            
+        '''    
         changed_flag = False
+        print_flag = True
         for protein in pro_list:
             if not protein in oPsm.protein_list:
-                oPsm.protein_list.append(protein)
                 changed_flag = True
+                if not print_flag:
+                    print pro_list
+                    print oPsm.protein_list
+                    print_flag = True
+                oPsm.protein_list.append(protein)
         if len(oPsm.protein_list) != len(pro_list):
             print 'check 4'
             print oPsm.protein_list
@@ -684,6 +690,7 @@ def generate_Prophet_features_test(lPsm, config_dict):
         if changed_flag:
             oPsm.set_protein_names()
             oPsm.RealLabel = protein_type(oPsm.ProteinNames)
+            # print oPsm.OriginalPeptide
             num_changed += 1
         '''
         unique_id_str = oPsm.FileName + '_' + str(oPsm.ScanNumber) + '_' + oPsm.IdentifiedPeptide
@@ -740,7 +747,8 @@ def generate_Prophet_features_test(lPsm, config_dict):
                     l.append(oPsm.OriginalPeptide)
                     pro_shared_pep_dict[pro] = l
     if num_changed != 0:
-        print "num changed %d" % num_changed
+        if not print_flag:
+            print "num changed %d" % num_changed
     
     # collect features
     num_unique_per_pro = 0
@@ -1063,6 +1071,7 @@ def generate_psm_pep_txt(input_file, out_folder, psm_filtered_list, config_dict)
     # write out into files
     base_out_filename = input_file.split('/')[-1]
     base_out = out_folder + base_out_filename
+    psm_txt_file_str = base_out + ".psm.txt"
     with open(base_out + ".psm.txt", 'w') as fw:
         fw.write(pro_iden_msg)
         fw.write('#\t########################################\n')
@@ -1158,7 +1167,7 @@ def generate_psm_pep_txt(input_file, out_folder, psm_filtered_list, config_dict)
             oPeptide = Peptide()
             oPeptide.set(oPsm)
             pep_sub_dict[pep_ID] = oPeptide
-    
+    pep_txt_file_str = base_out + ".pep.txt"
     with open(base_out + ".pep.txt", 'w') as fw:
         fw.write(pro_iden_msg)
         # statistic results
@@ -1195,6 +1204,8 @@ def generate_psm_pep_txt(input_file, out_folder, psm_filtered_list, config_dict)
         for _pep_id, oPeptide in pep_sub_dict.iteritems():
             fw.write(repr(oPeptide))
             fw.write('\n')
+    
+    return (psm_txt_file_str, pep_txt_file_str)
 
 def remark_concensus(psm_list):
     psm_dict = {}
@@ -1271,7 +1282,7 @@ def main(argv=None):
 
     # write output
     sys.stderr.write('[Step 4] Report output:                                     Running -> ')
-    generate_psm_pep_txt(input_file, output_folder, psm_filtered_list, config_dict)
+    (psm_txt_file_str, pep_txt_file_str) = generate_psm_pep_txt(input_file, output_folder, psm_filtered_list, config_dict)
     sys.stderr.write('Done!\n')
     
     # Time record, calculate elapsed time, and display work end
@@ -1280,6 +1291,8 @@ def main(argv=None):
     sys.stderr.write('------------------------------------------------------------------------------\n')
     sys.stderr.write('[%s] Ending Sipros Ensemble filtering\n' % curr_time())
     sys.stderr.write('Run complete [%s elapsed]\n' %  format_time(duration))
+    
+    # print psm_txt_file_str + "____________" + pep_txt_file_str
     
 if __name__ == '__main__':
     sys.exit(main())

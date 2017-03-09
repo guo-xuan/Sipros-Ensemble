@@ -8,11 +8,17 @@ import sys
 import getopt
 import csv
 from collections import defaultdict
+from datetime import datetime, date, time
 
 # # Import Sipros package modules
 import sipros_post_module
 import parseconfig
 from multiprocessing import Queue, cpu_count
+
+## Returns the current time in a nice format
+curr_time = sipros_post_module.curr_time
+## Format time as a pretty string
+format_time = sipros_post_module.format_time
 
 # # Version control
 def get_version():
@@ -488,6 +494,11 @@ writePsm = sipros_post_module.writePsm
 get_base_out = sipros_post_module.get_base_out
 
 def main(argv=None):
+    
+    # Display work start and time record
+    start_time = datetime.now()
+    sys.stderr.write('[%s] Beginning Sipros Ensemble Tabulating (%s)\n' % (curr_time(), get_version()))
+    sys.stderr.write('------------------------------------------------------------------------------\n')
 
     if argv is None:
         argv = sys.argv
@@ -499,7 +510,7 @@ def main(argv=None):
     if iNumThreads < 3:
         sys.stderr.write('This script needs at least three cores per CPU.')
     else:
-        sys.stderr.write('There are %d threads.\n' % iNumThreads)
+        sys.stderr.write('%d threads will be used. \n' % iNumThreads)
     # Parse options and get config file
     sys.stderr.write('[Step 1] Parse options and get config file: Running -> ')
     # Call parse_config to open and read config file
@@ -514,10 +525,10 @@ def main(argv=None):
     iQueueSize = 10000
     qPsmUnprocessed = Queue(iQueueSize)
     qPsmProcessed = Queue(iQueueSize)
-    sys.stderr.write('done')
+    sys.stderr.write('Done!\n')
     
     
-    sys.stderr.write('[Step 2] Generate PSM table:                Running -> \n')
+    sys.stderr.write('[Step 2] Generate PSM table:                Running -> ')
     # File Reader (Producer)
     DataReader = Spe2PepReader(queue=qPsmUnprocessed, 
                                name='FileReader', 
@@ -535,16 +546,25 @@ def main(argv=None):
     base_out_filename = base_out.split('/')[-1]
     base_out = output_folder + base_out_filename
     writePsm(base_out + '.tab', qPsmProcessed, iNumThreads - 2)
-    sys.stderr.write('done')
+    sys.stderr.write('Done!\n')
     
     
     # base_out_filename = base_out.split('/')[-1]
     # base_out = output_folder + base_out_filename
-    sys.stderr.write('[Step 3] Merge Protein list:                Running -> \n')
+    sys.stderr.write('[Step 3] Merge Protein list:                Running -> ')
     refine_proteins(base_out+'.tab')
-    sys.stderr.write('done')
+    sys.stderr.write('Done!\n')
     #writePin(base_out + '.tab', qPsmProcessed, iNumThreads - 2)
     #write_PepXML(output_folder, qPsmProcessed, iNumThreads - 2, config_dict)
+
+    # Time record, calculate elapsed time, and display work end
+    finish_time = datetime.now()
+    duration = finish_time - start_time
+    sys.stderr.write('------------------------------------------------------------------------------\n')
+    sys.stderr.write('[%s] Ending Sipros Ensemble Tabulating\n' % curr_time())
+    sys.stderr.write('Run complete [%s elapsed]\n' %  format_time(duration))
+    
+    print base_out + '.tab'
 
 if __name__ == '__main__':
     sys.exit(main())

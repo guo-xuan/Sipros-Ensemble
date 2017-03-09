@@ -293,16 +293,16 @@ bool Isotopologue::getSingleResidueMostAbundantMasses(vector<string> & vsResidue
 	for (pass = 1; pass < n; pass++) {  // count how many times
 		// This next loop becomes shorter and shorter
 		for (i = 0; i < n - pass; i++) {
-			if (vdMostAbundantMasses[i] > vdMostAbundantMasses[i + 1]) {
+			if (vdMostAbundantMasses.at(i) > vdMostAbundantMasses.at(i + 1)) {
 				// exchange
-				dCurrentMass = vdMostAbundantMasses[i];
-				sCurrentResidue = vsResidues[i];
+				dCurrentMass = vdMostAbundantMasses.at(i);
+				sCurrentResidue = vsResidues.at(i);
 
-				vdMostAbundantMasses[i] = vdMostAbundantMasses[i + 1];
-				vsResidues[i] = vsResidues[i + 1];
+				vdMostAbundantMasses.at(i) = vdMostAbundantMasses.at(i + 1);
+				vsResidues.at(i) = vsResidues.at(i + 1);
 
-				vdMostAbundantMasses[i + 1] = dCurrentMass;
-				vsResidues[i + 1] = sCurrentResidue;
+				vdMostAbundantMasses.at(i + 1) = dCurrentMass;
+				vsResidues.at(i + 1) = sCurrentResidue;
 			}
 		}
 	}

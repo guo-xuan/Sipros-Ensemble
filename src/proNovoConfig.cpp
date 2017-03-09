@@ -28,7 +28,7 @@ double ProNovoConfig::dMassAccuracyParentIon = 0.05;
 double ProNovoConfig::dMassAccuracyFragmentIon = 0.05;
 vector<int> ProNovoConfig::viParentMassWindows;
 
-ProNovoConfig* ProNovoConfig::ProNovoConfigSingleton = 0;
+ProNovoConfig* ProNovoConfig::ProNovoConfigSingleton = NULL;
 
 vector<string> ProNovoConfig::vsSingleResidueNames;
 vector<double> ProNovoConfig::vdSingleResidueMasses;
@@ -93,14 +93,16 @@ double AminoAcidMasses::dNULL = -1;
 double AminoAcidMasses::dERROR = -2;
 
 AminoAcidMasses::AminoAcidMasses() {
+	vdMasses.clear();
+	vdMasses.resize(AminoAcidMassesSize, 0);
 	for (int i = 0; i < AminoAcidMassesSize; i++) {
-		vdMasses[i] = dNULL;
+		vdMasses.at(i) = dNULL;
 	}
 }
 
 void AminoAcidMasses::clear() {
 	for (int i = 0; i < AminoAcidMassesSize; i++) {
-		vdMasses[i] = dNULL;
+		vdMasses.at(i) = dNULL;
 	}
 }
 
@@ -114,7 +116,7 @@ double AminoAcidMasses::find(char _cAminoAcid) {
 		exit(1);
 		return dERROR;
 	}
-	return vdMasses[(int) _cAminoAcid];
+	return vdMasses.at((int) _cAminoAcid);
 }
 
 double AminoAcidMasses::operator[](char _cAminoAcid) const {
@@ -123,7 +125,7 @@ double AminoAcidMasses::operator[](char _cAminoAcid) const {
 		exit(1);
 		return dERROR;
 	}
-	return vdMasses[(int) _cAminoAcid];
+	return vdMasses.at((int) _cAminoAcid);
 }
 
 double & AminoAcidMasses::operator[](char _cAminoAcid) {
@@ -132,14 +134,14 @@ double & AminoAcidMasses::operator[](char _cAminoAcid) {
 		exit(1);
 		return dERROR;
 	}
-	return vdMasses[(int) _cAminoAcid];;
+	return vdMasses.at((int) _cAminoAcid);
 }
 
 ProNovoConfig::ProNovoConfig() {
 }
 
 bool ProNovoConfig::setFilename(const string & sConfigFileName) {
-	if (ProNovoConfigSingleton == 0) {
+	if (ProNovoConfigSingleton == NULL) {
 		ProNovoConfigSingleton = new ProNovoConfig;
 	}
 

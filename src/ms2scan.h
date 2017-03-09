@@ -125,9 +125,9 @@ public:
 	int iLowestMass;
 	// excluded
 	int iHighestMass;
-	short * pMassHub;
-	double * pPeaks;
-	char * pClasses;
+	vector<short> pMassHub;
+	vector<double> pPeaks;
+	vector<char> pClasses;
 	int iPeakSize;
 	int iMassHubSize;
 	int iMassHubPairSizeMinusOne;

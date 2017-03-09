@@ -145,11 +145,12 @@ remove_decoy_identification = 'No'
 def parse_options(argv):
 
     try:
-        opts, args = getopt.getopt(argv[1:], "hvVw:c:",
+        opts, args = getopt.getopt(argv[1:], "hvVw:c:i:",
                                     ["help",
                                      "version",
                                      "working-dir",
-                                     "config-file"])
+                                     "config-file",
+                                     "psm-pep-files"])
 
     # Error handling of options
     except getopt.error, msg:
@@ -158,6 +159,8 @@ def parse_options(argv):
     # Default working dir and config file
     working_dir = "./"
     config_file = "SiprosConfig.cfg"
+    psm_txt_file_str = ""
+    pep_txt_file_str = ""
 
     # Basic options
     for option, value in opts:
@@ -172,12 +175,16 @@ def parse_options(argv):
                 working_dir = working_dir + '/'
         if option in ("-c", "--config-file"):
             config_file = value
+        if option in ("-i", "--psm-pep-files"):
+            split_l = value.split("____________")
+            psm_txt_file_str = split_l[0]
+            pep_txt_file_str = split_l[1]
 
     # only -w is provided
     if working_dir != "./" and config_file == "SiprosConfig.cfg":
         config_file = working_dir + config_file
 
-    return (working_dir, config_file)
+    return (working_dir, config_file, psm_txt_file_str, pep_txt_file_str)
 
 
 ## Parse config file
@@ -1257,7 +1264,7 @@ def main(argv=None):
             argv = sys.argv
         try:
             # parse options
-            (working_dir, config_filename) = parse_options(argv)
+            (working_dir, config_filename, psm_txt_file_str, pep_txt_file_str) = parse_options(argv)
 
             # Display work start and time record
             start_time = datetime.now()

@@ -91,19 +91,23 @@ struct Query {
 	}
 
 	~Query() {
-		if(pfFastXcorrData != NULL){
+		if (pfFastXcorrData != NULL) {
 			delete[] pfFastXcorrData;
+			pfFastXcorrData = NULL;
 		}
 
-		if(pfFastXcorrDataNL != NULL){
+		if (pfFastXcorrDataNL != NULL) {
 			delete[] pfFastXcorrDataNL;
+			pfFastXcorrDataNL = NULL;
 		}
 
 		int i;
 		if (ppfSparseSpScoreData != NULL) {
 			for (i = 0; i < iSpScoreData; i++) {
-				if (ppfSparseSpScoreData[i] != NULL)
+				if (ppfSparseSpScoreData[i] != NULL){
 					delete[] ppfSparseSpScoreData[i];
+					ppfSparseSpScoreData[i] = NULL;
+				}
 			}
 			delete[] ppfSparseSpScoreData;
 			ppfSparseSpScoreData = NULL;
@@ -112,8 +116,10 @@ struct Query {
 
 		if (ppfSparseFastXcorrData != NULL) {
 			for (i = 0; i < iFastXcorrData; i++) {
-				if (ppfSparseFastXcorrData[i] != NULL)
+				if (ppfSparseFastXcorrData[i] != NULL){
 					delete[] ppfSparseFastXcorrData[i];
+					ppfSparseFastXcorrData[i] = NULL;
+				}
 			}
 			delete[] ppfSparseFastXcorrData;
 			ppfSparseFastXcorrData = NULL;
@@ -125,8 +131,10 @@ struct Query {
 						|| ProNovoConfig::ionInformation.iIonVal[ION_SERIES_Y])) {
 			if (ppfSparseFastXcorrDataNL != NULL) {
 				for (i = 0; i < iFastXcorrDataNL; i++) {
-					if (ppfSparseFastXcorrDataNL[i] != NULL)
+					if (ppfSparseFastXcorrDataNL[i] != NULL){
 						delete[] ppfSparseFastXcorrDataNL[i];
+						ppfSparseFastXcorrDataNL[i] = NULL;
+					}
 				}
 				delete[] ppfSparseFastXcorrDataNL;
 				ppfSparseFastXcorrDataNL = NULL;
@@ -157,8 +165,12 @@ public:
 
 	static bool Preprocess(struct Query *pScoring, MS2Scan * mstSpectrum, double *pdTmpRawData, double *pdTmpFastXcorrData, double *pdTmpCorrelationData,
 			double *pdSmoothedSpectrum, double *pdTmpPeakExtracted);
+	static bool PreprocessVector(struct Query *pScoring, MS2Scan * mstSpectrum, vector<double> & pdTmpRawData, vector<double> & pdTmpFastXcorrData,
+			vector<double> & pdTmpCorrelationData, vector<double> & pdTmpSmoothedSpectrum, vector<double> & pdTmpPeakExtracted);
 	static bool LoadIons(struct Query *pScoring, double *pdTmpRawData, MS2Scan * mstSpectrum, struct PreprocessStruct *pPre);
+	static bool LoadIonsVector(struct Query *pScoring, vector<double> & pdTmpRawData, MS2Scan * mstSpectrum, struct PreprocessStruct *pPre);
 	static void MakeCorrData(double *pdTmpRawData, double *pdTmpCorrelationData, struct Query *pScoring, struct PreprocessStruct *pPre);
+	static void MakeCorrDataVector(vector<double> & pdTmpRawData, vector<double> & pdTmpCorrelationData, struct Query *pScoring, struct PreprocessStruct *pPre);
 	static bool Smooth(double *data, int iArraySize, double *pdSmoothedSpectrum);
 	static bool PeakExtract(double *data, int iArraySize, double *pdTmpPeakExtracted);
 	static void GetTopIons(double *pdTmpRawData, struct msdata *pTmpSpData, int iArraySize);

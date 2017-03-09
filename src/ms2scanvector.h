@@ -48,6 +48,7 @@ class MS2ScanVector {
 	static bool mylessScanId(MS2Scan * pMS2Scan1, MS2Scan * pMS2Scan2);
 	void preProcessAllMS2();  // Preprocessing all MS2 scans by multi-threading
 	void preProcessAllMS2Xcorr();  // Preprocessing all MS2 scans by multi-threading
+	void preProcessAllMS2XcorrVector();  // Preprocessing all MS2 scans by multi-threading, vector replaced in Comet
 	void searchDatabase(); // Search all MS2 scans against the protein list by multi-threading
 	void searchDatabaseXcorr(); // Search all MS2 scans against the protein list by multi-threading
 	void searchDatabaseMVHTask();// task version of search database

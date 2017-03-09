@@ -40,18 +40,22 @@ MS2Scan::~MS2Scan() {
 
 	if (peakData != NULL) {
 		delete peakData;
+		peakData = NULL;
 	}
 
 	if (pPeakList != NULL) {
 		delete pPeakList;
+		pPeakList = NULL;
 	}
 
 	if (intenClassCounts != NULL) {
 		delete intenClassCounts;
+		intenClassCounts = NULL;
 	}
 
 	if (pQuery != NULL) {
 		delete pQuery;
+		pQuery = NULL;
 	}
 }
 
@@ -1664,38 +1668,39 @@ void PeptideUnit::setIonMassProb(const Peptide * currentPeptide) {
 char PeakList::iNULL = 255;
 
 PeakList::PeakList(map<double, char> * _peakData) {
-	pMassHub = NULL;
-	pPeaks = NULL;
-	pClasses = NULL;
+	pMassHub.clear();
+	pPeaks.clear();
+	pClasses.clear();
 	iPeakSize = _peakData->size();
 	if (iPeakSize == 0) {
 		return;
 	}
-	pPeaks = new double[iPeakSize];
-	pClasses = new char[iPeakSize];
+	pPeaks.resize(iPeakSize, 0);
+	pClasses.resize(iPeakSize, 0);
 	int j = 0, k = 0;
 	for (std::map<double, char>::iterator i = _peakData->begin(); i != _peakData->end(); i++) {
-		pPeaks[j] = i->first;
-		pClasses[j] = i->second;
+		pPeaks.at(j) = i->first;
+		pClasses.at(j) = i->second;
 		++j;
 	}
-	iLowestMass = (int) pPeaks[0];
-	iHighestMass = (int) pPeaks[iPeakSize - 1];
+	if (j != iPeakSize) {
+		cout << "ERRO PeakList 2" << endl;
+		exit(1);
+	}
+	iLowestMass = (int) pPeaks.at(0);
+	iHighestMass = (int) pPeaks.at(iPeakSize - 1);
 	iMassHubPairSizeMinusOne = (iHighestMass - iLowestMass);
 	iMassHubSize = (iHighestMass - iLowestMass + 1) * 2;
-	pMassHub = new short[iMassHubSize];
-	for (j = 0; j < iMassHubSize; ++j) {
-		pMassHub[j] = -1;
-	}
-	// fill_n(pMassHub, iMassHubSize, -1);
+	pMassHub.resize(iMassHubSize, ((short)-1));
+
 	int iMass = 0, iMassIdx;
 	int iStart, iEnd;
 	for (j = 0; j < iPeakSize;) {
-		iMass = pPeaks[j];
+		iMass = pPeaks.at(j);
 		iStart = j;
 		iEnd = j + 1;
 		for (k = j + 1; k < iPeakSize; ++k) {
-			if (((int) pPeaks[k]) > iMass) {
+			if (((int) pPeaks.at(k)) > iMass) {
 				iEnd = k;
 				break;
 			}
@@ -1709,24 +1714,12 @@ PeakList::PeakList(map<double, char> * _peakData) {
 			cout << "ERRO PeakList 1" << endl;
 			exit(1);
 		}
-		pMassHub[iMassIdx] = iStart;
-		pMassHub[iMassIdx + 1] = iEnd;
+		pMassHub.at(iMassIdx) = iStart;
+		pMassHub.at(iMassIdx + 1) = iEnd;
 	}
 }
 
 PeakList::~PeakList() {
-	if (pMassHub != NULL) {
-		delete[] pMassHub;
-		pMassHub = NULL;
-	}
-	if (pPeaks != NULL) {
-		delete[] pPeaks;
-		pPeaks = NULL;
-	}
-	if (pClasses != NULL) {
-		delete[] pClasses;
-		pClasses = NULL;
-	}
 }
 
 char PeakList::end() {
@@ -1756,9 +1749,9 @@ char PeakList::findNear(double mz, double tolerance) {
 		iEnd = iMzU - iLowestMass;
 	}
 	for (; iStart <= iEnd; ++iStart) {
-		if (pMassHub[iStart * 2] != -1) {
-			for (i = pMassHub[iStart * 2], j = pMassHub[iStart * 2 + 1]; i < j; ++i) {
-				dDiff = fabs(mz - pPeaks[i]);
+		if (pMassHub.at(iStart * 2) != -1) {
+			for (i = pMassHub.at(iStart * 2), j = pMassHub.at(iStart * 2 + 1); i < j; ++i) {
+				dDiff = fabs(mz - pPeaks.at(i));
 				if (dDiff < dMin) {
 					dMin = dDiff;
 					iClass = pClasses[i];

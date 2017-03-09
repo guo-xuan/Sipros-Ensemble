@@ -99,7 +99,8 @@ class AminoAcidMasses{
 public:
 	static double dNULL;
 	static double dERROR;
-	double vdMasses[AminoAcidMassesSize];
+	vector<double> vdMasses;
+	// double vdMasses[AminoAcidMassesSize];
 
 	// construct function
 	AminoAcidMasses();
