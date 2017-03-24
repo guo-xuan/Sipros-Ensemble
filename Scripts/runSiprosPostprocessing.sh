@@ -10,6 +10,7 @@ fi;
 SipFolder=""
 ConfigureFile=""
 OutputFolder=""
+TabFile=""
 
 # Read Parameter
 while [[ $# > 0 ]]
@@ -35,6 +36,10 @@ case $key in
     SipFolder="$2"
     shift # past argument
     ;;
+    -t)
+    TabFile="$2"
+    shift
+    ;;
     -c)			# Output file prefix
     ConfigureFile="$2"
     shift # past argument
@@ -53,7 +58,9 @@ fi
 
 
 # Generate PSM table
+if [ "$TabFile" == "" ]; then
 TabFile=$(python ${exePath}/sipros_psm_tabulating.py -i ${SipFolder}/ -c ${ConfigureFile} -o ${OutputFolder}/)
+fi
 
 # PSM Filtering
 # echo ${TabFile}
