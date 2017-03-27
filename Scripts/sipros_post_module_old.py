@@ -18,20 +18,6 @@ from datetime import datetime
 from collections import namedtuple
 from multiprocessing import Process
 
-rev_str = 'Rev_' # 'Rev_'
-shu_str = 'TestRev_' # 'Shu_'
-
-
-# rev_str = 'Sh1_' # 'Rev_'
-# shu_str = 'Sh2_' # 'Shu_'
-
-# rev_str = 'Rev_'
-# shu_str = 'Dec_'
-
-LabelFwd = 1
-LabelRev = 2
-LabelShu = 3
-
 # # Class Usage
 class Usage(Exception):
     def __init__(self, msg):
@@ -383,11 +369,8 @@ def get_item_list(input_string):
 
     input_string = input_string[1:-1]
     item_list = re.split(r"\s*[,]\s*", input_string.strip())
-    item_list_new = []
-    for item_one in item_list:
-        if item_one not in item_list_new:
-            item_list_new.append(item_one)
-    return item_list_new
+
+    return item_list
 
 
 # # get_protein_count
@@ -537,15 +520,6 @@ def numberTopRanks(liRanks):
             iCount += 1
     return iCount
 
-# # count pep ranked as top by how many scores
-def get_number_Top_Ranks(pep, all_top_peps):
-    iCount = 0
-    for i in range(len(pep.lfScores)):
-        if pep.lfScores[i] >= all_top_peps[i].lfScores[i]:
-            pep.liRanks[i] = 1
-            iCount += 1
-    return iCount
-
 def zero_divide(a, b):
     if b != 0:
         return a / b
@@ -608,10 +582,6 @@ class PepSpectrumMatch:
         self.lPepScores = liRanksNew
 
     def ranking(self):
-        '''
-        if self.iScanNumber == 7468:
-            print 'check.'
-        '''
         del self.lTopPep[:]
         for j in self.lPepScores:
             del j.liRanks[:]
@@ -627,17 +597,17 @@ class PepSpectrumMatch:
                 iRank += 1
             # score rank -> score differential
             for j in range(0, len(lPep) - 1):
-                # lPep[j].lfDeltaRankScore.append(1 - zero_divide(lPep[j + 1].lfScores[i], lPep[0].lfScores[i]))
-                
+                lPep[j].lfDeltaRankScore.append(1 - zero_divide(lPep[j + 1].lfScores[i], lPep[0].lfScores[i]))
+                '''
                 if j == 0:
                     lPep[j].lfDeltaRankScore.append(1.0 - zero_divide(lPep[1].lfScores[i], lPep[0].lfScores[i]))
                 else:
                     lPep[j].lfDeltaRankScore.append(zero_divide(lPep[j].lfScores[i], lPep[0].lfScores[i]) - 1.0)
-                
+                '''
                 lPep[j].lfDiffRankScore.append(lPep[j].lfScores[i] - lPep[j + 1].lfScores[i])
                 lPep[j].lfDiffNorRankScore.append(zero_divide(lPep[j].lfScores[i] - lPep[j + 1].lfScores[i], lPep[j].lfScores[i]))
-            # lPep[len(lPep) - 1].lfDeltaRankScore.append(0)
-            lPep[len(lPep) - 1].lfDeltaRankScore.append(zero_divide(lPep[len(lPep) - 1].lfScores[i], lPep[0].lfScores[i]) - 1.0)
+            lPep[len(lPep) - 1].lfDeltaRankScore.append(0)
+            # lPep[len(lPep) - 1].lfDeltaRankScore.append(zero_divide(lPep[len(lPep) - 1].lfScores[i], lPep[0].lfScores[i]) - 1.0)
             lPep[len(lPep) - 1].lfDiffRankScore.append(0)
             lPep[len(lPep) - 1].lfDiffNorRankScore.append(0)
             
@@ -667,8 +637,7 @@ class PepSpectrumMatch:
             lPep[len(lPep) - 1].lfDiffNorRankProduct.append(0)
         
         for i in self.lTopPep:
-            # if numberTopRanks(i.liRanks) >= 2:
-            if get_number_Top_Ranks(i, self.lTopPep) >= 2:
+            if numberTopRanks(i.liRanks) >= 2:
                 self.oBestPep = i
                 self.iParentCharge = self.oBestPep.iCharge
                 self.sSearchName = self.oBestPep.sSearchName
@@ -678,23 +647,15 @@ class PepSpectrumMatch:
                     else:
                         self.oSecondBestPep = lPep[0]
                     # PTM in the best pep
-                    # # deltaP
                     if len(i.sIdentifiedPeptide) != len(i.sOriginalPeptide):
-                        #pep_sorted_str = ''.join(sorted(i.sIdentifiedPeptide))
                         for pep in lPep:
-                            #pep_sorted_compared_str = ''.join(sorted(pep.sIdentifiedPeptide))
-                            #if pep_sorted_str == pep_sorted_compared_str and \
-                            #pep.sIdentifiedPeptide != i.sIdentifiedPeptide :
-                            
                             if pep.sIdentifiedPeptide != i.sIdentifiedPeptide and \
                             abs(pep.fCalculatedParentMass - i.fCalculatedParentMass) < 0.00005 and \
                             abs(math.fabs(pep.fMeasuredParentMass - pep.fCalculatedParentMass) - math.fabs(i.fMeasuredParentMass - i.fCalculatedParentMass)) < 0.00005 and \
                             pep.sOriginalPeptide == i.sOriginalPeptide and \
                             len(pep.sIdentifiedPeptide) == len(i.sIdentifiedPeptide):
-                            
                                 avg_deltaP = 0.0
                                 for s in range(iNumScores):
-                                    # if self.lTopPep[s].lfScores[s] != 0 and i.liRanks[s] == 1:
                                     if self.lTopPep[s].lfScores[s] != 0:
                                         avg_deltaP += (i.lfScores[s] - pep.lfScores[s])/self.lTopPep[s].lfScores[s]
                                 avg_deltaP /= float(iNumScores)
@@ -706,21 +667,14 @@ class PepSpectrumMatch:
             for lPep_local in pep_rank_list:
                 # contain PTM
                 if len(lPep_local[0].sIdentifiedPeptide) != len(lPep_local[0].sOriginalPeptide):
-                    #pep_sorted_str = ''.join(sorted(lPep_local[0].sIdentifiedPeptide))
                     for pep in lPep_local:
-                        #pep_sorted_compared_str = ''.join(sorted(pep.sIdentifiedPeptide))
-                        #if pep_sorted_str == pep_sorted_compared_str and \
-                        #pep.sIdentifiedPeptide != lPep_local[0].sIdentifiedPeptide :
-                        
                         if pep.sIdentifiedPeptide != lPep_local[0].sIdentifiedPeptide and \
                         abs(pep.fCalculatedParentMass - lPep_local[0].fCalculatedParentMass) < 0.00005 and \
                         abs(math.fabs(pep.fMeasuredParentMass - pep.fCalculatedParentMass) - math.fabs(lPep_local[0].fMeasuredParentMass - lPep[0].fCalculatedParentMass)) < 0.00005 and \
                         pep.sOriginalPeptide == lPep_local[0].sOriginalPeptide and \
                         len(pep.sIdentifiedPeptide) == len(lPep_local[0].sIdentifiedPeptide):
-                        
                             avg_deltaP = 0.0
                             for si in range(iNumScores):
-                                # if self.lTopPep[si].lfScores[si] != 0 and lPep_local[0].liRanks[si] == 1:
                                 if self.lTopPep[si].lfScores[si] != 0:
                                     avg_deltaP += (lPep_local[0].lfScores[si] - pep.lfScores[si])/self.lTopPep[si].lfScores[si]
                             avg_deltaP /= float(iNumScores)
@@ -1138,12 +1092,12 @@ def protein_type(protein_sequence, lProtein=None):
         del lProtein[:]
         lProtein.extend(asProteins[:])
     for sProtein in asProteins:
-        if not (sProtein.startswith(rev_str) or sProtein.startswith(shu_str)):
-            return LabelFwd
+        if not (sProtein.startswith('Rev_') or sProtein.startswith('Dec_')):
+            return 1
     for sProtein in asProteins:
-        if sProtein.startswith(shu_str):
-            return LabelShu
-    return LabelRev
+        if sProtein.startswith('Dec_'):
+            return 3
+    return 2
 
 # # score agreement recode
 def agreement(liRank):
@@ -1209,16 +1163,14 @@ def writePin(sOutputFile, qPsmProcessed, iNumRankers):
             del psm
             iNumProcessedScans += 1
             if iNumProcessedScans % 100 == 0:
-                pass
-                # print " Processed & Saved %i Scans\r" % iNumProcessedScans
-    '''
+                print " Processed & Saved %i Scans\r" % iNumProcessedScans
+
     print "\nTarget #: %d\tReverse #: %d\tShuffle #: %d" % (iNumTarget, iNumReverse, iNumShuffle)
     print liAgreeRecord
     print liTarget
     print liReverse
     print liShuffle
     print 'Max number of proteins: %i' % iMaxNumProtein
-    '''
 
 bAdditionalFeatures = True
 header_message_additional_feature = '\tDeltaRP1\tDeltaRP2\tDeltaRP3\tDeltaRS1\tDeltaRS2\tDeltaRS3\tDiffRP1\tDiffRP2\tDiffRP3\tDiffRS1\tDiffRS2\tDiffRS3\tDiffNorRP1\tDiffNorRP2\tDiffNorRP3\tDiffNorRS1\tDiffNorRS2\tDiffNorRS3'
@@ -1265,8 +1217,6 @@ def writePsm(sOutputFile, qPsmProcessed, iNumRankers):
             f.write(header_message_additional_feature)
         if bRTime:
             f.write('\tRetentionTime')
-            f.write('\tLocalRank')
-            f.write('\tDeltaP')
         f.write('\n')
         
         if bExtraNegativePsm:
@@ -1298,8 +1248,6 @@ def writePsm(sOutputFile, qPsmProcessed, iNumRankers):
                 else:
                     continue
             
-            f.write(psm.all_top_ranked_psm())
-            '''
             if bAdditionPepScoreAgreementNotThree and num_agreement(psm.oBestPep.liRanks) < 2:
                 f.write(psm.all_top_ranked_psm())
             else:
@@ -1319,15 +1267,15 @@ def writePsm(sOutputFile, qPsmProcessed, iNumRankers):
                 f.write(str(psm.oBestPep.iRank))
                 f.write('\t')
                 f.write(str(psm.oBestPep.DeltaP))
-            '''
+            
             f.write('\n')
             iTemp2 = agreement(psm.oBestPep.liRanks)
             liAgreeRecord[iTemp2] += 1
             iTemp = protein_type(psm.oBestPep.sProteinNames)
-            if iTemp == LabelFwd:
+            if iTemp == 1:
                 iNumTarget += 1
                 liTarget[iTemp2] += 1
-            elif iTemp == LabelRev:
+            elif iTemp == 2:
                 iNumReverse += 1
                 liReverse[iTemp2] += 1
             else:
@@ -1361,6 +1309,7 @@ def writePsm(sOutputFile, qPsmProcessed, iNumRankers):
     print liShuffle
     '''
 
+from lxml.etree import ElementTree, Element, SubElement
 
 pep_iden_str = '[Peptide_Identification]'
 search_name_str = 'Search_Name'
@@ -1384,8 +1333,7 @@ def get_modification_info(peptide_str, modification_label_dict):
             modification_dict[str(beg - len(modification_dict))] = value
             beg = peptide_str.find(key, beg + 1)
     return modification_dict
-'''
-from lxml.etree import ElementTree, Element, SubElement
+
 def write_PepXML(output_folder, qPsmProcessed, iNumRankers, config_dict):
 
     input_filename = ''
@@ -1565,4 +1513,3 @@ def write_PepXML(output_folder, qPsmProcessed, iNumRankers, config_dict):
                        pretty_print=True)
 
     print 'Done.'
-'''
