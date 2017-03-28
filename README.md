@@ -39,6 +39,12 @@ Please don't use these reserved symbols: { } # [ ] = ,
 
 Neutral loss can be specified by PTM{1to2}, e.g., PTM{>to|} = ST. If symbol2 is nothing, it can be specified by PTM{1to}, e.g., PTM{>to} = ST.
 
+#### Generate Reverse Sequences
+
+python reverseseq.py -i original_database_file -o output_database_file
+
+The step will generate a new database file with reverse sequences. Update the path of `FASTA_Database` in the configuration file.
+
 #### Quickly Running The Database-searching and Filtering/Assembling
 
 There are two basic versions of the database-searching: one for running on a single machine and another for running with MPI on a cluster.  
@@ -49,10 +55,10 @@ There are two basic versions of the database-searching: one for running on a sin
 #!/bin/bash
 
 # Single MS2 file
-runSipros.sh -o ${output_dir} -f data.ms2 -c config.cfg
+runSipros.sh -o ${output_dir} -f data.ms2 -c SiprosConfig.cfg
 
-# Multiple MS files in a folder
-runSipros.sh -o ${output_dir} -w workingdirectory,readB.fastq.gz
+# Multiple MS2 files in a folder
+runSipros.sh -o ${output_dir} -w workingdirectory -c SiprosConfig.cfg
 
 ```
 Use `./runSipros.sh -h` for help information.
