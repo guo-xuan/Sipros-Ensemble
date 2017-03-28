@@ -96,7 +96,7 @@ else
    `mkdir $dataOutPath`
 fi
 
-logFile="${dataOutPath}/${date}.log"
+logFile="${dataOutPath}/$(date).log"
 
 echo Starting Time is $(date)
 
