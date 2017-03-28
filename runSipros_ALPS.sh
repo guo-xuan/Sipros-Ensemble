@@ -115,13 +115,13 @@ echo Starting Time is $(date)
 #database searching
 if [ -z "$ms2Path" ] ; then
    if [ -z "$configGroupPath" ] ; then
-      if [ -n $numProcsNode] ; then
+      if [ -z "$numProcsNode" ] ; then
          aprun -n ${numProcs} -N ${numProcsNode} ${SIPROSMPI} -w ${workingPath} -c ${configPath} -o ${dataOutPath} -s > ${logFile}
       else
          aprun -n ${numProcs} ${SIPROSMPI} -w ${workingPath} -c ${configPath} -o ${dataOutPath} -s > ${logFile}
       fi
    else
-      if [ -n $numProcsNode] ; then
+      if [ -z "$numProcsNode" ] ; then
          aprun -n ${numProcs} -N ${numProcsNode} ${SIPROSMPI} -w ${workingPath} -g ${configGroupPath} -o ${dataOutPath} -s > ${logFile}
       else
          aprun -n ${numProcs} ${SIPROSMPI} -w ${workingPath} -g ${configGroupPath} -o ${dataOutPath} -s > ${logFile}
@@ -129,13 +129,13 @@ if [ -z "$ms2Path" ] ; then
    fi
 else
    if [ -z "$configGroupPath" ] ; then
-      if [ -n $numProcsNode] ; then
+      if [ -z "$numProcsNode" ] ; then
          aprun -n ${numProcs} -N ${numProcsNode} ${SIPROSMPI} -f ${ms2Path} -c ${configPath} -o ${dataOutPath} -s > ${logFile}
       else
          aprun -n ${numProcs} ${SIPROSMPI} -f ${ms2Path} -c ${configPath} -s > ${logFile}
       fi
    else
-      if [ -n $numProcsNode] ; then
+      if [ -z "$numProcsNode" ] ; then
          aprun -n ${numProcs} -N ${numProcsNode} ${SIPROSMPI} -f ${ms2Path} -g ${configGroupPath} -o ${dataOutPath} -s > ${logFile}
       else
          aprun -n ${numProcs} ${SIPROSMPI} -f ${ms2Path} -g ${configGroupPath} -o ${dataOutPath} -s > ${logFile}
