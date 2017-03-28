@@ -45,7 +45,7 @@ python reverseseq.py -i original_database_file -o output_database_file
 ```
 The step will generate a new database file with reverse sequences. Update the path of `FASTA_Database` in the configuration file.
 
-#### Quickly Running The Database-searching and Filtering/Assembling
+#### <a name="labelds"></a>Running The Database-searching
 
 There are two basic versions of the database-searching: one for running on a single machine and another for running with MPI on a cluster.  
 
@@ -61,7 +61,7 @@ runSipros.sh -o ${output_dir} -f ${data_ms2} -c SiprosConfig.cfg
 runSipros.sh -o ${output_dir} -w ${workingdirectory} -c $SiprosConfig.cfg
 
 ```
-Use `./runSipros.sh -h` for help information.
+Results (`.Spe2Pep` files) will be saved on the output directory. if you have many configure files, specify `-g`, like `runSipros.sh -o ${output_dir} -w ${workingdirectory} -g ${configurefiledirectory}`. Use `./runSipros.sh -h` for help information. 
 
 * __MPI Version:__ This version of the database-searching should be used if you are going to run on a cluster with MPI support. The run script to invoke Sipros depends on the cluster management and job scheduling system.
  
@@ -75,145 +75,21 @@ The quick start commands are:
 runDisco_ALPS.sh -o ${output_dir} -w ${workingdirectory} -c $SiprosConfig.cfg -n ${number_MPI_processes}
 
 ```
-Use `runDisco_ALPS.sh -h` for help information.
+Results (`.Spe2Pep` files) will be saved on the output directory. if you have many configure files, specify `-g`, like `runSipros.sh -o ${output_dir} -w ${workingdirectory} -g ${configurefiledirectory}`. Use `runDisco_ALPS.sh -h` for help information.
 
 ### Guide to Regular Search
 
-Please refer to "[Configure File Setting](#config)" for technical details. An example is available at [SiprosConfig.cfg](SiprosConfig.cfg).
+#### Create configure file
 
-#### Preprocessing of the Illumina data
+Please refer to [Configure File Setting](#config) for technical details. An example is available at [SiprosConfig.cfg](SiprosConfig.cfg).
 
-Since Disco works best with reads without errors, preprocessing plays an important role in deciding the quality of the assembly results. The 3 basic pre-processing steps are trimming, filtering and eror correction.
+#### Run Sipros
 
-##### Trimming, filtering, (merging), and eror correction
+Please refer to [Running The Database-searching](#labelds).
 
-We have tested Brian Bushnell's suite of tools [BBTools](http://sourceforge.net/projects/bbmap/files/) extensively on Illumina data and have obtained good results. Suppose the Illumina reads data set is called `$reads`, the steps we recommend are following:
-
-```
-#!sh
-
-# Use bbduk.sh to quality and length trim the Illumina reads and remove adapter sequences
-# 1. ftm = 5, right trim read length to a multiple of 5
-# 2. k = 23, Kmer length used for finding contaminants
-# 3. ktrim=r, Trim reads to remove bases matching reference kmers to the right
-# 4. mink=11, look for shorter kmers at read tips down to 11 bps
-# 5. qhdist=1, hamming distance for query kmers
-# 6. tbo, trim adapters based on where paired reads overlap
-# 7. tpe, when kmer right-trimming, trim both reads to the minimum length of either
-# 8. qtrim=r, trim read right ends to remove bases with low quality
-# 9. trimq=10, regions with average quality below 10 will be trimmed.
-# 10. minlength=70, reads shorter than 70bps after trimming will be discarded.
-# 11. ref=$adapters, adapters shipped with bbnorm tools
-# 12. –Xmx8g, use 8G memory
-# 13. 1>trim.o 2>&1, redirect stderr to stdout, and save both to file *trim.o*
-adapters= bbmap_dir/resources/adapters.fa
-phiX_adapters= bbmap_dir/resources/phix174_ill.ref.fa.gz
-bbduk.sh in=$reads out=trim.fq.gz ktrim=r k=23 mink=11 hdist=1 tpe tbo ref=${adapters} ftm=5 qtrim=r trimq=10
-bbduk.sh in=trim.fq.gz out=filter.fq.gz ref=$phiX_adapters hdist=1 k=31
-```
-
-##### Error correction with Tadpole
-
-Tarpole is a memory efficient error correction tool from the bbtools package that runs within reasonable time. We suggest using this for error correction. 
-```
-#!bash
-# 1. mode=correct, use tadpole for correction
-# 2. ecc=t, error correct via kmer counts
-tadpole.sh in=filter.fq.gz out=ecc.fq.gz mode=correct prefilter=1 prealloc k=31
-#If the above goes out of memory, try
-tadpole.sh in=filter.fq.gz out=ecc.fq.gz mode=correct prefilter=2 prealloc k=31
-```
-
-### Assembly of Error Corrected Data
-
-#### Assembly on a Single Node
-
-The Disco assembler is invoked through the run script `./runDisco.sh`. The basic quick start commands with default parameters are as follows. The default parameters are based on empherical tests on real metagenomic datasets.     
-
-```
-#!/bin/bash
-
-# Separated paired end reads
-runDisco.sh -d ${output_directory} -in1 {read_1.fastq}  -in2 ${read2_2.fastq} -n ${num_threads} -m {max_mem_usage} -o ${64gen} 
-
-# Interleaved paired end reads
-runDisco.sh -d ${output_directory} -inP {read_P.fastq} -n ${num_threads} -m {max_mem_usage} -o ${64gen}
-
-# Single end reads
-runDisco.sh -d ${output_directory} -inS {read.fastq} -n ${num_threads} -m {max_mem_usage} -o ${64gen} 
-```
-For all the options of Disco, use `./runDisco.sh -h`
-
-In case the program crashes due to exceeding wall clock time, the assembler can be restarted with the same command. 
-
-#### Assembly on a Distributed Nodes
-
-The assembler can be run on a distributed machine using the three distributed assembly scripts. 
-
-#### Assembly Run Script Options
-
-Usage:
-
-   runDisco.sh [OPTION]...<PARAM>...
+#### Post-processing
 
 
-<PARAMS>
-
-   -inS	 single read filenames (comma seperated fasta/fastq/fastq.gz file).
-
-   -in1	 forward paired read filename (single fasta/fastq/fastq.gz file).
-
-   -in2	 reverse paired read filename (single fasta/fastq/fastq.gz file).
-
-   -inP	 interleaved paired read filenames (comma seperated fasta/fastq/fastq.gz file).
-
-   -d	 output directory path (DEFAULT: current directory).
-
-   -o	 output filename prefix (DEFAULT: disco).
-
-<OPTIONS>
-
-   -h	 help.
-
-   -m	 maximum memory to be used (DEFAULT: 125 GB).
-
-   -n	 number of threads (DEFAULT: 32).
-
-   -obg	 only build overlap graph (DEFAULT: False).
-
-   -osg	 only simplify existing overlap graph (DEFAULT: False).
-   
-   -p	 assembly parameter file for 1st assembly iteration.
-
-   -p2	 assembly parameter file for 2nd assembly iteration.
-
-   -p3	 assembly parameter file for 3rd assembly iteration.
-
-
-The assembly script has basic options to specify required parameters. 
-
-#### Controlling memory usage
-
-The memory usage of Disco can be controlled using the `-m` option to the run script as shown above. The default memory usage is to take all the system resources. In case that has to be avoided or the program crashes ot is too slow due to memory page swapping, the user can set a ubber bound on the memory. The minumum memory to assemble a dataset is:
-
-```
-Min Required Memory (GB) = (Disk Space of Reads) + (1GB * num_threads)
-``` 
-The program will run faster if more memory is made available.
-
-#### Restarting Disco for repeat assembly and handling assembly crashes
-
-Disco assembler can be restarted with changed assembly and scaffolding parameters using the `-osg` option. Setting this option while invoking `runDisco.sh` will reuse the overlap graph constructed earlier and only perform the graph simplification step. This will significantly reduce executime time of assemblies on the same dataset with different parameters.    
-
-Disco assembler can also be restarted after a crash caused due to exceeding wall clock time or out of memory errors. The job must be restarted with the same command as before and Disco will attempt to continue the assembly. Do not set the `-osg` option in this case.   
-
-#### Setting assembly parameters
-
-The assembly parameters can be modified to attempt better assembly. This can be done through a parameter file passed using the `-p` parameter to the run script. 
-
-The configurable parameters are described in the user manual [http://disco.omicsbio.org/user-manual](http://disco.omicsbio.org/user-manual).
-
-The default configuration parameters are in disco.cfg, disco_2.cfg, and disco_3.cfg. 
 
 #### Disco Assembler Output
 
