@@ -79,7 +79,7 @@ Use `runDisco_ALPS.sh -h` for help information.
 
 ### Guide to Regular Search
 
-Please refer to "[Configure File Setting](#config)" for technical details. An example is available at `SiprosConfig.cfg`.
+Please refer to "[Configure File Setting](#config)" for technical details. An example is available at [SiprosConfig.cfg](SiprosConfig.cfg).
 
 #### Preprocessing of the Illumina data
 
