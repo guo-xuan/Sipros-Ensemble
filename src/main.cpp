@@ -134,11 +134,11 @@ void handleScan(const string & sFT2filename, const string & sOutputDirectory, co
 		cerr << "Error: Failed to load file: " << sFT2filename << endl;
 	else {
 		// search all MS2 scans and write output to a file
-		// pMainMS2ScanVector->startProcessing();
+		pMainMS2ScanVector->startProcessing();
 		// pMainMS2ScanVector->startProcessingXcorr();
 		// pMainMS2ScanVector->startProcessingMVHTask();
 		// pMainMS2ScanVector->startProcessingXcorrTask();
-		pMainMS2ScanVector->startProcessingXcorrTaskSIP();
+		// pMainMS2ScanVector->startProcessingXcorrTaskSIP();
 	}
 	delete pMainMS2ScanVector; //free memory of vpAllMS2Scans
 }

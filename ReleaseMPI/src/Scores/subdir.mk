@@ -19,8 +19,8 @@ CPP_DEPS += \
 # Each subdirectory must supply rules for building sources it contributes
 src/Scores/%.o: ../src/Scores/%.cpp
 	@echo 'Building file: $<'
-	@echo 'Invoking: GCC C++ Compiler'
-	/home/xgo/local/bin/mpiCC -fopenmp -O3 -Wall -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+	@echo 'Invoking: C++ Compiler'
+	-$(MCC) $(MOTPS) -c -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 
