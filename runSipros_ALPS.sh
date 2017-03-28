@@ -108,7 +108,7 @@ else
    `mkdir $dataOutPath`
 fi
 
-logFile="${dataOutPath}/$(date).log"
+logFile="${dataOutPath}/$(date +%F).log"
 
 echo Starting Time is $(date)
 
@@ -143,4 +143,5 @@ else
    fi
 fi
 
+echo "Log file is " ${logFile}
 echo Ending Time is $(date)
