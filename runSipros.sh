@@ -103,15 +103,15 @@ echo Starting Time is $(date)
 #database searching
 if [ -z "$ms2Path" ] ; then
    if [ -z "$configGroupPath" ] ; then
-      ${exePath}/bin/Sipros_OpenMP -w ${workingPath} -c ${configPath} -s > ${logFile}
+      ${exePath}/bin/Sipros_OpenMP -w ${workingPath} -c ${configPath} -o ${dataOutPath} -s > ${logFile}
    else
-      ${exePath}/bin/Sipros_OpenMP -w ${workingPath} -g ${configGroupPath} -s > ${logFile}
+      ${exePath}/bin/Sipros_OpenMP -w ${workingPath} -g ${configGroupPath} -o ${dataOutPath} -s > ${logFile}
    fi
 else
    if [ -z "$configGroupPath" ] ; then
-      ${exePath}/bin/Sipros_OpenMP -f ${ms2Path} -c ${configPath} -s > ${logFile}
+      ${exePath}/bin/Sipros_OpenMP -f ${ms2Path} -c ${configPath} -o ${dataOutPath} -s > ${logFile}
    else
-      ${exePath}/bin/Sipros_OpenMP -f ${ms2Path} -g ${configGroupPath} -s > ${logFile}
+      ${exePath}/bin/Sipros_OpenMP -f ${ms2Path} -g ${configGroupPath} -o ${dataOutPath} -s > ${logFile}
    fi
 fi
 
