@@ -21,7 +21,7 @@ Sipros is a database-searching algorithm for peptide and protein identification 
   3. All the versions can be built with "make all"
 If compiled successfully, the required executables will be in `bin` directory and the various `runSipros...` scripts can be used to run the database-searching. 
 
-#### Configure File Setting
+#### <a name="config"></a>Configure File Setting
 
 `#` is for comments.
 
@@ -64,28 +64,22 @@ runSipros.sh -o ${output_dir} -w ${workingdirectory} -c $SiprosConfig.cfg
 Use `./runSipros.sh -h` for help information.
 
 * __MPI Version:__ This version of the database-searching should be used if you are going to run on a cluster with MPI support. The run script to invoke Sipros depends on the cluster management and job scheduling system.
-
-	1. If you have ORTE i.e. __mpirun__ is available, invoke the assembler using the run script `runDisco-ORTE.sh`. 
-	2. If you have ALPS i.e. __aprun__ is available, invoke the assembler using the run script `runDisco-MPI-ALPS.sh`.
  
-For the basic MPI version make sure the RAM on the nodes is more than the disk space size of the reads. If you have a large dataset, then use the Remote Memory Access (RMA) version. The RMA version of the assembler will equally distribute about 70% of the memory usage across all the MPI nodes. The quick start commands are:
+	1. If you have ALPS i.e. __aprun__ is available, invoke Sipros using the run script `runSipros_ALPS.sh`.
+ 
+The quick start commands are:
 ```
 #!/bin/bash
 
 ### MPI Verion 
-### Seperated paired end reads
-runDisco-MPI.sh -d ${output_dir} -in1 {read_1.fastq} -in2 ${read2_2.fastq} -o ${OP_PREFIX} 
-
-### MPI Remote Memory Access(RMA) Verion 
-### Seperated paired end reads
-runDisco-MPI.sh -d ${output_directory} -in1 {read_1.fastq}  -in2 ${read2_2.fastq} -o ${OP_PREFIX} -rma 
+runDisco_ALPS.sh -o ${output_dir} -w ${workingdirectory} -c $SiprosConfig.cfg -n ${number_MPI_processes}
 
 ```
-Use `runDisco-MPI.sh -h` for help information.
+Use `runDisco_ALPS.sh -h` for help information.
 
-### Guide to Assembly of Raw Metagenomic Illumina data
+### Guide to Regular Search
 
-The raw Illumina sequences need to be preprocessed before assembly with Disco. Disco provides wrapper scripts to perform preprocessing with BBTools. Please see user manual for more details: [http://disco.omicsbio.org/user-manual](http://disco.omicsbio.org/user-manual)
+Please refer to "[Configure File Setting](#config)" for technical details. An example is available at `SiprosConfig.cfg`.
 
 #### Preprocessing of the Illumina data
 
