@@ -63,7 +63,6 @@ case $key in
     shift # past argument
     ;;
     *)
-    *)
     echo "ERROR: Unidentified user variable $key"
     exit 1        				# unknown option
     ;;
