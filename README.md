@@ -40,9 +40,9 @@ Please don't use these reserved symbols: { } # [ ] = ,
 Neutral loss can be specified by PTM{1to2}, e.g., PTM{>to|} = ST. If symbol2 is nothing, it can be specified by PTM{1to}, e.g., PTM{>to} = ST.
 
 #### Generate Reverse Sequences
-
+```
 python reverseseq.py -i original_database_file -o output_database_file
-
+```
 The step will generate a new database file with reverse sequences. Update the path of `FASTA_Database` in the configuration file.
 
 #### Quickly Running The Database-searching and Filtering/Assembling
