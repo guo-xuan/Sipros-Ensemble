@@ -47,7 +47,7 @@ all: Sipros_MPI
 # $(CC) -fopenmp -L/home/xgo/local/lib -o "Sipros_MPI" $(OBJS) $(USER_OBJS) $(LIBS)
 Sipros_MPI: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
-	@echo 'Invoking: mpiCC Linker'
+	@echo 'Invoking: C++ Linker'
 	$(MCC) $(MOPTS) -o "Sipros_MPI" $(OBJS) $(USER_OBJS) $(LIBS)
 	$(RM) $(OBJS)$(C++_DEPS)$(C_DEPS)$(CC_DEPS)$(CPP_DEPS)$(EXECUTABLES)$(CXX_DEPS)$(C_UPPER_DEPS) 
 	@echo 'Finished building target: $@'

@@ -21,3 +21,8 @@ all:
 	mkdir bin
 	cp $(OpenMP_DIR)/Sipros_OpenMP bin/
 	cp $(OpenMP_DIR)/Sipros_MPI bin/
+	
+clean:
+	$(MAKE) -C $(OpenMP_DIR) clean
+	$(MAKE) -C $(MPI_DIR) clean
+	-$(RM) -rf bin/Sipros_OpenMP bin/Sipros_MPI
