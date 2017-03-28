@@ -35,24 +35,26 @@ endif
 endif
 
 -include ../makefile.defs
+-include ../compiler.mk
 
 # Add inputs and outputs from these tool invocations to the build variables 
 
 # All Target
-all: Sipros10_openmp
+all: Sipros_OpenMP
 
 # Tool invocations
-Sipros10_openmp: $(OBJS) $(USER_OBJS)
+# g++ -std=c++11 -fopenmp -g3 -o "Sipros_OpenMP" $(OBJS) $(USER_OBJS) $(LIBS)
+Sipros_OpenMP: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
-	@echo 'Invoking: GCC C++ Linker'
-	g++ -std=c++11 -fopenmp -g3 -o "Sipros10_openmp" $(OBJS) $(USER_OBJS) $(LIBS)
+	@echo 'Invoking: C++ Linker'
+	-$(CC) $(OPTS) -o "Sipros_OpenMP" $(OBJS) $(USER_OBJS) $(LIBS)
 	-$(RM) $(OBJS)$(C++_DEPS)$(C_DEPS)$(CC_DEPS)$(CPP_DEPS)$(EXECUTABLES)$(CXX_DEPS)$(C_UPPER_DEPS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) $(OBJS)$(C++_DEPS)$(C_DEPS)$(CC_DEPS)$(CPP_DEPS)$(EXECUTABLES)$(CXX_DEPS)$(C_UPPER_DEPS) Sipros5_openmp
+	-$(RM) $(OBJS)$(C++_DEPS)$(C_DEPS)$(CC_DEPS)$(CPP_DEPS)$(EXECUTABLES)$(CXX_DEPS)$(C_UPPER_DEPS) Sipros_OpenMP
 	-@echo ' '
 
 .PHONY: all clean dependents

@@ -36,24 +36,26 @@ endif
 endif
 
 -include ../makefile.defs
+-include ../compiler.mk
 
 # Add inputs and outputs from these tool invocations to the build variables 
 
 # All Target
-all: Sipros5
+all: Sipros_MPI
 
 # Tool invocations
-Sipros5: $(OBJS) $(USER_OBJS)
+# $(CC) -fopenmp -L/home/xgo/local/lib -o "Sipros_MPI" $(OBJS) $(USER_OBJS) $(LIBS)
+Sipros_MPI: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: mpiCC Linker'
-	$(CC) -fopenmp -L/home/xgo/local/lib -o "Sipros5" $(OBJS) $(USER_OBJS) $(LIBS)
+	$(MCC) $(MOPTS) -o "Sipros_MPI" $(OBJS) $(USER_OBJS) $(LIBS)
 	$(RM) $(OBJS)$(C++_DEPS)$(C_DEPS)$(CC_DEPS)$(CPP_DEPS)$(EXECUTABLES)$(CXX_DEPS)$(C_UPPER_DEPS) 
 	@echo 'Finished building target: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) $(OBJS)$(C++_DEPS)$(C_DEPS)$(CC_DEPS)$(CPP_DEPS)$(EXECUTABLES)$(CXX_DEPS)$(C_UPPER_DEPS) Sipros5
+	-$(RM) $(OBJS)$(C++_DEPS)$(C_DEPS)$(CC_DEPS)$(CPP_DEPS)$(EXECUTABLES)$(CXX_DEPS)$(C_UPPER_DEPS) Sipros_MPI
 	-@echo ' '
 
 .PHONY: all clean dependents

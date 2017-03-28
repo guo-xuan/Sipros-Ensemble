@@ -41,12 +41,12 @@ CPP_DEPS += \
 ./src/ptm.d \
 ./src/tokenvector.d
 
-
 # Each subdirectory must supply rules for building sources it contributes
+# g++ -std=c++11 -fopenmp -O3 -g -Wall -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
 src/%.o: ../src/%.cpp
 	@echo 'Building file: $<'
-	@echo 'Invoking: GCC C++ Compiler'
-	g++ -std=c++11 -fopenmp -O3 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+	@echo 'Invoking: C++ Compiler'
+	-$(CC) $(OPTS) -c -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 
