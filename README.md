@@ -1,6 +1,6 @@
 # Sipros Ensemble
 
-DISCO, Distributed Co-assembly of Overlap graphs, is a multi threaded and multiprocess distributed memory overlap-layout-consensus (OLC) metagenome assembler - **DISCO**. The detailed user manual of the assembler and how to use it to acheive best results is provided here: [http://disco.omicsbio.org/user-manual](http://disco.omicsbio.org/user-manual). This is a quick start guide generally for developers and testers. Users with limited experience with genome assembly are advised to use the user manual.    
+Sipros is a database-searching algorithm for peptide and protein identification in shotgun meta/proteomics. The detailed user manual of the database-searching and how to use it to achieve best results is provided here: [http://siprosensemble.omicsbio.org/user-manual](http://siprosensemble.omicsbio.org/user-manual). This is a quick start guide generally for developers and testers. Users with limited experience with MS-based database-searching are advised to use the user manual.
 
 ### Current Version
 * v1.0
@@ -9,9 +9,9 @@ DISCO, Distributed Co-assembly of Overlap graphs, is a multi threaded and multip
 
 ### Basic Dependencies
 
-1. GNU GCC with C++11 support i.e. gcc4.9+ or above
-2. MPI Library with MPI-3 support i.e. OpenMPI 1.8 and above or cray-mpich/7.4.0 and above. By default the mpic++ wrapper is needed. If you are on a Cray cluster and the wrapper is "CC". You will need to edit the compiler.mk file. Uncomment the line "CC := CC" and comment out "CC := mpic++".   
-3. zlib/1.2.8 is optional for reading gzipped fasta/fastq files.
+1. GNU GCC or Intel C++  with C++11 support i.e. gcc4.9+ or above, icpc15.0+ or above.
+2. MPI Library with MPI-3 support i.e. OpenMPI 1.8 and above or cray-mpich/7.4.0 and above. By default the mpic++ wrapper is needed. If you are on a Cray cluster and the wrapper is "CC". You will need to edit the compiler.mk file. Uncomment the line "MCC := CC" and comment out "MCC := mpic++".   
+3. Python 2.7.2 or above Python 2 versions, numpy 1.11.2 or above, scipy 0.13.3 or above, scikit-learn(http://scikit-learn.org/) 0.17.1 or above.
  
 ### Installation Steps
 1. Download the tarball with compiled executables for Linux with GCC 4.9 and above from  [https://github.com/abiswas-odu/Disco/releases](https://github.com/abiswas-odu/Disco/releases). The code has been tested only on Linux.
