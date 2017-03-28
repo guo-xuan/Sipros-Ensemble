@@ -116,29 +116,29 @@ echo Starting Time is $(date)
 if [ -z "$ms2Path" ] ; then
    if [ -z "$configGroupPath" ] ; then
       if [ -z "$numProcsNode" ] ; then
-         aprun -n ${numProcs} -N ${numProcsNode} ${SIPROSMPI} -w ${workingPath} -c ${configPath} -o ${dataOutPath} -s > ${logFile}
-      else
          aprun -n ${numProcs} ${SIPROSMPI} -w ${workingPath} -c ${configPath} -o ${dataOutPath} -s > ${logFile}
+      else
+         aprun -n ${numProcs} -N ${numProcsNode} ${SIPROSMPI} -w ${workingPath} -c ${configPath} -o ${dataOutPath} -s > ${logFile}
       fi
    else
       if [ -z "$numProcsNode" ] ; then
-         aprun -n ${numProcs} -N ${numProcsNode} ${SIPROSMPI} -w ${workingPath} -g ${configGroupPath} -o ${dataOutPath} -s > ${logFile}
-      else
          aprun -n ${numProcs} ${SIPROSMPI} -w ${workingPath} -g ${configGroupPath} -o ${dataOutPath} -s > ${logFile}
+      else
+         aprun -n ${numProcs} -N ${numProcsNode} ${SIPROSMPI} -w ${workingPath} -g ${configGroupPath} -o ${dataOutPath} -s > ${logFile}
       fi
    fi
 else
    if [ -z "$configGroupPath" ] ; then
       if [ -z "$numProcsNode" ] ; then
-         aprun -n ${numProcs} -N ${numProcsNode} ${SIPROSMPI} -f ${ms2Path} -c ${configPath} -o ${dataOutPath} -s > ${logFile}
-      else
          aprun -n ${numProcs} ${SIPROSMPI} -f ${ms2Path} -c ${configPath} -s > ${logFile}
+      else
+         aprun -n ${numProcs} -N ${numProcsNode} ${SIPROSMPI} -f ${ms2Path} -c ${configPath} -o ${dataOutPath} -s > ${logFile}
       fi
    else
       if [ -z "$numProcsNode" ] ; then
-         aprun -n ${numProcs} -N ${numProcsNode} ${SIPROSMPI} -f ${ms2Path} -g ${configGroupPath} -o ${dataOutPath} -s > ${logFile}
-      else
          aprun -n ${numProcs} ${SIPROSMPI} -f ${ms2Path} -g ${configGroupPath} -o ${dataOutPath} -s > ${logFile}
+      else
+         aprun -n ${numProcs} -N ${numProcsNode} ${SIPROSMPI} -f ${ms2Path} -g ${configGroupPath} -o ${dataOutPath} -s > ${logFile}
       fi
    fi
 fi
