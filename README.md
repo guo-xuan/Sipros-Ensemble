@@ -7,13 +7,13 @@ Sipros is a database-searching algorithm for peptide and protein identification 
 
 ### Setup and Installation
 
-### Basic Dependencies
+#### Basic Dependencies
 
 1. GNU GCC or Intel C++  with C++11 support i.e. gcc4.9+ or above, icpc15.0+ or above.
 2. MPI Library with MPI-3 support i.e. OpenMPI 1.8 and above or cray-mpich/7.4.0 and above. By default the mpic++ wrapper is needed. If you are on a Cray cluster and the wrapper is "CC". You will need to edit the compiler.mk file. Uncomment the line "MCC := CC" and comment out "MCC := mpic++".   
-3. Python 2.7.2 or above Python 2 versions, numpy 1.11.2 or above, scipy 0.13.3 or above, scikit-learn(http://scikit-learn.org/) 0.17.1 or above.
+3. Python 2.7.2 or above Python 2 versions, numpy 1.11.2 or above, scipy 0.13.3 or above, scikit-learn[http://scikit-learn.org/] 0.17.1 or above.
  
-### Installation Steps
+#### Installation Steps
 1. Download the tarball with compiled executables for Linux with GCC 4.9 and above from  [https://github.com/abiswas-odu/Disco/releases](https://github.com/abiswas-odu/Disco/releases). The code has been tested only on Linux.
 2. If you decide to download the source code, use the following commands to build:
   1. OpenMP version "make openmp". This is also the default make option.  
@@ -23,7 +23,7 @@ Sipros is a database-searching algorithm for peptide and protein identification 
 3. The assembler can be built with the make option "READGZ=1". 
 If compiled successfully, the required executables will be built and the various `runDisco...` scripts can be used to run the assembler. 
 
-### Quickly Running The Assembler
+#### Quickly Running The database-searching and Filtering/Assembling
 
 There are two basic versions of the assembler one for running on a single machine and another for running with MPI on a cluster.  
 
