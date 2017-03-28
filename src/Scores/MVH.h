@@ -52,7 +52,7 @@ public:
 	}
 
 	void resize(int index) {
-		int maxIndex = m_table.size() - 1;
+		int maxIndex = ((int)m_table.size()) - 1;
 		if (index > maxIndex) {
 			while (index > maxIndex) {
 				m_table.push_back(m_table.at(maxIndex) + log((float) m_table.size()));

@@ -16,6 +16,36 @@
 
 using namespace std;
 
+typedef long long INT64;
+
+// To keep time information of functions.
+#define CLOCKSTART INT64 mem_start = checkMemoryUsage(); double begin = omp_get_wtime(); cout<<"Currently in file: " << __FILE__ << " Function: "<< __FUNCTION__ << "()" << endl;
+#define CLOCKSTOP INT64 mem_end = checkMemoryUsage(); double end = omp_get_wtime(); cout << "Function " << __FUNCTION__ << "() finished in " <<(end - begin)<< " Seconds." << endl << "Memory used: " << mem_end << " - " <<  mem_start << " = "<< mem_end - mem_start << " MB."<< endl << endl;
+
+// Get the memory usage with a Linux kernel.
+inline unsigned int checkMemoryUsage()
+{
+    // get KB memory into count
+    unsigned int count=0;
+
+    #if defined(__linux__)
+    ifstream f("/proc/self/status"); // read the linux file
+    while(!f.eof()){
+        string key;
+        f>>key;
+        if(key=="VmData:"){     // size of data
+            f>>count;
+        break;
+        }
+    }
+    f.close();
+    #endif
+
+    // return MBs memory (size of data)
+    return (count/1024);
+};
+
+
 class Isotopologue;
 
 //--------------Comet Begin------------

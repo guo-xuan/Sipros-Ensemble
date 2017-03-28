@@ -507,8 +507,8 @@ bool MVH::CalculateSequenceIonsSIP(string & sSequence, int maxIonCharge, bool us
 bool MVH::destroyLnTable() {
 	if (MVH::lnTable != NULL) {
 		delete MVH::lnTable;
+		MVH::lnTable = NULL;
 	}
-	MVH::lnTable = NULL;
 	return true;
 }
 
@@ -534,6 +534,7 @@ multimap<double, char>::iterator MVH::findNear(map<double, char> * peakData, dou
 bool MVH::initialLnTable(int maxPeakBins) {
 	if (MVH::lnTable != NULL) {
 		delete MVH::lnTable;
+		MVH::lnTable = NULL;
 	}
 	MVH::lnTable = new lnFactorialTable();
 	MVH::lnTable->resize(maxPeakBins);

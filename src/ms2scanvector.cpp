@@ -253,6 +253,9 @@ void MS2ScanVector::saveScan(MS2Scan * pMS2Scan) { //parentChargeState > 0, save
 }
 
 void MS2ScanVector::preProcessAllMS2() {
+	CLOCKSTART
+	;
+
 	int i, iScanSize;
 	iScanSize = (int) vpAllMS2Scans.size();
 	if (bScreenOutput)
@@ -279,11 +282,11 @@ void MS2ScanVector::preProcessAllMS2() {
 	int maxPeakBins = 0;
 	int iNumSkippedScans = 0;
 	for (i = 0; i < iScanSize; i++) {
-		if (vpAllMS2Scans.at(i)->totalPeakBins > maxPeakBins) {
-			maxPeakBins = vpAllMS2Scans.at(i)->totalPeakBins;
-		}
 		if (vpAllMS2Scans.at(i)->bSkip) {
 			iNumSkippedScans++;
+		}
+		if (vpAllMS2Scans.at(i)->totalPeakBins > maxPeakBins) {
+			maxPeakBins = vpAllMS2Scans.at(i)->totalPeakBins;
 		}
 	}
 	MVH::initialLnTable(maxPeakBins);
@@ -291,6 +294,9 @@ void MS2ScanVector::preProcessAllMS2() {
 	if (bScreenOutput) {
 		cout << "Preprocessing Done." << endl;
 	}
+
+	CLOCKSTOP
+	;
 }
 
 void MS2ScanVector::preProcessAllMS2Xcorr() {
@@ -827,6 +833,8 @@ void MS2ScanVector::processPeptideArrayXcorrTaskSIP(vector<Peptide*>& vpPeptideA
 }
 
 void MS2ScanVector::searchDatabase() {
+	CLOCKSTART;
+
 	ProteinDatabase myProteinDatabase(bScreenOutput);
 	vector<Peptide *> vpPeptideArray;
 	Peptide * currentPeptide;
@@ -861,6 +869,8 @@ void MS2ScanVector::searchDatabase() {
 		if (!vpPeptideArray.empty())
 			processPeptideArrayMVH(vpPeptideArray);
 	}
+	CLOCKSTOP;
+
 	this->postMvh();
 	MVH::destroyLnTable();
 	PeptideUnit::iNumScores = 1;
