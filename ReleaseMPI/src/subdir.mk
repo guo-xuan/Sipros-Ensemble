@@ -44,7 +44,7 @@ CPP_DEPS += \
 src/%.o: ../src/%.cpp
 	@echo 'Building file: $<'
 	@echo 'Invoking: C++ Compiler'
-	-$(MCC) $(MOTPS) -c -o "$@" "$<"
+	-$(MCC) $(MOPTS) -c -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 
