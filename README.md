@@ -11,35 +11,46 @@ Sipros is a database-searching algorithm for peptide and protein identification 
 
 1. GNU GCC or Intel C++  with C++11 support i.e. gcc4.9+ or above, icpc15.0+ or above.
 2. MPI Library with MPI-3 support i.e. OpenMPI 1.8 and above or cray-mpich/7.4.0 and above. By default the mpic++ wrapper is needed. If you are on a Cray cluster and the wrapper is "CC". You will need to edit the compiler.mk file. Uncomment the line "MCC := CC" and comment out "MCC := mpic++".   
-3. Python 2.7.2 or above Python 2 versions, numpy 1.11.2 or above, scipy 0.13.3 or above, scikit-learn[http://scikit-learn.org/] 0.17.1 or above.
+3. Python 2.7.2 or above Python 2 versions, numpy 1.11.2 or above, scipy 0.13.3 or above, [scikit-learn](http://scikit-learn.org/) 0.17.1 or above.
  
 #### Installation Steps
-1. Download the tarball with compiled executables for Linux with GCC 4.9 and above from  [https://github.com/abiswas-odu/Disco/releases](https://github.com/abiswas-odu/Disco/releases). The code has been tested only on Linux.
+1. Download the tarball with compiled executables for Linux with GCC 4.9 and above from  [https://github.com/guo-xuan/Sipros-Ensemble/releases](https://github.com/guo-xuan/Sipros-Ensemble/releases). The code has been tested only on Linux.
 2. If you decide to download the source code, use the following commands to build:
-  1. OpenMP version "make openmp". This is also the default make option.  
-  2. MPI distributed computing version "make mpi-dist-comp" 
-  3. MPI distributed memory version "make mpi-dist-mem"
-  4. All the versions can be built with "make all"
-3. The assembler can be built with the make option "READGZ=1". 
-If compiled successfully, the required executables will be built and the various `runDisco...` scripts can be used to run the assembler. 
+  1. OpenMP version "make openmp".
+  2. MPI version version "make mpi" 
+  3. All the versions can be built with "make all"
+If compiled successfully, the required executables will be in `bin` directory and the various `runSipros...` scripts can be used to run the database-searching. 
 
-#### Quickly Running The database-searching and Filtering/Assembling
+#### Configure File Setting
 
-There are two basic versions of the assembler one for running on a single machine and another for running with MPI on a cluster.  
+\# is for comments.
+[] is used for section name, e.g., [Section Name].
+= is used for assigning features, e.g., Search_Type = Regular
+{} is used for specifying key value, e.g., PTM{!} = NQR
+Currently, there are 35 symbols available for specifying ptms, which are
+~ ! @ $ % ^ & * ( ) _ + ` - | \ : " ; ' < > ? . /
+1 2 3 4 5 6 7 8 9 0
+Please don't use these reserved symbols: { } # [ ] = ,
+Neutral loss can be specified by PTM{1to2}, e.g., PTM{>to|} = ST. If symbol2 is nothing, it can be
+specified by PTM{1to}, e.g., PTM{>to} = ST.
 
-* __Single Machine Version:__ This version of the assembler should be used if you are going to run the assembler on a single machine with one or more cores. The assembler is invoked through a run script `./runDisco.sh`. Make sure the RAM on the machine is more than the disk space size of the reads. The quick start command as shown below will be used in a batch job submission script or directly typed on the commandline terminal.   
+#### Quickly Running The Database-searching and Filtering/Assembling
+
+There are two basic versions of the database-searching: one for running on a single machine and another for running with MPI on a cluster.  
+
+* __Single Machine Version:__ This version of the assembler should be used if you are going to run the database-searching on a single machine with one or more cores. The searching is invoked through a run script `./runSipros.sh`. The quick start command as shown below will be used in a batch job submission script or directly typed on the command line terminal.   
 
 ```
 #!/bin/bash
 
-# Seperated mate pair reads
-runDisco.sh -d ${output_dir} -in1 readA_1.fastq  -in2 readA_2.fastq -n ${num_threads} -o ${OP_PREFIX} 
+# Single MS2 file
+runSipros.sh -o ${output_dir} -f data.ms2 -c config.cfg
 
-# Interleaved mate pair reads
-runDisco.sh -d ${output_dir} -inP readA.fastq.gz,readB.fastq.gz -n ${num_threads} -o ${OP_PREFIX} 
+# Multiple MS files in a folder
+runSipros.sh -o ${output_dir} -w workingdirectory,readB.fastq.gz
 
 ```
-Use `./runDisco.sh -h` for help information.
+Use `./runSipros.sh -h` for help information.
 
 * __MPI Version:__ This version of the assembler should be used if you are going to run the assembler with MPI support on a cluster. The run script to invoke the assembler depends on the cluster management and job scheduling system.
 
