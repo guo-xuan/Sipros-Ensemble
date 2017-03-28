@@ -23,7 +23,7 @@ If compiled successfully, the required executables will be in `bin` directory an
 
 #### Configure File Setting
 
-`\#` is for comments.
+`#` is for comments.
 
 `[]` is used for section name, e.g., `[Section Name]`.
 
@@ -55,19 +55,18 @@ There are two basic versions of the database-searching: one for running on a sin
 #!/bin/bash
 
 # Single MS2 file
-runSipros.sh -o ${output_dir} -f data.ms2 -c SiprosConfig.cfg
+runSipros.sh -o ${output_dir} -f ${data_ms2} -c SiprosConfig.cfg
 
-# Multiple MS2 files in a folder
-runSipros.sh -o ${output_dir} -w workingdirectory -c SiprosConfig.cfg
+# Multiple MS2 files in a working directory
+runSipros.sh -o ${output_dir} -w ${workingdirectory} -c $SiprosConfig.cfg
 
 ```
 Use `./runSipros.sh -h` for help information.
 
-* __MPI Version:__ This version of the assembler should be used if you are going to run the assembler with MPI support on a cluster. The run script to invoke the assembler depends on the cluster management and job scheduling system.
+* __MPI Version:__ This version of the database-searching should be used if you are going to run on a cluster with MPI support. The run script to invoke Sipros depends on the cluster management and job scheduling system.
 
-	1. If you have ORTE i.e. __mpirun__ is available, invoke the assembler using the run script `runDisco-MPI.sh`. 
-	2. If you have SLRUM i.e. __srun__ is available, invoke the assembler using the run script `runDisco-MPI-SLRUM.sh`.
-	3. If you have ALPS i.e. __aprun__ is available, invoke the assembler using the run script `runDisco-MPI-ALPS.sh`.
+	1. If you have ORTE i.e. __mpirun__ is available, invoke the assembler using the run script `runDisco-ORTE.sh`. 
+	2. If you have ALPS i.e. __aprun__ is available, invoke the assembler using the run script `runDisco-MPI-ALPS.sh`.
  
 For the basic MPI version make sure the RAM on the nodes is more than the disk space size of the reads. If you have a large dataset, then use the Remote Memory Access (RMA) version. The RMA version of the assembler will equally distribute about 70% of the memory usage across all the MPI nodes. The quick start commands are:
 ```
