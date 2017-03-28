@@ -89,11 +89,17 @@ Please refer to [Running The Database-searching](#labelds).
 
 #### Post-processing
 
+The current version of scripts has been tested using Python 2.7.2, so if you are using different versions of Python (2.6.X or 3.X), you are encouraged to try with Python 2.7.2.
 
+```
+#!/bin/bash
 
-#### Disco Assembler Output
+cd Scripts
+runSiprosPostprocessing.sh -in ${Spe2Pep_dir} -o ${workingdirectory} -c $SiprosConfig.cfg
 
-Please see the OUTPUT.md file for description of the output files.  
+```
+
+This step will generate related psm.txt, pep.txt, pro.txt, pro2pep.txt, and pro2psm.txt files. Please see the [OUTPUT.md](OUTPUT.md) file for description of the output files.
 
 ### Questions?
 
