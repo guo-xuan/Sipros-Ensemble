@@ -23,21 +23,21 @@ If compiled successfully, the required executables will be in `bin` directory an
 
 #### Configure File Setting
 
-\# is for comments.
+`\#` is for comments.
 
-[] is used for section name, e.g., [Section Name].
+`[]` is used for section name, e.g., `[Section Name]`.
 
-= is used for assigning features, e.g., Search_Type = Regular
+`=` is used for assigning features, e.g., `Search_Type = Regular`
 
-{} is used for specifying key value, e.g., PTM{!} = NQR
+`{}` is used for specifying key value, e.g., `PTM{!} = NQR`
 
 Currently, there are 35 symbols available for specifying ptms, which are
-
+```
 ~ ! @ $ % ^ & * ( ) _ + ` - | \ : " ; ' < > ? . / 1 2 3 4 5 6 7 8 9 0
+```
+Please don't use these reserved symbols: `{ } # [ ] = ,`
 
-Please don't use these reserved symbols: { } # [ ] = ,
-
-Neutral loss can be specified by PTM{1to2}, e.g., PTM{>to|} = ST. If symbol2 is nothing, it can be specified by PTM{1to}, e.g., PTM{>to} = ST.
+Neutral loss can be specified by `PTM{1to2}`, e.g., `PTM{>to|} = ST`. If symbol2 is nothing, it can be specified by `PTM{1to}`, e.g. `PTM{>to} = ST`.
 
 #### Generate Reverse Sequences
 ```
