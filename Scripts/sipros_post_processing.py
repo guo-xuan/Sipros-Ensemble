@@ -1023,7 +1023,7 @@ def generate_psm_pep_txt(base_out, out_folder, psm_filtered_list, config_dict):
     psm_column_msg += "#\tScanType = Scan type of the PSM\n"
     psm_column_msg += "#\tSearchName = Sipros search name\n"
     psm_column_msg += "#\tScoringFunction = Scoring function used in the search\n"
-    psm_column_msg += "#\tScore = Score\n"
+    psm_column_msg += "#\tScore = Predicted Probability of being true PSM\n"
     psm_column_msg += "#\tDeltaZ = Difference between the best PSM score and the next best PSM of this scan\n"
     psm_column_msg += "#\tDeltaP = Difference between the best modified PSM and its PTM isoform\n"
     psm_column_msg += "#\tIdentifiedPeptide = Identified peptide sequence with potential PTMs and mutations\n"

@@ -6,33 +6,111 @@ Sipros is a database-searching algorithm for peptide and protein identification 
 
 1. ${output_dir}/${ms2_filename}_${search_name}.tab : 
 
-2. ${output_dir}/${ms2_filename}_${search_name}.psm.txt :
-
+2. ${output_dir}/${ms2_filename}_${search_name}.psm.txt : This file contains PSM level results from the PSM filtering. The columns in this file are
 ```
-#	Filename = Filename of input FT2 file
-#	ScanNumber = Scan number of the PSM
-#	ParentCharge = Charge state of the PSM
-#	MeasuredParentMass = Measured parent mass
-#	CalculatedParentMass = Calculated parent mass from peptide sequence
-#	MassErrorDa = Mass error in Da with 1-Da error correction
-#	MassErrorPPM = Mass error in PPM with 1-Da error correction
-#	ScanType = Scan type of the PSM
-#	SearchName = Sipros search name
-#	ScoringFunction = Scoring function used in the search
-#	Score = Score
-#	DeltaZ = Difference between the best PSM score and the next best PSM of this scan
-#	DeltaP = Difference between the best modified PSM and its PTM isoform
-#	IdentifiedPeptide = Identified peptide sequence with potential PTMs and mutations
-#	OriginalPeptide = Original peptide sequence in the FASTA file
-#	ProteinNames = Names of proteins of the peptide
-#	ProteinCount = Number of proteins that the peptide can be assigned to
-#	TargetMatch = T for target match and F for decoy match
+Filename = Filename of input FT2 file
+ScanNumber = Scan number of the PSM
+ParentCharge = Charge state of the PSM
+MeasuredParentMass = Measured parent mass
+CalculatedParentMass = Calculated parent mass from peptide sequence
+MassErrorDa = Mass error in Da with 1-Da error correction
+MassErrorPPM = Mass error in PPM with 1-Da error correction
+ScanType = Scan type of the PSM
+SearchName = Sipros search name
+ScoringFunction = Scoring function used in the search
+Score = Predicted Probability of being true PSM
+DeltaZ = Difference between the best PSM score and the next best PSM of this scan
+DeltaP = Difference between the best modified PSM and its PTM isoform
+IdentifiedPeptide = Identified peptide sequence with potential PTMs and mutations
+OriginalPeptide = Original peptide sequence in the FASTA file
+ProteinNames = Names of proteins of the peptide
+ProteinCount = Number of proteins that the peptide can be assigned to
+TargetMatch = T for target match and F for decoy match
+```
+3. ${output_dir}/${ms2_filename}_${search_name}.pep.txt : This file contains Peptide level results from the Peptide filtering. The columns in this file are
+```
+IdentifiedPeptide = Identified peptide sequence with potential PTMs and mutations
+ParentCharge = Charge state of identified peptide
+OriginalPeptide = Original peptide sequence in the FASTA file
+ProteinNames = Names of proteins of the peptide
+ProteinCount = Number of proteins that the peptide can be assigned to
+TargetMatch = T for target match and F for decoy match
+SpectralCount = Number of PSMs in which the peptide is identified
+BestScore = The best score of those PSMs
+PSMs = List of PSMs for the peptide: FT2_Filename[Scan_Number]
+ScanType = Scan type of those PSMs
+SearchName = Sipros search name
 ```
 
-3. ${output_dir}/${ms2_filename}_${search_name}.pep.txt :
+4. ${output_dir}/${ms2_filename}_${search_name}.pro.txt : This file contains Protein level results from the Protein assembling. The columns in this file are
+```
+ProteinID = Names of the protein
+Run#_UniquePeptideCounts = Number of unique peptides in a run
+Run#_TotalPeptideCounts = Number of all peptides in a run
+Run#_UniqueSpectrumCounts = Number of unique PSM in a run
+Run#_TotalSpectrumCounts = Number of all PSM in a run
+Run#_BalancedSpectrumCounts = Balanced spectrum count in a run
+Run#_NormalizedBalancedSpectrumCounts = Normalized Balanced spectrum count in a run
+ProteinDescription = Protein description
+TargetMatch = T for target match and F for decoy match
+```
 
-4. ${output_dir}/${ms2_filename}_${search_name}.pro.txt :
+5. ${output_dir}/${ms2_filename}_${search_name}.pro2psm.txt : This file contains the spectrum count and related statistics for each identified protein. The columns in this file are
+```
++ = Marker of a protein line
+ProteinID = Names of the protein
+Run#_UniquePeptideCounts = Number of unique peptides in a run
+Run#_TotalPeptideCounts = Number of all peptides in a run
+Run#_UniqueSpectrumCounts = Number of unique PSM in a run
+Run#_TotalSpectrumCounts = Number of all PSM in a run
+Run#_BalancedSpectrumCounts = Balanced spectrum count in a run
+Run#_NormalizedBalancedSpectrumCounts = Normalized Balanced spectrum count in a run
+ProteinDescription = Protein description
+TargetMatch = T for target match and F for decoy match
 
-5. ${output_dir}/${ms2_filename}_${search_name}.pro2pep.txt :
+* = Marker of a peptide line
+IdentifiedPeptide = Identified peptide sequence with potential PTMs and mutations
+ParentCharge = Charge state of identified peptide
+OriginalPeptide = Original peptide sequence in the FASTA file
+ProteinNames = Names of proteins of the peptide
+ProteinCount = Number of proteins that the peptide can be assigned to
+TargetMatch = T for target match and F for decoy match
+SpectralCount = Number of PSMs in which the peptide is identified
+BestScore = The best score of those PSMs
+PSMs = List of PSMs for the peptide: FT2_Filename[Scan_Number]
+ScanType = Scan type of those PSMs
+SearchName = Sipros search name
+```
 
-6. ${output_dir}/${ms2_filename}_${search_name}.pro2psm.txt :
+6. ${output_dir}/${ms2_filename}_${search_name}.pro2pep.txt : This file contains the peptide count and related statistics for each identified protein. The columns in this file are
+```
++ = Marker of a protein line
+ProteinID = Names of the protein
+Run#_UniquePeptideCounts = Number of unique peptides in a run
+Run#_TotalPeptideCounts = Number of all peptides in a run
+Run#_UniqueSpectrumCounts = Number of unique PSM in a run
+Run#_TotalSpectrumCounts = Number of all PSM in a run
+Run#_BalancedSpectrumCounts = Balanced spectrum count in a run
+ProteinDescription = Protein description
+TargetMatch = T for target match and F for decoy match
+
+* = Marker of a PSM line
+Filename = Filename of input FT2 file
+ScanNumber = Scan number of the PSM
+ParentCharge = Charge state of the PSM
+MeasuredParentMass = Measured parent mass
+CalculatedParentMass = Calculated parent mass from peptide sequence
+MassErrorDa = Mass error in Da with 1-Da error correction
+MassErrorPPM = Mass error in PPM with 1-Da error correction
+ScanType = Scan type of the PSM
+SearchName = Sipros search name
+ScoringFunction = Scoring function used in the search
+Score = Score
+DeltaZ = Difference between the best PSM and the next best PSM of this scan
+DeltaP = Difference between the best modified PSM and its PTM isoform
+IdentifiedPeptide = Identified peptide sequence with potential PTMs and mutations
+OriginalPeptide = Original peptide sequence in the FASTA file
+ProteinNames = Names of proteins of the peptide
+ProteinCount = Number of proteins that the peptide can be assigned to
+TargetMatch = T for target match and F for decoy match
+```
