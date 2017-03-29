@@ -11,7 +11,7 @@ Sipros is a database-searching algorithm for peptide and protein identification 
 
 1. GNU GCC or Intel C++  with C++11 support i.e. gcc4.9+ or above, icpc15.0+ or above.
 2. MPI Library with MPI-3 support i.e. OpenMPI 1.8 and above or cray-mpich/7.4.0 and above. By default the mpic++ wrapper is needed. If you are on a Cray cluster and the wrapper is "CC". You will need to edit the compiler.mk file. Uncomment the line "MCC := CC" and comment out "MCC := mpic++".   
-3. Python 2.7.2 or above Python 2 versions, numpy 1.11.2 or above, scipy 0.13.3 or above, [scikit-learn](http://scikit-learn.org/) 0.17.1 or above.
+3. Python 2.7.2 or above Python 2 versions, numpy 1.11.2 or above, scipy 0.13.3 or above, [scikit-learn](http://scikit-learn.org/) 0.17.1 or above. A guide to setup Python environment is [here](#PythonSetup).
  
 #### Installation Steps
 1. Download the tarball with compiled executables for Linux with GCC 4.9 and above from  [https://github.com/guo-xuan/Sipros-Ensemble/releases](https://github.com/guo-xuan/Sipros-Ensemble/releases). The code has been tested only on Linux.
@@ -58,7 +58,7 @@ There are two basic versions of the database-searching: one for running on a sin
 runSipros.sh -o ${output_dir} -f ${data_ms2} -c SiprosConfig.cfg
 
 # Multiple MS2 files in a working directory
-runSipros.sh -o ${output_dir} -w ${workingdirectory} -c $SiprosConfig.cfg
+runSipros.sh -o ${output_dir} -w ${workingdirectory} -c SiprosConfig.cfg
 
 ```
 Results (`.Spe2Pep` files) will be saved on the output directory. if you have many configure files, specify `-g`, like `runSipros.sh -o ${output_dir} -w ${workingdirectory} -g ${configurefiledirectory}`. Use `./runSipros.sh -h` for help information. 
@@ -95,11 +95,42 @@ The current version of scripts has been tested using Python 2.7.2, so if you are
 #!/bin/bash
 
 cd Scripts
-runSiprosPostprocessing.sh -in ${Spe2Pep_dir} -o ${workingdirectory} -c $SiprosConfig.cfg
+runSiprosPostprocessing.sh -in ${Spe2Pep_dir} -o ${workingdirectory} -c SiprosConfig.cfg
 
 ```
 
-This step will generate related psm.txt, pep.txt, pro.txt, pro2pep.txt, and pro2psm.txt files. Please see the [OUTPUT.md](OUTPUT.md) file for description of the output files.
+This step will generate related `tab`, `psm.txt`, `pep.txt`, `pro.txt`, `pro2pep.txt`, and `pro2psm.txt` files. Please see the [OUTPUT.md](OUTPUT.md) file for description of the output files.
+
+### Miscellany
+
+#### <a name="PythonSetup"></a>Python Environment Setup
+
+It is recommended to use `anaconda` to setup necessary Python libraries. Take Linux based system as an example:
+
+1. Download `anaconda` at [https://www.continuum.io/downloads](https://www.continuum.io/downloads).
+
+2. In your terminal window type one of the below and follow the instructions:
+```
+bash Anaconda2-4.3.1-Linux-x86_64.sh
+```
+3. Activate the new environment to use it:
+```
+source activate ~/sipros-env
+```
+
+4. Install a new package (numpy, scipy, or scikit-learn) in a this environment (~/sipros-env):
+```
+conda install --prefix ~/sipros-env numpy
+```
+
+```
+conda install --prefix ~/sipros-env scipy
+```
+
+```
+conda install --prefix ~/sipros-env scikit-learn
+```
+5. You are good to go.
 
 ### Questions?
 
