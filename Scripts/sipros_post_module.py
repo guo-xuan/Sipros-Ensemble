@@ -139,6 +139,9 @@ def get_base_out(file_list, base_out_default, working_dir):
 
     # If base common prefix ends with '.pep.txt', then remove '.pep.txt'
     base_out = base_out.replace(".pep.txt", "_")
+    
+    # If base common prefix ends with '.tab', then remove '.pep.txt'
+    base_out = base_out.replace(".tab", "_")
 
     # If base_out file name is less than 5, then use default baseout
     if len(base_out_filename) < 5:

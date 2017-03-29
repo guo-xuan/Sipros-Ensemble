@@ -320,6 +320,9 @@ def protein_type(protein_sequence, lProtein=None):
                 return LabelReserve
     return LabelRev
 
+## Get base_out filename
+get_base_out = sipros_post_module.get_base_out
+
 # # read the psm table
 def read_psm_table(input_file):
     
@@ -327,7 +330,7 @@ def read_psm_table(input_file):
     
     # check if it is a folder
     if os.path.isdir(input_file) == True:
-        lFileList = get_file_list_with_ext(input_file, 'Spe2Pep.txt')
+        lFileList = get_file_list_with_ext(input_file, '.tab')
         for sFileName in lFileList:
             sip_files_list.append(sFileName)
     elif ',' in input_file:
@@ -337,6 +340,11 @@ def read_psm_table(input_file):
     else:
         sip_files_list.append(input_file)
 
+
+    # get the base name from sip file list
+    base_out = get_base_out(sip_files_list, "Sipros_Results", output_folder)
+    base_out = base_out.split('/')[-1]
+    
     psm_list = []
     
     # read line with csv
@@ -355,7 +363,7 @@ def read_psm_table(input_file):
         oPsm.iInnerId = i
         i += 1
         
-    return (psm_list)
+    return (psm_list, base_out)
 
 # # Division error handling
 divide = sipros_post_module.divide
@@ -480,7 +488,7 @@ def re_rank(psm_list):
     
     return psm_new_list
 
-def logistic_regression_no_category(psm_list, input_file, output_folder, config_dict=None):
+def logistic_regression_no_category(psm_list, config_dict=None):
     fdr_given = float(config_dict[pro_iden_str + FDR_Threshold_str])/(Train_Test_Ratio + 1.0)
     # machine learning
     # # construct training data
@@ -974,7 +982,7 @@ class Peptide:
         return '\t'.join(l) 
 
 
-def generate_psm_pep_txt(input_file, out_folder, psm_filtered_list, config_dict):
+def generate_psm_pep_txt(base_out, out_folder, psm_filtered_list, config_dict):
     
     # protein_identification message
     pro_iden_msg = ""
@@ -1069,10 +1077,9 @@ def generate_psm_pep_txt(input_file, out_folder, psm_filtered_list, config_dict)
             psm_decoy_int += 1
     
     # write out into files
-    base_out_filename = input_file.split('/')[-1]
-    base_out = out_folder + base_out_filename
+    base_out = out_folder + '/' + base_out
     psm_txt_file_str = base_out + ".psm.txt"
-    with open(base_out + ".psm.txt", 'w') as fw:
+    with open(psm_txt_file_str, 'w') as fw:
         fw.write(pro_iden_msg)
         fw.write('#\t########################################\n')
         fw.write('#\t####### PSM Filtering by Sipros ########\n')
@@ -1168,7 +1175,7 @@ def generate_psm_pep_txt(input_file, out_folder, psm_filtered_list, config_dict)
             oPeptide.set(oPsm)
             pep_sub_dict[pep_ID] = oPeptide
     pep_txt_file_str = base_out + ".pep.txt"
-    with open(base_out + ".pep.txt", 'w') as fw:
+    with open(pep_txt_file_str, 'w') as fw:
         fw.write(pro_iden_msg)
         # statistic results
         fw.write('#\t########################################\n')
@@ -1256,7 +1263,7 @@ def main(argv=None):
     
     # read the big psm table
     sys.stderr.write('[Step 1] Parse options and read PSM file:                   Running -> ')
-    psm_list = read_psm_table(input_file)
+    (psm_list, base_out) = read_psm_table(input_file)
     sys.stderr.write('Done!\n')
     
     
@@ -1277,12 +1284,12 @@ def main(argv=None):
     sys.stderr.write('[Step 3] Train ML and re-rank PSMs:                         Running -> ')
     del feature_selection_list[:]
     feature_selection_list.extend([1, 2, 3, 5, 15, 16, 17, 24, 26, 28])
-    psm_filtered_list = logistic_regression_no_category(psm_list, input_file, output_folder, config_dict)
+    psm_filtered_list = logistic_regression_no_category(psm_list, config_dict)
     sys.stderr.write('Done!\n')
 
     # write output
     sys.stderr.write('[Step 4] Report output:                                     Running -> ')
-    (psm_txt_file_str, pep_txt_file_str) = generate_psm_pep_txt(input_file, output_folder, psm_filtered_list, config_dict)
+    (psm_txt_file_str, pep_txt_file_str) = generate_psm_pep_txt(base_out, output_folder, psm_filtered_list, config_dict)
     sys.stderr.write('Done!\n')
     
     # Time record, calculate elapsed time, and display work end
