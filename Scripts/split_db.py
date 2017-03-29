@@ -33,5 +33,8 @@ while 1:
 OriginalFastaFile.close()
 for i in range (filenum) :
         FastaSubFiles[i].close()
-
-print "Done."
+        
+drive, path_and_file = os.path.splitdrive(OriginalFastaFileName)
+path, file = os.path.split(path_and_file)
+(pathRoot, pathExt) = os.path.splitext(file)
+print os.path.join(outputpath, pathRoot)

@@ -14,18 +14,27 @@ def NewSearchName(currentLine, fileId) :
     return "Search_Name = "+sSearchName
 
 
-def NewDB(currentLine, fileId) :
+def NewDB(currentLine, fileId, output_dir = "") :
     allInfo = currentLine.split("=")
     filePath = allInfo[1]
     filePath = filePath.strip()
     (pathRoot, pathExt) = os.path.splitext(filePath)
-    return  "FASTA_Database = "+pathRoot+"_subfile"+str(fileId)+".fasta"
+    if output_dir == "":
+        return  "FASTA_Database = "+pathRoot+"_subfile"+str(fileId)+".fasta"
+    else:
+        # drive, path_and_file = os.path.splitdrive(pathRoot)
+        # path, file = os.path.split(path_and_file)
+        # return "FASTA_Database = "+os.path.join(output_dir, file+"_subfile"+str(fileId)+".fasta")
+        return "FASTA_Database = "+output_dir+"_subfile"+str(fileId)+".fasta"
 
 
 OriginalConfigureFileName = sys.argv[1]
 OriginalConfigureFile = open(OriginalConfigureFileName)
 outputpath            = sys.argv[2]
 filenum               = int (sys.argv[3])
+dboutputpath = ""
+if len(sys.argv) == 5:
+    dboutputpath = sys.argv[4]
 
 ConfigureSubFiles = []
 
@@ -44,7 +53,7 @@ for i in range (filenum) :
             newLine = NewSearchName(currentLine, i)
             ConfigureSubFiles[i].write(newLine+"\n")
         elif currentLine.startswith("FASTA_Database") :
-            newLine = NewDB(currentLine, i)
+            newLine = NewDB(currentLine, i, dboutputpath)
             ConfigureSubFiles[i].write(newLine+"\n")
         else :
             ConfigureSubFiles[i].write(currentLine+"\n")
