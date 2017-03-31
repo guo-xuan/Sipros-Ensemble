@@ -53,7 +53,7 @@ shift # past argument or value
 done
 
 if [ ! -d ${OutputFolder} ]; then
-	mkdir ${OutputFolder}
+	mkdir -p ${OutputFolder}
 fi
 
 

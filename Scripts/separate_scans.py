@@ -11,12 +11,14 @@ FT2file     = open(FT2FileName)
 outputpath  = sys.argv[2]
 filenum     = int (sys.argv[3]) 
 
+(pathRoot, pathExt) = os.path.splitext(FT2FileName)
+
 FT2subfiles = []
 
 for i in range (filenum) :
 	#os.popen("mkdir "+outputpath+str(i))
 	(FT2FileNameRoot, FT2FileNameExt) = os.path.splitext(FT2FileName)
-	curFT2subfile = open(outputpath+os.sep+os.path.basename(FT2FileNameRoot)+"_subfile"+str(i)+".FT2", "w")
+	curFT2subfile = open(outputpath+os.sep+os.path.basename(FT2FileNameRoot)+"_subfile"+str(i)+"." + pathExt, "w")
 	FT2subfiles.append(curFT2subfile)
 
 
