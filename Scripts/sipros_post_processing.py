@@ -342,7 +342,7 @@ def read_psm_table(input_file):
 
 
     # get the base name from sip file list
-    base_out = get_base_out(sip_files_list, "Sipros_Results", output_folder)
+    base_out = get_base_out(sip_files_list, "Sipros_Results", "")
     base_out = base_out.split('/')[-1]
     
     psm_list = []
