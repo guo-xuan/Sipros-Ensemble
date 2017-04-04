@@ -109,17 +109,19 @@ def parse_config(config_filename):
 # # Parse options
 def parse_options(argv):
 
-    opts, _args = getopt.getopt(argv[1:], "hvVi:c:o:",
+    opts, _args = getopt.getopt(argv[1:], "hvVi:c:o:x:",
                                     ["help",
                                      "version",
                                      "input-folder",
                                      "configuration",
-                                     "output-folder"])
+                                     "output-folder",
+                                     "pepxml"])
 
     # Default working dir and config file
     input_folder = ""
     sConfig = ""
     output_folder = ""
+    pepxml_output = False
 
     # Basic options
     for option, value in opts:
@@ -135,6 +137,8 @@ def parse_options(argv):
             sConfig = value
         if option in ("-o", "--output-folder"):
             output_folder = value
+        if option in ("-x", "--pepxml"):
+            pepxml_output = True
 
     if input_folder == "" or sConfig == "" or output_folder == "":
         print help_message

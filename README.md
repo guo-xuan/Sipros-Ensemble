@@ -109,12 +109,13 @@ It is recommended to use `anaconda` to setup necessary Python libraries. Take Li
 
 1. Download `anaconda` at [https://www.continuum.io/downloads](https://www.continuum.io/downloads).
 
-2. In your terminal window type one of the below and follow the instructions:
+2. In your terminal window type the following instructions:
 ```
 bash Anaconda2-4.3.1-Linux-x86_64.sh
 ```
-3. Activate the new environment to use it:
+3. Create an environment named sipros-env and activate the new environment to use it:
 ```
+conda create --prefix ~/sipros-env
 source activate ~/sipros-env
 ```
 
