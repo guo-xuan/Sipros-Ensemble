@@ -363,6 +363,9 @@ def read_psm_table(input_file):
         oPsm.iInnerId = i
         i += 1
         
+    # sorting all PSM, first on file name, than scan number
+    psm_list = sorted(psm_list, key=lambda psm: (psm.FileName, psm.ScanNumber))
+        
     return (psm_list, base_out)
 
 # # Division error handling

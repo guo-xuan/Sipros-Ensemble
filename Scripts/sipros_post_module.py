@@ -17,6 +17,7 @@ import sys, os, re, math
 from datetime import datetime
 from collections import namedtuple
 from multiprocessing import Process
+from sets import Set
 
 rev_str = 'Rev_' # 'Rev_'
 shu_str = 'TestRev_' # 'Shu_'
@@ -116,7 +117,8 @@ def get_file_list_with_ext(working_dir, file_ext):
 
             # check the file extension
             if file_name.endswith(file_ext):
-                file_path_name = working_dir + file_name
+                file_path_name = os.path.join(working_dir, file_name)
+                # file_path_name = working_dir + file_name
                 file_list.append(file_path_name)
 
         if len(file_list) == 0:
@@ -579,6 +581,7 @@ class PepSpectrumMatch:
         self.oSecondBestPep = None
         self.oRestPep = None
         self.lTopPep = []
+        self.pep_rank_list = []
 
     def addPepScores(self, pep):
         for e in self.lPepScores:
@@ -620,10 +623,10 @@ class PepSpectrumMatch:
             del j.liRanks[:]
             del j.lfScoreDiff[:]
         iNumScores = len(self.lPepScores[0].lfScores)
-        pep_rank_list = []
+        
         for i in range(iNumScores):
             lPep = sorted(self.lPepScores, key=lambda pep: (pep.lfScores[i], MassDiff(pep), PtmScore(pep), pep.sIdentifiedPeptide), reverse=True)
-            pep_rank_list.append(lPep)
+            self.pep_rank_list.append(lPep)
             iRank = 1
             for j in lPep:
                 j.liRanks.append(iRank)
@@ -706,7 +709,7 @@ class PepSpectrumMatch:
                 return
         # if SA == 1, calculate DeltaP individually
         for s in range(iNumScores):
-            for lPep_local in pep_rank_list:
+            for lPep_local in self.pep_rank_list:
                 # contain PTM
                 if len(lPep_local[0].sIdentifiedPeptide) != len(lPep_local[0].sOriginalPeptide):
                     #pep_sorted_str = ''.join(sorted(lPep_local[0].sIdentifiedPeptide))
@@ -849,6 +852,43 @@ class PepSpectrumMatch:
             feature_list.append((str(pep.DeltaP)))
             str_list.append('\t'.join(feature_list))
         return '\n'.join(str_list)
+    
+    def all_top_5_ranked_psm(self, top_n = 5):
+        str_list = []
+        pep_set = Set()
+        for l in self.pep_rank_list:
+            n = len(l)
+            if n > top_n:
+                n = top_n
+            for i in range(n):
+                pep_set.add(l[i])
+        
+        for pep in pep_set:
+            feature_list = []
+            feature_list.append(self.sFileName)
+            feature_list.append(str(self.iScanNumber))
+            feature_list.append(str(self.iParentCharge))
+            feature_list.append(str(self.fMeasuredParentMass))
+            feature_list.append(self.sScanType)
+            feature_list.append(self.sSearchName)
+            feature_list.append(pep.sIdentifiedPeptide)
+            feature_list.append(pep.sOriginalPeptide)
+            feature_list.append(str(pep.fCalculatedParentMass))
+            feature_list.extend((str(x) for x in pep.lfScores))
+            feature_list.append('{'+pep.sProteinNames+'}')
+            feature_list.append(str(num_agreement(pep.liRanks)))
+            feature_list.extend((str(x) for x in pep.lfDeltaRankProduct))
+            feature_list.extend((str(x) for x in pep.lfDeltaRankScore))
+            feature_list.extend((str(x) for x in pep.lfDiffRankProduct))
+            feature_list.extend((str(x) for x in pep.lfDiffRankScore))
+            feature_list.extend((str(x) for x in pep.lfDiffNorRankProduct))
+            feature_list.extend((str(x) for x in pep.lfDiffNorRankScore))
+            feature_list.append(self.sRTime)
+            feature_list.append((str(pep.iRank)))
+            feature_list.append((str(pep.DeltaP)))
+            str_list.append('\t'.join(feature_list))
+        return '\n'.join(str_list)
+
     
     def pin(self):
         lPin = []
@@ -1387,10 +1427,18 @@ def get_modification_info(peptide_str, modification_label_dict):
             modification_dict[str(beg - len(modification_dict))] = value
             beg = peptide_str.find(key, beg + 1)
     return modification_dict
-'''
-from lxml.etree import ElementTree, Element, SubElement
+
+# return the modification dictionary with symbol and shifted mass
+def get_modification_dict():
+    
+    return {}
+
 def write_PepXML(output_folder, qPsmProcessed, iNumRankers, config_dict):
 
+    ElementTree = import_module('ElementTree', 'lxml.etree')
+    Element = import_module('Element', 'lxml.etree')
+    SubElement = import_module('SubElement', 'lxml.etree')
+    
     input_filename = ''
     root = Element('msms_pipeline_analysis')
     iIndexUnique = 1
@@ -1567,5 +1615,4 @@ def write_PepXML(output_folder, qPsmProcessed, iNumRankers, config_dict):
                        xml_declaration=True,
                        pretty_print=True)
 
-    print 'Done.'
-'''
+    print("Done.")

@@ -144,7 +144,7 @@ def parse_options(argv):
         print help_message
         sys.exit(0)
 
-    return (input_folder, sConfig, output_folder)
+    return (input_folder, sConfig, output_folder, pepxml_output)
 
 # # Read spe2psm files
 def read_sipros_files(spe2psm_file_list):
