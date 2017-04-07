@@ -4,15 +4,17 @@ Created on Jun 28, 2016
 @author: Xuan Guo
 '''
 
-import sys
+import sys, os
 import getopt
 import csv
 from collections import defaultdict
 from datetime import datetime, date, time
+import re
 
 # # Import Sipros package modules
 import sipros_post_module
 import parseconfig
+import sipros_post_processing
 from multiprocessing import Queue, cpu_count
 
 ## Returns the current time in a nice format
@@ -82,7 +84,7 @@ def parse_config(config_filename):
     check_file_exist(config_filename)
     # Save all config values to dictionary
     all_config_dict = parseconfig.parseConfigKeyValues(config_filename)
-
+    (modification_dict, element_modification_list_dict) = parseconfig.getModificationDictionary(all_config_dict)
     # valiables were defined in global
     # pep_iden_str      = '[Protein_Identification]'
     # cleave_after_str  = 'Decoy_Prefix'
@@ -103,13 +105,13 @@ def parse_config(config_filename):
             continue
 
     # return config dictionary
-    return config_dict
+    return (config_dict, modification_dict, element_modification_list_dict)
 
 
 # # Parse options
 def parse_options(argv):
 
-    opts, _args = getopt.getopt(argv[1:], "hvVi:c:o:x:",
+    opts, _args = getopt.getopt(argv[1:], "hvVi:c:o:x",
                                     ["help",
                                      "version",
                                      "input-folder",
@@ -496,6 +498,234 @@ writePsm = sipros_post_module.writePsm
 
 ## Get base_out filename
 get_base_out = sipros_post_module.get_base_out
+PsmFields4 = sipros_post_processing.PsmFields4
+
+class scan_xml:
+    def __init__(self, line_str):
+        PsmFields_obj = PsmFields4._make(line_str)
+        self.filename = PsmFields_obj.FileName
+        self.scannumber = PsmFields_obj.ScanNumber
+        self.charge = PsmFields_obj.ParentCharge
+        self.measuredmass = PsmFields_obj.MeasuredParentMass
+        self.peplist = []
+        self.mvhlist = []
+        self.xcorrlist = []
+        self.wdplist = []
+        pep = pep_xml(PsmFields_obj)
+        self.peplist.append(pep)
+        self.list_list = []
+        
+    def add(self, line_str):
+        PsmFields_obj = PsmFields4._make(line_str)
+        pep = pep_xml(PsmFields_obj)
+        self.peplist.append(pep)
+        
+    def score_process(self):
+        self.mvhlist = sorted(self.peplist, key=lambda pep: (pep.scorelist[0]), reverse=True)
+        self.xcorrlist = sorted(self.peplist, key=lambda pep: (pep.scorelist[1]), reverse=True)
+        self.wdplist = sorted(self.peplist, key=lambda pep: (pep.scorelist[2]), reverse=True)
+        self.list_list = [self.mvhlist, self.xcorrlist, self.wdplist]
+        
+
+class pep_xml:
+    def __init__(self, PsmFields_obj):
+        self.originalPep = PsmFields_obj.OriginalPeptide
+        self.identifiedPep = PsmFields_obj.IdentifiedPeptide
+        self.proteinlist = re.sub('[{}]', '', PsmFields_obj.ProteinNames).split(',')
+        self.calculatedmass = PsmFields_obj.CalculatedParentMass
+        self.scorelist = [float(PsmFields_obj.MVH), float(PsmFields_obj.Xcorr), float(PsmFields_obj.WDP)]
+        self.scorediff = [float(PsmFields_obj.DiffRS1), float(PsmFields_obj.DiffRS2), float(PsmFields_obj.DiffRS3)]
+
+fNeutronMass = 1.00867108694132 # it is Neutron mass
+
+def get_mass_diff(measured_mass, calculated_mass):
+        MassDiffOriginal = measured_mass - calculated_mass
+        MassDiff = MassDiffOriginal
+        for i in range(-4, 4):
+            if abs(MassDiffOriginal - i*fNeutronMass) < abs(MassDiff):
+                MassDiff = MassDiffOriginal - i*fNeutronMass
+        return MassDiff
+
+def get_num_missed_cleavages(peptide_str, cleave_residues_str):
+    num = 0
+    for c in cleave_residues_str:
+        num += peptide_str.count(c)
+
+    return str(num - 1)
+
+Cleave_After_Residues_str = 'Cleave_After_Residues'
+
+def get_modification_info(peptide_str, modification_label_dict):
+    modification_dict = {}
+    for key, value in modification_label_dict.iteritems():
+        if key.isalpha():
+            continue
+        beg = -1
+        beg = peptide_str.find(key, beg + 1)
+        while beg != -1:
+            modification_dict[str(beg - len(modification_dict))] = value + modification_label_dict[peptide_str[beg-1:beg]]
+            beg = peptide_str.find(key, beg + 1)
+    return modification_dict
+
+def writePepxml(filename_str, config_dict, modification_dict, element_modification_list_dict):
+
+    # start reading files
+    filename_tab_str = ""
+    scannumber_tab_str = ""
+    psm_obj = None
+    psm_list = []
+    with open(filename_str, 'r') as f:
+        f.next()
+        for s in f:
+            l = s.split('\t')
+            if filename_tab_str != l[0] or scannumber_tab_str != l[1]:
+                if scannumber_tab_str != "":
+                    psm_obj.score_process()
+                    psm_list.append(psm_obj)
+                    psm_obj = None
+            if psm_obj is None:
+                psm_obj = scan_xml(l)
+            else:
+                psm_obj.add(l)
+            filename_tab_str = psm_obj.filename
+            scannumber_tab_str = psm_obj.scannumber            
+    if psm_obj is not None:
+        psm_obj.score_process()
+        psm_list.append(psm_obj)
+        
+    writePepxmlSingle(filename_str, config_dict, modification_dict, element_modification_list_dict, psm_list, 0)
+    writePepxmlSingle(filename_str, config_dict, modification_dict, element_modification_list_dict, psm_list, 1)
+    writePepxmlSingle(filename_str, config_dict, modification_dict, element_modification_list_dict, psm_list, 2)
+    
+    
+def writePepxmlSingle(filename_str, config_dict, modification_dict, element_modification_list_dict, psm_list, op):
+    score_list_str = ['mvh', 'xcorr', 'wdp']
+    deltascore_str = 'deltascore'
+    cleave_residues_str = config_dict[Cleave_After_Residues_str]
+    
+    _temp = __import__('lxml.etree', globals(), locals(), ['ElementTree'], -1)
+    ElementTree = _temp.ElementTree
+    _temp = __import__('lxml.etree', globals(), locals(), ['Element'], -1)
+    Element = _temp.Element
+    _temp = __import__('lxml.etree', globals(), locals(), ['SubElement'], -1)
+    SubElement = _temp.SubElement
+    
+    iIndexUnique = 1
+    
+    filename, file_extension = os.path.splitext(filename_str)
+    xmlns = "http://regis-web.systemsbiology.net/pepXML"
+    xsi = "http://www.w3.org/2001/XMLSchema-instance"
+    schemaLocation = "http://sashimi.sourceforge.net/schema_revision/pepXML/pepXML_v117.xsd"
+    root = Element("{" + xmlns + "}msms_pipeline_analysis",
+                   nsmap={'xsi':xsi, None:xmlns},
+                   attrib={"{" + xsi + "}schemaLocation"  : schemaLocation})
+    root.set('date', datetime.now().isoformat())
+    root.set('summary_xml', (filename + '.pepXML'))
+
+    analysis_summary = SubElement(root, 'analysis_summary')
+    analysis_summary.set('analysis', "Sipros Ensemble "+score_list_str[op])
+    analysis_summary.set('version', "V1.0")
+    analysis_summary.set('time', (datetime.now().isoformat()))
+    
+    msms_run_summary = SubElement(root, 'msms_run_summary')
+    msms_run_summary.set('base_name', filename)
+    msms_run_summary.set('raw_data_type', "raw")
+    msms_run_summary.set('raw_data', "ms2")
+
+    sample_enzyme = SubElement(msms_run_summary, 'sample_enzyme')
+    sample_enzyme.set('name', "Trypsin/P")
+    sample_enzyme.set('independent', "false")
+    sample_enzyme.set('fidelity', "specific")
+    
+    specificity = SubElement(sample_enzyme, 'specificity')
+    specificity.set('sense', "C")
+    specificity.set('cut', "KR")
+    specificity.set('no_cut', "")
+    specificity.set('min_spacing', "1")
+
+    search_summary = SubElement(msms_run_summary, "search_summary")
+    search_summary.set('base_name', filename)
+    search_summary.set('search_engine', "Sipros Ensemble "+score_list_str[op])
+    search_summary.set('precursor_mass_type', 'monoisotopic')
+    search_summary.set('fragment_mass_type', 'monoisotopic')
+    search_summary.set('out_data_type', '')
+    search_summary.set('out_data', '')
+    
+    search_database = SubElement(search_summary, 'search_database')
+    (path,file) = os.path.split(config_dict[FASTA_Database_str])
+    search_database.set('local_path', path)
+    search_database.set('database_name', file)
+    search_database.set('type', 'AA')
+
+    enzymatic_search_constraint = SubElement(search_summary, 'enzymatic_search_constraint')
+    enzymatic_search_constraint.set('enzyme', 'Trypsin/P')
+    enzymatic_search_constraint.set('max_num_internal_cleavages', config_dict[Maximum_Missed_Cleavages_str])
+    enzymatic_search_constraint.set('min_number_termini', '2')
+    
+    for e_key, e_value in element_modification_list_dict.iteritems():
+        for e_2_value in e_value:
+            aminoacid_modification = SubElement(search_summary, 'aminoacid_modification')
+            aminoacid_modification.set('aminoacid', e_key)
+            aminoacid_modification.set('massdiff', str(modification_dict[e_2_value]))
+            aminoacid_modification.set('mass', str(modification_dict[e_2_value] + modification_dict[e_key]))
+            aminoacid_modification.set('variable', e_2_value)
+
+    # create scan 
+    for psm_obj in psm_list:
+        # query results
+        spectrum_query = SubElement(msms_run_summary, 'spectrum_query')
+        filename_tab_str = psm_obj.filename
+        ScanNumber_str = psm_obj.scannumber
+        ParentCharge_str = psm_obj.charge
+        spectrum_query.set('spectrum', filename_tab_str + '.' + ScanNumber_str + '.' + ScanNumber_str + '.' + ParentCharge_str)
+        spectrum_query.set('start_scan', ScanNumber_str)
+        spectrum_query.set('end_scan', ScanNumber_str)
+        spectrum_query.set('precursor_neutral_mass', psm_obj.measuredmass)
+        spectrum_query.set('assumed_charge', ParentCharge_str)
+        spectrum_query.set('index', str(iIndexUnique))
+        iIndexUnique += 1
+                    
+        search_result = SubElement(spectrum_query, 'search_result')
+        for idx, oPepScores in enumerate(psm_obj.list_list[op]):
+            if idx == len(psm_obj.list_list[op]) - 1:
+                break
+            search_hit = SubElement(search_result, 'search_hit')
+            search_hit.set('hit_rank', str(idx))
+            search_hit.set('peptide', oPepScores.originalPep[1:-1])
+            search_hit.set('protein', oPepScores.proteinlist[0])
+            search_hit.set('num_tot_proteins', str(len(oPepScores.proteinlist)))
+            search_hit.set('calc_neutral_pep_mass', oPepScores.calculatedmass)
+            search_hit.set('massdiff', str(get_mass_diff(float(psm_obj.measuredmass), float(oPepScores.calculatedmass))))
+            search_hit.set('num_tol_term', '2')
+            search_hit.set('num_missed_cleavages', get_num_missed_cleavages(oPepScores.identifiedPep, cleave_residues_str))
+            # alternative_protein
+            if len(oPepScores.proteinlist) > 1:
+                for iProteins in range(1, len(oPepScores.proteinlist)):
+                    alternative_protein = SubElement(search_hit, 'alternative_protein')
+                    alternative_protein.set('protein', oPepScores.proteinlist[iProteins])
+            # modification_info
+            local_modification_dict = get_modification_info(oPepScores.identifiedPep[1:-1], modification_dict)
+            if local_modification_dict:
+                modification_info = SubElement(search_hit, "modification_info")
+                for key, value in local_modification_dict.iteritems():
+                    mod_aminoacid_mass = SubElement(modification_info, 'mod_aminoacid_mass')
+                    mod_aminoacid_mass.set('position', key)
+                    mod_aminoacid_mass.set('mass', str(value))
+            # search_score
+            search_score = SubElement(search_hit, 'search_score')
+            search_score.set('name', score_list_str[op])
+            search_score.set('value', str(oPepScores.scorelist[op]))
+            search_score = SubElement(search_hit, 'search_score')
+            search_score.set('name', deltascore_str)
+            search_score.set('value', str(oPepScores.scorediff[op]))
+
+    # write into file
+    document = ElementTree(root)
+    document.write((filename +'_' +score_list_str[op]+ '.pep.xml'),
+                   encoding='ISO-8859-1',
+                   xml_declaration=True,
+                   pretty_print=True)
+    
 
 def main(argv=None):
     
@@ -507,7 +737,8 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv
     # parse options
-    (input_folder, _sConfig, output_folder) = parse_options(argv)
+    (input_folder, _sConfig, output_folder, pepxml_output) = parse_options(argv)
+    
     # multiple threading
     iNumThreads = cpu_count()
     # iNumThreads = 3
@@ -518,9 +749,11 @@ def main(argv=None):
     # Parse options and get config file
     sys.stderr.write('[Step 1] Parse options and get config file: Running -> ')
     # Call parse_config to open and read config file
-    config_dict = parse_config(_sConfig)
-    #sys.stderr.write('Done.\n')
-    
+    (config_dict, modification_dict, element_modification_list_dict) = parse_config(_sConfig)
+    '''
+    writePepxml('/media/xgo/Seagate/Proteomics/Experiments/Pepxml/OSU_D10_FASP_Elite_03202014_05.SE_Spe2Pep.txt.tab', config_dict, modification_dict, element_modification_list_dict)
+    return
+    '''
     # Get base_out for output
     base_out_default = 'Sipros_searches'
     sipros_file_list = get_file_list_with_ext(input_folder, 'Spe2Pep.txt')
@@ -549,7 +782,7 @@ def main(argv=None):
     
     base_out_filename = base_out.split('/')[-1]
     base_out = output_folder + base_out_filename
-    writePsm(base_out + '.tab', qPsmProcessed, iNumThreads - 2)
+    writePsm(base_out + '.tab', qPsmProcessed, iNumThreads - 2, pepxml_bool = pepxml_output)
     sys.stderr.write('Done!\n')
     
     
@@ -561,6 +794,12 @@ def main(argv=None):
     #writePin(base_out + '.tab', qPsmProcessed, iNumThreads - 2)
     #write_PepXML(output_folder, qPsmProcessed, iNumThreads - 2, config_dict)
 
+    # Generate pep xml files
+    if pepxml_output:
+        sys.stderr.write('[Step 4] Generate Pepxml:                   Running -> ')
+        
+        sys.stderr.write('Done!\n')
+    
     # Time record, calculate elapsed time, and display work end
     finish_time = datetime.now()
     duration = finish_time - start_time

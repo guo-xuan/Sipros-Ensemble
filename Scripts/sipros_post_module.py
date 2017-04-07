@@ -888,7 +888,6 @@ class PepSpectrumMatch:
             feature_list.append((str(pep.DeltaP)))
             str_list.append('\t'.join(feature_list))
         return '\n'.join(str_list)
-
     
     def pin(self):
         lPin = []
@@ -1270,7 +1269,7 @@ bRTime = True
 bAdditionPepScoreAgreementNotThree = True
 
 # # write the PSM table
-def writePsm(sOutputFile, qPsmProcessed, iNumRankers):
+def writePsm(sOutputFile, qPsmProcessed, iNumRankers, pepxml_bool = False):
     iNumTarget = 0
     iNumReverse = 0
     iNumShuffle = 0
@@ -1340,8 +1339,10 @@ def writePsm(sOutputFile, qPsmProcessed, iNumRankers):
                     break
                 else:
                     continue
-            
-            f.write(psm.all_top_ranked_psm())
+            if pepxml_bool:
+                f.write(psm.all_top_5_ranked_psm())
+            else:
+                f.write(psm.all_top_ranked_psm())
             '''
             if bAdditionPepScoreAgreementNotThree and num_agreement(psm.oBestPep.liRanks) < 2:
                 f.write(psm.all_top_ranked_psm())
@@ -1427,11 +1428,6 @@ def get_modification_info(peptide_str, modification_label_dict):
             modification_dict[str(beg - len(modification_dict))] = value
             beg = peptide_str.find(key, beg + 1)
     return modification_dict
-
-# return the modification dictionary with symbol and shifted mass
-def get_modification_dict():
-    
-    return {}
 
 def write_PepXML(output_folder, qPsmProcessed, iNumRankers, config_dict):
 
