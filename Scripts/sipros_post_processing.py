@@ -32,15 +32,15 @@ format_time = sipros_post_module.format_time
 get_file_list_with_ext =  sipros_post_module.get_file_list_with_ext
 
 # Some hard-coded parameters
-rev_str = 'Rev_' # 'Rev_'
-shu_str = 'TestRev_' # 'Shu_'
+train_str = 'Rev_' # 'Rev_'
+test_str = 'TestRev_' # 'Shu_'
 reserve_str = 'Rev_2_'
 
-rev_str = 'Rev1_' # 'Rev_'
-shu_str = 'Rev2_' # 'Shu_'
+train_str = 'Rev1_' # 'Rev_'
+test_str = 'Rev2_' # 'Shu_'
 reserve_str = ''
 
-Train_Test_Ratio = 1
+Test_Fwd_Ratio = 1
 
 # # Class for ignoring comments '#' in sipros file
 CommentedFile = sipros_post_module.CommentedFile
@@ -56,8 +56,8 @@ for x in ptm_selection_list:
     feature_name_list.append(ptm_str[x])
 
 LabelFwd = 1
-LabelRev = 2
-LabelShu = 3
+LabelTrain = 2
+LabelTest = 3
 LabelReserve = 4
 
 # # Class for PepOutFields object
@@ -232,7 +232,7 @@ class PSM:
         l = []
         for sProtein in self.protein_list:
             sProtein.strip()
-            if not (sProtein.startswith(rev_str)):
+            if not (sProtein.startswith(train_str)):
                 if sProtein not in l:
                     l.append(sProtein)
         self.ProteinNames = '{'+','.join(l) + '}'
@@ -308,17 +308,26 @@ def protein_type(protein_sequence, lProtein=None):
             sProtein = sProtein.strip()
             if sProtein not in lProtein:
                 lProtein.append(sProtein)
+    
+    if reserve_str != '':
+        for sProtein in asProteins:
+            if not (sProtein.startswith(train_str) or sProtein.startswith(test_str) or sProtein.startswith(reserve_str)):
+                return LabelFwd
+    else:
+        for sProtein in asProteins:
+            if not (sProtein.startswith(train_str) or sProtein.startswith(test_str)):
+                return LabelFwd
+    
     for sProtein in asProteins:
-        if not (sProtein.startswith(rev_str) or sProtein.startswith(shu_str)):
-            return LabelFwd
-    for sProtein in asProteins:
-        if sProtein.startswith(shu_str):
-            return LabelShu
+        if sProtein.startswith(test_str):
+            return LabelTest
+    
     if reserve_str != '':
         for sProtein in asProteins:
             if sProtein.startswith(reserve_str):
                 return LabelReserve
-    return LabelRev
+    
+    return LabelTrain
 
 ## Get base_out filename
 get_base_out = sipros_post_module.get_base_out
@@ -404,9 +413,9 @@ def show_Fdr(psm_list, fdr_float):
         
         if oPsm.RealLabel == LabelFwd:
             Fwd_num += 1
-        elif oPsm.RealLabel == LabelRev:
+        elif oPsm.RealLabel == LabelTrain:
             Rev_num += 1
-        elif oPsm.RealLabel == LabelShu:
+        elif oPsm.RealLabel == LabelTest:
             Shu_num += 1
         else:
             sys.stderr.write('error 768.\n')
@@ -448,10 +457,10 @@ def show_Fdr_Pep(psm_list, fdr_float):
             if oPsm.RealLabel == LabelFwd:
                 num_fwr_pep += 1
                 peptide_set.add(pep_str)
-            elif oPsm.RealLabel == LabelShu:
+            elif oPsm.RealLabel == LabelTest:
                 num_shu_pep += 1
                 peptide_set.add(pep_str)
-            elif oPsm.RealLabel == LabelRev:
+            elif oPsm.RealLabel == LabelTrain:
                 num_rev_pep += 1
                 peptide_set.add(pep_str)
             else:
@@ -492,7 +501,7 @@ def re_rank(psm_list):
     return psm_new_list
 
 def logistic_regression_no_category(psm_list, config_dict=None):
-    fdr_given = float(config_dict[pro_iden_str + FDR_Threshold_str])/(Train_Test_Ratio + 1.0)
+    fdr_given = float(config_dict[pro_iden_str + FDR_Threshold_str])*(Test_Fwd_Ratio)
     # machine learning
     # # construct training data
     #psm_list_selected = []
@@ -517,10 +526,10 @@ def logistic_regression_no_category(psm_list, config_dict=None):
         # if oPsm.iLocalRank == 0 or oPsm.iLocalRank == 1:
         test_data_list.append(oPsm.feature_list)
         psm_rank_list.append(oPsm)
-        if oPsm.RealLabel != LabelRev and (oPsm.iLocalRank == 0 or bDisableLocalRank ):
+        if oPsm.RealLabel != LabelTrain and (oPsm.iLocalRank == 0 or bDisableLocalRank ):
             train_data_list.append(oPsm.feature_list)
             train_label_list.append(positive_int)
-        elif oPsm.RealLabel == LabelRev:
+        elif oPsm.RealLabel == LabelTrain:
             train_data_list.append(oPsm.feature_list)
             train_label_list.append(negative_int)
                 
@@ -901,6 +910,7 @@ pro_iden_str = '[Protein_Identification]'
 FDR_Threshold_str = 'FDR_Threshold'
 training_decoy_prefix_str = 'Training_Decoy_Prefix'
 testing_decoy_prefix_str = 'Testing_Decoy_Prefix'
+reserved_decoy_prefix_str = 'Reserved_Decoy_Prefix'
 FDR_Filtering_str = 'FDR_Filtering'
 min_peptide_per_protein_str = 'Min_Peptide_Per_Protein'
 min_unique_peptide_per_protein_str = 'Min_Unique_Peptide_Per_Protein'
@@ -920,10 +930,13 @@ def parse_config(config_filename):
     
     # Save all config values to dictionary
     all_config_dict = parseconfig.parseConfigKeyValues(config_filename)
-    global rev_str, shu_str
-    rev_str = all_config_dict[pro_iden_str + training_decoy_prefix_str]
-    shu_str = all_config_dict[pro_iden_str + testing_decoy_prefix_str]
-    reserve_str = ''
+    global train_str, test_str, reserve_str
+    train_str = all_config_dict[pro_iden_str + training_decoy_prefix_str]
+    test_str = all_config_dict[pro_iden_str + testing_decoy_prefix_str]
+    if pro_iden_str + reserved_decoy_prefix_str in all_config_dict:
+        reserve_str = all_config_dict[pro_iden_str + reserved_decoy_prefix_str]
+    else:
+        reserve_str = ''
     
     # return config dictionary
     return all_config_dict
@@ -996,10 +1009,10 @@ def generate_psm_pep_txt(base_out, out_folder, psm_filtered_list, config_dict):
     pro_iden_msg += "#\t[Protein_Identification]\n"
     pro_iden_msg += "#\t\n"
     pro_iden_msg += "#\t# the prefix of training decoy sequences' locus IDs in the database\n"
-    pro_iden_msg += "#\t" + training_decoy_prefix_str + " = " + str(rev_str) + "\n"
+    pro_iden_msg += "#\t" + training_decoy_prefix_str + " = " + str(train_str) + "\n"
     pro_iden_msg += "#\t\n"
     pro_iden_msg += "#\t# the prefix of test decoy sequences' locus IDs in the database\n"
-    pro_iden_msg += "#\t" + testing_decoy_prefix_str + " = " + str(shu_str) + "\n"
+    pro_iden_msg += "#\t" + testing_decoy_prefix_str + " = " + str(test_str) + "\n"
     pro_iden_msg += "#\t\n"
     pro_iden_msg += "#\t# Level of FDR filtering. Options: \"PSM\" and \"Peptide\"\n"
     pro_iden_msg += "#\t" + FDR_Filtering_str + " = " + config_dict[pro_iden_str + FDR_Filtering_str] + "\n"
@@ -1064,7 +1077,7 @@ def generate_psm_pep_txt(base_out, out_folder, psm_filtered_list, config_dict):
     pep_decoy_int = 0
     pep_set = Set()
     for oPsm in psm_filtered_list:
-        if oPsm.RealLabel == LabelRev:
+        if oPsm.RealLabel == LabelTrain:
             continue
         pep_str = oPsm.IdentifiedPeptide + '_' + str(oPsm.ParentCharge)
         if pep_str not in pep_set:
@@ -1098,7 +1111,7 @@ def generate_psm_pep_txt(base_out, out_folder, psm_filtered_list, config_dict):
         fw.write('#\tDecoy_PSMs_After_Filtering = %d\n' % psm_decoy_int)
         fw.write('#\tTarget_PSMs_After_Filtering = %d\n' % psm_target_int)
         fw.write('#\t# PSM FDR = Decoy_PSMs_After_Filtering / Target_PSMs_After_Filtering\n')
-        fw.write('#\tPSM_FDR = %.2f%%\n' % ((1 + Train_Test_Ratio) * 100.0 * psm_decoy_int/psm_target_int))
+        fw.write('#\tPSM_FDR = %.2f%%\n' % ((1/Test_Fwd_Ratio) * 100.0 * psm_decoy_int/psm_target_int))
         fw.write('#\t\n')
         fw.write(psm_column_msg)
         # for psm out
@@ -1122,7 +1135,7 @@ def generate_psm_pep_txt(base_out, out_folder, psm_filtered_list, config_dict):
                     'TargetMatch']  # 17
         fw.write('\t'.join(psm_out_list) + '\n')
         for oPsm in psm_filtered_list:
-            if oPsm.RealLabel == LabelRev:
+            if oPsm.RealLabel == LabelTrain:
                 continue 
             oPsm.clean_protein_name()
             fw.write(oPsm.FileName)
@@ -1168,7 +1181,7 @@ def generate_psm_pep_txt(base_out, out_folder, psm_filtered_list, config_dict):
     # pep_sub_dict for preparing pep_out
     pep_sub_dict = {}    # initialize dict of list
     for oPsm in psm_filtered_list:
-        if oPsm.RealLabel == LabelRev:
+        if oPsm.RealLabel == LabelTrain:
             continue
         pep_ID = oPsm.IdentifiedPeptide + '_+_' + str(oPsm.ParentCharge)
         if pep_ID in pep_sub_dict:
@@ -1195,7 +1208,7 @@ def generate_psm_pep_txt(base_out, out_folder, psm_filtered_list, config_dict):
         fw.write('#\tDecoy_peptides_After_Filtering = %d\n' % pep_decoy_int)
         fw.write('#\tTarget_peptides_After_Filtering = %d\n' % pep_target_int)
         fw.write('#\t# peptide FDR = Decoy_peptides_After_Filtering / Target_peptides_After_Filtering\n')
-        fw.write('#\tPeptide_FDR = %.2f%%\n' % ((1 + Train_Test_Ratio) * 100.0*pep_decoy_int/pep_target_int))
+        fw.write('#\tPeptide_FDR = %.2f%%\n' % ((1/Test_Fwd_Ratio) * 100.0*pep_decoy_int/pep_target_int))
         fw.write('#\t\n')
         fw.write(pep_column_msg)
         # for pep out
@@ -1249,6 +1262,32 @@ def mass_filter(psm_list, config_dict):
         psm_new_list.append(oPsm)
     return psm_new_list
 
+# find the testing decoy verse forward 
+def find_train_test_ratio(config_dict):
+    database_str = config_dict['[Peptide_Identification]FASTA_Database']
+    num_train_int = 0
+    num_test_int = 0
+    num_reserved_int = 0
+    num_fwd_int = 0
+    less_train_str = '>' + train_str
+    less_test_str = '>' + test_str
+    less_reserve_str = '>' + reserve_str
+    with open(database_str, 'r') as f:
+        for line_str in f:
+            if line_str.startswith('>'):
+                if line_str.startswith(less_train_str):
+                    num_train_int += 1
+                elif line_str.startswith(less_test_str):
+                    num_test_int += 1
+                elif reserve_str!= '' and line_str.startswith(less_reserve_str):
+                    num_reserved_int += 1
+                else:
+                    num_fwd_int += 1
+    
+    global Test_Fwd_Ratio
+    Test_Fwd_Ratio = float(num_test_int) / float(num_fwd_int)
+    return Test_Fwd_Ratio
+
 def main(argv=None):
     if argv is None:
         argv = sys.argv
@@ -1266,6 +1305,8 @@ def main(argv=None):
     
     # read the big psm table
     sys.stderr.write('[Step 1] Parse options and read PSM file:                   Running -> ')
+    # find out the train and testing ratio
+    find_train_test_ratio(config_dict)
     (psm_list, base_out) = read_psm_table(input_file)
     sys.stderr.write('Done!\n')
     

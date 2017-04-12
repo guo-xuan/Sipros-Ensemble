@@ -525,6 +525,18 @@ class scan_xml:
         self.xcorrlist = sorted(self.peplist, key=lambda pep: (pep.scorelist[1]), reverse=True)
         self.wdplist = sorted(self.peplist, key=lambda pep: (pep.scorelist[2]), reverse=True)
         self.list_list = [self.mvhlist, self.xcorrlist, self.wdplist]
+        # calculate the score difference
+        for idx1, l1 in enumerate(self.list_list):
+            if len(l1) == 1:
+                diff = 0
+                l1[0].scorediff[idx1] = 0
+                continue
+            for idx2, pep in enumerate(l1):
+                if idx2 == 0:
+                    diff = (pep.scorelist[idx1]/l1[idx2+1].scorelist[idx1]) - 1
+                else:
+                    diff = (pep.scorelist[idx1]/l1[0].scorelist[idx1]) - 1
+                pep.scorediff[idx1] = diff
         
 
 class pep_xml:
@@ -534,7 +546,8 @@ class pep_xml:
         self.proteinlist = re.sub('[{}]', '', PsmFields_obj.ProteinNames).split(',')
         self.calculatedmass = PsmFields_obj.CalculatedParentMass
         self.scorelist = [float(PsmFields_obj.MVH), float(PsmFields_obj.Xcorr), float(PsmFields_obj.WDP)]
-        self.scorediff = [float(PsmFields_obj.DiffRS1), float(PsmFields_obj.DiffRS2), float(PsmFields_obj.DiffRS3)]
+        # self.scorediff = [float(PsmFields_obj.DiffRS1), float(PsmFields_obj.DiffRS2), float(PsmFields_obj.DiffRS3)]
+        self.scorediff = [0, 0, 0]
 
 fNeutronMass = 1.00867108694132 # it is Neutron mass
 
@@ -600,7 +613,7 @@ def writePepxml(filename_str, config_dict, modification_dict, element_modificati
     
 def writePepxmlSingle(filename_str, config_dict, modification_dict, element_modification_list_dict, psm_list, op):
     score_list_str = ['mvh', 'xcorr', 'wdp']
-    deltascore_str = 'deltascore'
+    deltascore_str = 'scoreDifferential'
     cleave_residues_str = config_dict[Cleave_After_Residues_str]
     
     _temp = __import__('lxml.etree', globals(), locals(), ['ElementTree'], -1)
@@ -687,16 +700,20 @@ def writePepxmlSingle(filename_str, config_dict, modification_dict, element_modi
                     
         search_result = SubElement(spectrum_query, 'search_result')
         for idx, oPepScores in enumerate(psm_obj.list_list[op]):
+            '''
             if idx == len(psm_obj.list_list[op]) - 1:
                 break
+            '''
+            if idx > 4:
+                break
             search_hit = SubElement(search_result, 'search_hit')
-            search_hit.set('hit_rank', str(idx))
+            search_hit.set('hit_rank', str(idx+1))
             search_hit.set('peptide', oPepScores.originalPep[1:-1])
             search_hit.set('protein', oPepScores.proteinlist[0])
             search_hit.set('num_tot_proteins', str(len(oPepScores.proteinlist)))
             search_hit.set('calc_neutral_pep_mass', oPepScores.calculatedmass)
             search_hit.set('massdiff', str(get_mass_diff(float(psm_obj.measuredmass), float(oPepScores.calculatedmass))))
-            search_hit.set('num_tol_term', '2')
+            # search_hit.set('num_tol_term', '2')
             search_hit.set('num_missed_cleavages', get_num_missed_cleavages(oPepScores.identifiedPep, cleave_residues_str))
             # alternative_protein
             if len(oPepScores.proteinlist) > 1:
