@@ -17,7 +17,10 @@ import sys, os, re, math
 from datetime import datetime
 from collections import namedtuple
 from multiprocessing import Process
-from sets import Set
+try:
+    from sets import Set
+except ImportError:
+    pass
 
 rev_str = 'Rev_' # 'Rev_'
 shu_str = 'TestRev_' # 'Shu_'
