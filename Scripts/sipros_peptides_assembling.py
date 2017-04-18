@@ -153,7 +153,7 @@ def parse_options(argv):
                                      "psm-pep-files"])
 
     # Error handling of options
-    except getopt.error, msg:
+    except(getopt.error, msg):
         raise Usage(msg)
 
     # Default working dir and config file
@@ -1333,12 +1333,12 @@ def main(argv=None):
             sys.stderr.write('Run complete [%s elapsed]\n' %  format_time(duration))
 
         # Error handling
-        except Usage, err:
+        except (Usage, err):
             print >> sys.stderr, sys.argv[0].split("/")[-1] + ": " + str(err.msg)
             return 2
 
     # Error handling
-    except Usage, err:
+    except (Usage, err):
         print >> sys.stderr, sys.argv[0].split("/")[-1] + ": " + str(err.msg)
         print >> sys.stderr, "for help use -h/--help"
         return 2
