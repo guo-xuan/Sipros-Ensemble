@@ -132,10 +132,12 @@ conda install --prefix ~/sipros-env scipy
 conda install --prefix ~/sipros-env scikit-learn
 ```
 
+Note: if mass spectrometry data in mzml format, mzML2FT can be used to transfer mzML files to FT1 and FT2 text files which supported by Sipros Ensemble. Running mzML2FT requires pymzml library. 
 ```
 source activate ~/sipros-env
 pip install pymzml
 ```
+
 5. You are good to go.
 
 ### Questions?
