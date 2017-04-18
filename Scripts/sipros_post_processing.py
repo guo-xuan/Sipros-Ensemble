@@ -10,7 +10,12 @@ import csv
 import math
 import re
 
-from sets import Set
+try:
+    from sets import Set
+except ImportError:
+    pass
+
+
 from datetime import datetime, date, time
 from collections import namedtuple
 from sklearn import linear_model

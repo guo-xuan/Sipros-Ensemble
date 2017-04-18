@@ -1602,7 +1602,7 @@ def write_PepXML(output_folder, qPsmProcessed, iNumRankers, config_dict):
 
         iNumProcessedScans += 1
         if iNumProcessedScans % 100 == 0:
-            print " Processed & Saved %i Scans\r" % iNumProcessedScans
+            print(" Processed & Saved %i Scans\r" % iNumProcessedScans)
 
     if input_filename != '':
         document = ElementTree(root)
