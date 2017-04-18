@@ -18,7 +18,10 @@ import sys, getopt, warnings, os, re
 from datetime import datetime, date, time
 from collections import defaultdict
 import csv 
-from sets import Set
+try:
+    from sets import Set
+except ImportError:
+    pass
 
 ## Import Sipros package modules
 import sipros_post_module
