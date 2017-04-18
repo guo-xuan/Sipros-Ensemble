@@ -52,6 +52,11 @@ esac
 shift # past argument or value
 done
 
+if [ -z "$SipFolder" ] && [ -z "$ConfigureFile" ]  && [ -z "$OutputFolder" ] ; then
+   echo "Input incomplete. Not all required parameters specified. Run with -h for help. Exiting..."
+   exit 1
+fi
+
 if [ ! -d ${OutputFolder} ]; then
 	mkdir -p ${OutputFolder}
 fi
