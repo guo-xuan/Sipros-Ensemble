@@ -119,7 +119,7 @@ conda create --prefix ~/sipros-env
 source activate ~/sipros-env
 ```
 
-4. Install a new package (numpy, scipy, scikit-learn, or pymzml) in a this environment (~/sipros-env):
+4. Install a new package (numpy, scipy, scikit-learn) in a this environment (~/sipros-env):
 ```
 conda install --prefix ~/sipros-env numpy
 ```
@@ -130,12 +130,6 @@ conda install --prefix ~/sipros-env scipy
 
 ```
 conda install --prefix ~/sipros-env scikit-learn
-```
-
-Note: if mass spectrometry data in mzml format, mzML2FT can be used to transfer mzML files to FT1 and FT2 text files which supported by Sipros Ensemble. Running mzML2FT requires pymzml library. 
-```
-source activate ~/sipros-env
-pip install pymzml
 ```
 
 5. You are good to go.
