@@ -119,7 +119,7 @@ conda create --prefix ~/sipros-env
 source activate ~/sipros-env
 ```
 
-4. Install a new package (numpy, scipy, or scikit-learn) in a this environment (~/sipros-env):
+4. Install a new package (numpy, scipy, scikit-learn, or pymzml) in a this environment (~/sipros-env):
 ```
 conda install --prefix ~/sipros-env numpy
 ```
@@ -130,6 +130,11 @@ conda install --prefix ~/sipros-env scipy
 
 ```
 conda install --prefix ~/sipros-env scikit-learn
+```
+
+```
+source activate ~/sipros-env
+pip install pymzml
 ```
 5. You are good to go.
 
