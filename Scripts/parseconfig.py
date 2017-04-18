@@ -20,15 +20,15 @@ def parseConfigLine (sLine, sSectionName) :
 	if ((sLine[0] == "[") and (sLine[len(sLine)-1] == "]" )) :
 		sSectionName[0] = sLine
 	elif (sSectionName[0] == "")   : 
-		print "no section name"
+		print("no section name")
 	else :
 		twoParts = sLine.split("=")
 		if (len(twoParts) != 2) :
-			print "wrong line: "+sLine
+			print("wrong line: "+sLine)
 		else :
 			currentKey   = sSectionName[0] + twoParts[0].rstrip()
 			currentValue = twoParts[1].lstrip()
-			#print currentKey+"=>"+currentValue
+			#print(currentKey+"=>"+currentValue)
 	return [currentKey, currentValue]
 
 
@@ -45,17 +45,17 @@ def parseConfigKeyValues (filepath) :
 		if (sLine == "") :
 			continue
 		else :
-			#print "!!!"+sLine+"!!!"
+			#print("!!!"+sLine+"!!!")
 			currentKey, currentValue = parseConfigLine (sLine, sSectionName)
 			if (currentKey != "") and (currentValue != "" ):
-			#	print currentKey+"=>"+currentValue
+			#	print(currentKey+"=>"+currentValue)
 				if (dictConfigKeyValues.get(currentKey) == None ):
 					dictConfigKeyValues[currentKey] = currentValue
 				else :
-					print currentKey + " has existed"	
+					print(currentKey + " has existed")
 	configFile.close()
 #	for currentKey, currentValue in dictConfigKeyValues.items() :
-#		print currentKey, currentValue 
+#		print(currentKey, currentValue)
 	return dictConfigKeyValues
 
 def getModificationDictionary(dictConfigKeyValues):

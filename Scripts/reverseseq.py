@@ -17,7 +17,7 @@ def parse_options(argv):
     # Basic options
     for option, value in opts:
         if option in ("-h", "--help"):
-            print "-i input-file, -o output-file"
+            print("-i input-file, -o output-file")
             sys.exit(1)
         if option in ("-i", "--input-file"):
             input_filename = value
@@ -25,7 +25,7 @@ def parse_options(argv):
             output_filename = value
 
     if (input_filename == "") :
-        print "Please specify -i"
+        print("Please specify -i")
         sys.exit(1)
     if (output_filename == "") :
         (inputFileNameRoot, inputFileNameExt) = os.path.splitext(input_filename)
@@ -149,7 +149,7 @@ def main(argv=None):
     # ReverseSeq_3(inputFileName, outputFileName)
     ReverseSeq(inputFileName, outputFileName)
     
-    print 'Done.'    
+    print('Done.')    
     
 def main2(argv=None):
     folder_str = "/media/xgo/Seagate/Proteomics/Data/Zhou/Pete/2014_database/"
@@ -157,9 +157,9 @@ def main2(argv=None):
     for file_str in os.listdir(folder_str):
         if file_str.endswith('.faa'):
             ReverseSeq(folder_str+file_str, output_str+file_str[:-4]+'_fwr_rev.faa')
-            print '.'
+            print('.')
     
-    print 'Done.'
+    print('Done.')
 
 
 ## If this program runs as standalone, then go to main.

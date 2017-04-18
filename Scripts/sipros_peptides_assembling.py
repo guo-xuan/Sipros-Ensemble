@@ -167,7 +167,7 @@ def parse_options(argv):
         if option in ("-h", "--help"):
             raise Usage(help_message)
         if option in ("-v", "-V", "--version"):
-            print "sipros_peptides_assembling.py V%s" % (get_version())
+            print("sipros_peptides_assembling.py V%s" % (get_version()))
             sys.exit(0)
         if option in ("-w", "--working-dir"):
             working_dir = value
@@ -335,7 +335,7 @@ def read_fasta_necessary_file(working_dir, config_dict, pro_greedy_list):
     # FASTA ID is space delimited file
     fasta_ID_del = ' '
     
-    # print str(len(pro_set))
+    # print(str(len(pro_set)))
     
     # read lines
     for line in fasta_file:

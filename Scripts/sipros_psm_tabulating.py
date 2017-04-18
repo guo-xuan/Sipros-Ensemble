@@ -32,9 +32,9 @@ Usage:
     python sipros_psm_tabulating.py [options]
 
 Inputs:
-    spe2psm directory
-    sipros configuration file
-    output directory
+    -i spe2psm directory
+    -c sipros configuration file
+    -o output directory
 
 Options:
     -h/--help
@@ -128,10 +128,10 @@ def parse_options(argv):
     # Basic options
     for option, value in opts:
         if option in ("-h", "--help"):
-            print help_message
+            print(help_message)
             sys.exit(0)
         if option in ("-v", "-V", "--version"):
-            print "sipros_peptides_filtering.py V%s" % (get_version())
+            print("sipros_psm_tabulating.py V%s" % (get_version()))
             sys.exit(0)
         if option in ("-i", "--input-folder"):
             input_folder = value
@@ -143,7 +143,7 @@ def parse_options(argv):
             pepxml_output = True
 
     if input_folder == "" or sConfig == "" or output_folder == "":
-        print help_message
+        print(help_message)
         sys.exit(0)
 
     return (input_folder, sConfig, output_folder, pepxml_output)
@@ -413,13 +413,13 @@ def report_output(sipros_psm_data):
             else:
                 iDecoyXcorr += 1
                 lXcorrScores[0].addDecoyScores(psm_data_list[6][5])
-    print "Mvh:\t" + str(iNumMvh) + "\tTarget/Decoy\t" + str(iTargeMvh) + "\t" + str(iDecoyMvh)
-    print "Xcorr:\t" + str(iNumXcorr) + "\tTarget/Decoy\t" + str(iTargeXcorr) + "\t" + str(iDecoyXcorr)
-    print "Wdp:\t" + str(iNumWdp) + "\tTarget/Decoy\t" + str(iTargeWdp) + "\t" + str(iDecoyWdp)
-    print "Mvh+Xcorr:\t" + str(iNumMvhXcorr) + "\tTarget/Decoy\t" + str(iTargeMvhXcorr) + "\t" + str(iDecoyMvhXcorr)
-    print "Mvh+Wdp:\t" + str(iNumMvhWdp) + "\tTarget/Decoy\t" + str(iTargeMvhWdp) + "\t" + str(iDecoyMvhWdp)
-    print "Wdp+Xcorr:\t" + str(iNumWdpXcorr) + "\tTarget/Decoy\t" + str(iTargeWdpXcorr) + "\t" + str(iDecoyWdpXcorr)
-    print "Mvh+Wdp+Xcorr:\t" + str(iNumMvhWdpXcorr) + "\tTarget/Decoy\t" + str(iTargeMvhWdpXcorr) + "\t" + str(iDecoyMvhWdpXcorr)
+    print("Mvh:\t" + str(iNumMvh) + "\tTarget/Decoy\t" + str(iTargeMvh) + "\t" + str(iDecoyMvh))
+    print("Xcorr:\t" + str(iNumXcorr) + "\tTarget/Decoy\t" + str(iTargeXcorr) + "\t" + str(iDecoyXcorr))
+    print("Wdp:\t" + str(iNumWdp) + "\tTarget/Decoy\t" + str(iTargeWdp) + "\t" + str(iDecoyWdp))
+    print("Mvh+Xcorr:\t" + str(iNumMvhXcorr) + "\tTarget/Decoy\t" + str(iTargeMvhXcorr) + "\t" + str(iDecoyMvhXcorr))
+    print("Mvh+Wdp:\t" + str(iNumMvhWdp) + "\tTarget/Decoy\t" + str(iTargeMvhWdp) + "\t" + str(iDecoyMvhWdp))
+    print("Wdp+Xcorr:\t" + str(iNumWdpXcorr) + "\tTarget/Decoy\t" + str(iTargeWdpXcorr) + "\t" + str(iDecoyWdpXcorr))
+    print("Mvh+Wdp+Xcorr:\t" + str(iNumMvhWdpXcorr) + "\tTarget/Decoy\t" + str(iTargeMvhWdpXcorr) + "\t" + str(iDecoyMvhWdpXcorr))
     lMvhScores[0].writeIntoFile('MvhOnly')
     lMvhScores[iIndexMvhWdp].writeIntoFile('MvhWdp')
     lMvhScores[iIndexMvhXcorr].writeIntoFile('MvhXcorr')
@@ -433,7 +433,7 @@ def report_output(sipros_psm_data):
     lXcorrScores[iIndexXcorrMvh].writeIntoFile('XcorrMvh')
     lXcorrScores[iIndexMvhWdpXcorr].writeIntoFile('XcorrMvhWdp')
     
-    print '\nid:\t%s' % lastPsm
+    print('\nid:\t%s' % lastPsm)
     return sipros_psm_data
 
 def refine_proteins(file_str):
@@ -468,7 +468,7 @@ def refine_proteins(file_str):
                 fw.write('\t'.join(psm))
                 fw.write('\n')
             else:
-                print 'error'
+                print('error')
 
 # # simple count the agreements
 def main2(argv=None):
@@ -824,7 +824,7 @@ def main(argv=None):
     sys.stderr.write('[%s] Ending Sipros Ensemble Tabulating\n' % curr_time())
     sys.stderr.write('Run complete [%s elapsed]\n' %  format_time(duration))
     
-    print base_out + '.tab'
+    print(base_out + '.tab')
 
 if __name__ == '__main__':
     sys.exit(main())

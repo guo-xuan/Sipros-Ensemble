@@ -24,7 +24,7 @@ def parse_options(argv):
     # Basic options
     for option, value in opts:
         if option in ("-h", "--help"):
-            print "-w workingdirectory/ -n filenumber -o output-path"
+            print("-w workingdirectory/ -n filenumber -o output-path")
         if option in ("-w", "--working-dir"):
             working_dir = value
             if working_dir[-1] != '/':
@@ -35,7 +35,7 @@ def parse_options(argv):
             outputpath = value
 
     if (filenumber == "") or (outputpath == "") :
-        print "please specify -n and -o\n"
+        print("please specify -n and -o\n")
         sys.exit(1)                
     FT2_filename_list = get_file_list_with_ext(working_dir, ".FT2")
     MS2_filename_list = get_file_list_with_ext(working_dir, ".MS2")

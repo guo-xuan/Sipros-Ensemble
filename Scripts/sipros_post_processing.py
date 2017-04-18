@@ -45,7 +45,7 @@ Test_Fwd_Ratio = 1
 # # Class for ignoring comments '#' in sipros file
 CommentedFile = sipros_post_module.CommentedFile
 #feature_name_list = ['ParentCharge', 'MVH', 'Xcorr', 'WDP', 'ScoreAgreement', 'MassDifferent', 'DeltaRP1', 'DeltaRP2', 'DeltaRP3', 'DeltaRS1', 'DeltaRS2', 'DeltaRS3', 'DiffRP1', 'DiffRP2', 'DiffRP3', 'DiffRS1', 'DiffRS2', 'DiffRS3', 'DiffNorRP1', 'DiffNorRP2', 'DiffNorRP3', 'DiffNorRS1', 'DiffNorRS2', 'DiffNorRS3', 'NMC', 'IPSC', 'OPSC', 'UPSC', 'SPSC', 'pep_psm', 'pro_pep']
-#                            0        1      2        3      4                 5                6           7           8           9           10          11         12          13         14         15         16         17         18            19            20            21            22            23            24     25      28     29       30        31          32       33    34         35           36         37              38 
+#                            0        1      2        3      4                 5                6           7           8           9           10          11         12          13         14         15         16         17         18            19            20            21            22            23            24     25      26      27      28        31          32       33    34         35           36         37              38 
 feature_name_list = ['ParentCharge', 'MVH', 'Xcorr', 'WDP', 'ScoreAgreement', 'MassDifferent', 'DeltaRP1', 'DeltaRP2', 'DeltaRP3', 'DeltaRS1', 'DeltaRS2', 'DeltaRS3', 'DiffRP1', 'DiffRP2', 'DiffRP3', 'DiffRS1', 'DiffRS2', 'DiffRS3', 'DiffNorRP1', 'DiffNorRP2', 'DiffNorRP3', 'DiffNorRS1', 'DiffNorRS2', 'DiffNorRS3', 'NMC', 'IPSC', 'OPSC', 'UPSC', 'SPSC', 'MassWindow', 'PPC', 'OPSC_U', 'OPSC_Ma', 'OPSC_D_Mi', 'PSC_U', 'PSC_Ma', 'PSC_D_Mi']
 feature_selection_list = [0, 1, 2, 3, 4, 5]
 ptm_str = ['~', '!', '@', '>', '<', '%', '^', '&', '*', '(', ')', '/', '$']
@@ -245,18 +245,18 @@ def get_version():
 # # Help message
 help_message = '''
 Usage:
-    python xxx.py [options]
+    python sipros_post_processing.py [options]
 
 Inputs:
-    input yyy
-    output zzz
+    -i PSM.tab
+    -c Sipros Ensemble configuration file
 
 Options:
     -h/--help
     -v/--version
 
 Outputs:
-    output zzz
+    -o output directory
 '''
 
 # # Parse options
@@ -277,10 +277,10 @@ def parse_options(argv):
     # Basic options
     for option, value in opts:
         if option in ("-h", "--help"):
-            print help_message
+            print(help_message)
             sys.exit(0)
         if option in ("-v", "-V", "--version"):
-            print "xxx.py V%s" % (get_version())
+            print("sipros_post_processing.py V%s" % (get_version()))
             sys.exit(0)
         if option in ("-i", "--input"):
             input_file = value
@@ -290,7 +290,7 @@ def parse_options(argv):
             config_file = value
 
     if input_file == "" or output_folder == "":
-        print help_message
+        print(help_message)
         sys.exit(0)
 
     output_folder = os.path.join(output_folder, '')
@@ -518,7 +518,7 @@ def logistic_regression_no_category(psm_list, config_dict=None):
     for oPsm in psm_list:
         if len(oPsm.feature_list) != num_feature_int:
             pass
-            # print 'check'
+            # print('check')
         if oPsm.RealLabel == LabelReserve:
             # train_data_list.append(oPsm.feature_list)
             # train_label_list.append(negative_int)
@@ -687,9 +687,9 @@ def generate_Prophet_features_test(lPsm, config_dict):
         pro_list = peptide_protein_dict[oPsm.OriginalPeptide]
         '''
         if len(oPsm.protein_list) != len(pro_list):
-            print 'check 3'
-            print oPsm.protein_list
-            print pro_list
+            print('check 3')
+            print(oPsm.protein_list)
+            print(pro_list)
         '''    
         changed_flag = False
         print_flag = True
@@ -697,20 +697,20 @@ def generate_Prophet_features_test(lPsm, config_dict):
             if not protein in oPsm.protein_list:
                 changed_flag = True
                 if not print_flag:
-                    print pro_list
-                    print oPsm.protein_list
+                    print(pro_list)
+                    print(oPsm.protein_list)
                     print_flag = True
                 oPsm.protein_list.append(protein)
         if len(oPsm.protein_list) != len(pro_list):
-            print 'check 4'
-            print oPsm.protein_list
-            print pro_list
+            print('check 4')
+            print(oPsm.protein_list)
+            print(pro_list)
             exit(1)
             
         if changed_flag:
             oPsm.set_protein_names()
             oPsm.RealLabel = protein_type(oPsm.ProteinNames)
-            # print oPsm.OriginalPeptide
+            # print(oPsm.OriginalPeptide)
             num_changed += 1
         '''
         unique_id_str = oPsm.FileName + '_' + str(oPsm.ScanNumber) + '_' + oPsm.IdentifiedPeptide
@@ -768,7 +768,7 @@ def generate_Prophet_features_test(lPsm, config_dict):
                     pro_shared_pep_dict[pro] = l
     if num_changed != 0:
         if not print_flag:
-            print "num changed %d" % num_changed
+            print("num changed %d" % num_changed)
     
     # collect features
     num_unique_per_pro = 0
@@ -1343,7 +1343,7 @@ def main(argv=None):
     sys.stderr.write('[%s] Ending Sipros Ensemble filtering\n' % curr_time())
     sys.stderr.write('Run complete [%s elapsed]\n' %  format_time(duration))
     
-    # print psm_txt_file_str + "____________" + pep_txt_file_str
+    # print(psm_txt_file_str + "____________" + pep_txt_file_str)
     
 if __name__ == '__main__':
     sys.exit(main())
