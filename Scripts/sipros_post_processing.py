@@ -210,6 +210,16 @@ class PSM:
     
     def set_protein_names(self):
         self.ProteinNames = '{' + ','.join(self.protein_list) + '}'
+        
+    def add_protein(self, protein_l):
+        add_bool = False
+        for p in protein_l:
+            if p not in self.protein_list:
+                add_bool = True
+                self.protein_list.append(p)
+        
+        if add_bool:
+            self.set_protein_names()
 
     def set_feature(self, feature_list):
         del feature_list[:]
@@ -315,17 +325,28 @@ def protein_type(protein_sequence, lProtein=None):
                 lProtein.append(sProtein)
     
     if reserve_str != '':
-        for sProtein in asProteins:
-            if not (sProtein.startswith(train_str) or sProtein.startswith(test_str) or sProtein.startswith(reserve_str)):
-                return LabelFwd
+        if train_str != '':
+            for sProtein in asProteins:
+                if not (sProtein.startswith(train_str) or sProtein.startswith(test_str) or sProtein.startswith(reserve_str)):
+                    return LabelFwd
+        else:
+            for sProtein in asProteins:
+                if not (sProtein.startswith(test_str) or sProtein.startswith(reserve_str)):
+                    return LabelFwd            
     else:
-        for sProtein in asProteins:
-            if not (sProtein.startswith(train_str) or sProtein.startswith(test_str)):
-                return LabelFwd
+        if train_str != '':
+            for sProtein in asProteins:
+                if not (sProtein.startswith(train_str) or sProtein.startswith(test_str)):
+                    return LabelFwd
+        else:
+            for sProtein in asProteins:
+                if not (sProtein.startswith(test_str)):
+                    return LabelFwd
     
-    for sProtein in asProteins:
-        if sProtein.startswith(test_str):
-            return LabelTest
+    if test_str != '':
+        for sProtein in asProteins:
+            if sProtein.startswith(test_str):
+                return LabelTest
     
     if reserve_str != '':
         for sProtein in asProteins:
@@ -497,6 +518,23 @@ def re_rank(psm_list):
         if sId in psm_dict:
             if oPsm.fPredictProbability > psm_dict[sId].fPredictProbability:
                 psm_dict[sId] = oPsm
+            elif oPsm.fPredictProbability == psm_dict[sId].fPredictProbability:
+                if abs(oPsm.fMassDiff) < abs(psm_dict[sId].fMassDiff): 
+                    psm_dict[sId] = oPsm
+                elif abs(oPsm.fMassDiff) == abs(psm_dict[sId].fMassDiff):
+                     # calcualte PTM scores
+                    s1 = ''.join([char if char.isalnum() else '$' for char in oPsm.IdentifiedPeptide ])
+                    s2 = ''.join([char if char.isalnum() else '$' for char in psm_dict[sId].IdentifiedPeptide ])
+                    s1_special_char_count = s1.count('$') - 2
+                    s2_special_char_count = s2.count('$') - 2
+                    if s1 < s2:
+                        psm_dict[sId] = oPsm
+                    elif s1 == s2:
+                        if oPsm.IdentifiedPeptide.upper() < psm_dict[sId].IdentifiedPeptide.upper():
+                            psm_dict[sId] = oPsm
+                        elif oPsm.IdentifiedPeptide.upper() == psm_dict[sId].IdentifiedPeptide.upper():
+                            psm_dict[sId].add_protein(oPsm.protein_list)
+                    
         else:
             psm_dict[sId] = oPsm
     
@@ -508,8 +546,8 @@ def re_rank(psm_list):
 def cutoff_filtering(psm_list, config_dict=None):
     fdr_given = float(config_dict[pro_iden_str + FDR_Threshold_str])
     for oPsm in psm_list:
-        oPsm.fPredictProbability = oPsm.lfScores[0]
-    psm_new_list = re_rank(psm_rank_list)
+        oPsm.fPredictProbability = oPsm.lfScores[2]
+    psm_new_list = re_rank(psm_list)
     if config_dict[pro_iden_str + FDR_Filtering_str] == 'PSM':
         psm_filtered_list_local = show_Fdr(psm_new_list, fdr_given)
     else:
@@ -950,14 +988,14 @@ def parse_config(config_filename):
     # Save all config values to dictionary
     all_config_dict = parseconfig.parseConfigKeyValues(config_filename)
     
+    global train_str, test_str, reserve_str
+    
     if all_config_dict[pep_iden_str + search_type_str] == 'SIP':
-        global train_str, test_str, reserve_str
-        train_str = all_config_dict[sip_iden_str + decoy_prefix_str]
-        test_str = ''
+        train_str = ''
+        test_str = all_config_dict[sip_iden_str + decoy_prefix_str]
         reserve_str = ''
         return all_config_dict
     
-    global train_str, test_str, reserve_str
     train_str = all_config_dict[pro_iden_str + training_decoy_prefix_str]
     test_str = all_config_dict[pro_iden_str + testing_decoy_prefix_str]
     if pro_iden_str + reserved_decoy_prefix_str in all_config_dict:
@@ -1330,6 +1368,10 @@ def main(argv=None):
     # get the configuration parameters
     config_dict = parse_config(config_file)
     
+    if config_dict[pep_iden_str + search_type_str] == 'SIP':
+        sip_filtering(input_file, config_dict, output_folder, start_time)
+        return
+    
     # read the big psm table
     sys.stderr.write('[Step 1] Parse options and read PSM file:                   Running -> ')
     # find out the train and testing ratio
@@ -1374,7 +1416,7 @@ def main(argv=None):
     
 
     
-def sip_filtering(input_file, config_dict, output_folder):
+def sip_filtering(input_file, config_dict, output_folder, start_time):
     # read the big psm table
     sys.stderr.write('[Step 1] Parse options and read PSM file:                   Running -> ')
     # find out the train and testing ratio
