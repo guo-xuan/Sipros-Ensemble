@@ -72,10 +72,10 @@ The quick start commands are:
 #!/bin/bash
 
 ### MPI Verion 
-runDisco_ALPS.sh -o ${output_dir} -w ${workingdirectory} -c $SiprosConfig.cfg -n ${number_MPI_processes}
+runSipros_ALPS.sh -o ${output_dir} -w ${workingdirectory} -c $SiprosConfig.cfg -n ${number_MPI_processes}
 
 ```
-Results (`.Spe2Pep` files) will be saved on the output directory. if you have many configure files, specify `-g`, like `runSipros.sh -o ${output_dir} -w ${workingdirectory} -g ${configurefiledirectory}`. Use `runDisco_ALPS.sh -h` for help information.
+Results (`.Spe2Pep` files) will be saved on the output directory. if you have many configure files, specify `-g`, like `runSipros.sh -o ${output_dir} -w ${workingdirectory} -g ${configurefiledirectory}`. Use `runSipros_ALPS.sh -h` for help information.
 
 ### Guide to Regular Search
 

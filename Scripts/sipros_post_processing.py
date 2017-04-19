@@ -505,6 +505,17 @@ def re_rank(psm_list):
     
     return psm_new_list
 
+def cutoff_filtering(psm_list, config_dict=None):
+    fdr_given = float(config_dict[pro_iden_str + FDR_Threshold_str])
+    for oPsm in psm_list:
+        oPsm.fPredictProbability = oPsm.lfScores[0]
+    psm_new_list = re_rank(psm_rank_list)
+    if config_dict[pro_iden_str + FDR_Filtering_str] == 'PSM':
+        psm_filtered_list_local = show_Fdr(psm_new_list, fdr_given)
+    else:
+        psm_filtered_list_local = show_Fdr_Pep(psm_new_list, fdr_given)        
+    return psm_filtered_list_local
+
 def logistic_regression_no_category(psm_list, config_dict=None):
     fdr_given = float(config_dict[pro_iden_str + FDR_Threshold_str])*(Test_Fwd_Ratio)
     # machine learning
@@ -910,11 +921,14 @@ min_unique_peptide_per_protein = 1
 remove_decoy_identification = 'No'
 
 pep_iden_str = '[Peptide_Identification]'
+search_type_str = 'Search_Type'
 fasta_database_str = 'FASTA_Database'
 pro_iden_str = '[Protein_Identification]'
 FDR_Threshold_str = 'FDR_Threshold'
 training_decoy_prefix_str = 'Training_Decoy_Prefix'
 testing_decoy_prefix_str = 'Testing_Decoy_Prefix'
+sip_iden_str = '[Stable_Isotope_Probing]'
+decoy_prefix_str = 'Decoy_Prefix'
 reserved_decoy_prefix_str = 'Reserved_Decoy_Prefix'
 FDR_Filtering_str = 'FDR_Filtering'
 min_peptide_per_protein_str = 'Min_Peptide_Per_Protein'
@@ -935,6 +949,14 @@ def parse_config(config_filename):
     
     # Save all config values to dictionary
     all_config_dict = parseconfig.parseConfigKeyValues(config_filename)
+    
+    if all_config_dict[pep_iden_str + search_type_str] == 'SIP':
+        global train_str, test_str, reserve_str
+        train_str = all_config_dict[sip_iden_str + decoy_prefix_str]
+        test_str = ''
+        reserve_str = ''
+        return all_config_dict
+    
     global train_str, test_str, reserve_str
     train_str = all_config_dict[pro_iden_str + training_decoy_prefix_str]
     test_str = all_config_dict[pro_iden_str + testing_decoy_prefix_str]
@@ -1296,17 +1318,17 @@ def find_train_test_ratio(config_dict):
 def main(argv=None):
     if argv is None:
         argv = sys.argv
-
-    # parse options
-    (input_file, config_file, output_folder) = parse_options(argv)
-    
-    # get the configuration parameters
-    config_dict = parse_config(config_file)
     
     # Display work start and time record
     start_time = datetime.now()
     sys.stderr.write('[%s] Beginning Sipros Ensemble Filtering (%s)\n' % (curr_time(), get_version()))
     sys.stderr.write('------------------------------------------------------------------------------\n')
+    
+    # parse options
+    (input_file, config_file, output_folder) = parse_options(argv)
+    
+    # get the configuration parameters
+    config_dict = parse_config(config_file)
     
     # read the big psm table
     sys.stderr.write('[Step 1] Parse options and read PSM file:                   Running -> ')
@@ -1349,6 +1371,36 @@ def main(argv=None):
     sys.stderr.write('Run complete [%s elapsed]\n' %  format_time(duration))
     
     # print(psm_txt_file_str + "____________" + pep_txt_file_str)
+    
+
+    
+def sip_filtering(input_file, config_dict, output_folder):
+    # read the big psm table
+    sys.stderr.write('[Step 1] Parse options and read PSM file:                   Running -> ')
+    # find out the train and testing ratio
+    (psm_list, base_out) = read_psm_table(input_file)
+    # mass filtering
+    psm_list = mass_filter(psm_list, config_dict)
+    sys.stderr.write('Done!\n')
+    
+    # find score-cutoff
+    sys.stderr.write('[Step 2] Re-rank PSMs and find score cutoff:                Running -> ')
+    psm_filtered_list = cutoff_filtering(psm_list, config_dict)
+    sys.stderr.write('Done!\n')
+
+
+    # write output
+    sys.stderr.write('[Step 4] Report output:                                     Running -> ')
+    (psm_txt_file_str, pep_txt_file_str) = generate_psm_pep_txt(base_out, output_folder, psm_filtered_list, config_dict)
+    sys.stderr.write('Done!\n')
+    
+    # Time record, calculate elapsed time, and display work end
+    finish_time = datetime.now()
+    duration = finish_time - start_time
+    sys.stderr.write('------------------------------------------------------------------------------\n')
+    sys.stderr.write('[%s] Ending Sipros Ensemble filtering\n' % curr_time())
+    sys.stderr.write('Run complete [%s elapsed]\n' %  format_time(duration))
+    
     
 if __name__ == '__main__':
     sys.exit(main())
