@@ -546,7 +546,7 @@ def re_rank(psm_list):
 def cutoff_filtering(psm_list, config_dict=None):
     fdr_given = float(config_dict[pro_iden_str + FDR_Threshold_str])
     for oPsm in psm_list:
-        oPsm.fPredictProbability = oPsm.lfScores[2]
+        oPsm.fPredictProbability = oPsm.lfScores[0]
     psm_new_list = re_rank(psm_list)
     if config_dict[pro_iden_str + FDR_Filtering_str] == 'PSM':
         psm_filtered_list_local = show_Fdr(psm_new_list, fdr_given)
