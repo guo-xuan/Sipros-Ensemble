@@ -122,6 +122,8 @@ class PSM:
         self.ProteinNames = psm_field.ProteinNames.strip()
         self.ScoreAgreement = int(psm_field.ScoreAgreement)
         self.IdentifiedPeptide = psm_field.IdentifiedPeptide
+        s1 = ''.join([char if char.isalnum() else '$' for char in self.IdentifiedPeptide ])
+        self.PTMscore = s1.count('$') - 2
         self.OriginalPeptide = psm_field.OriginalPeptide
         self.OriginalPeptide = PSM.pattern.sub('', self.IdentifiedPeptide)
         self.protein_list = []
@@ -247,7 +249,10 @@ class PSM:
         l = []
         for sProtein in self.protein_list:
             sProtein.strip()
-            if not (sProtein.startswith(train_str)):
+            if train_str == "":
+                if sProtein not in l:
+                    l.append(sProtein)
+            elif not (sProtein.startswith(train_str)):
                 if sProtein not in l:
                     l.append(sProtein)
         self.ProteinNames = '{'+','.join(l) + '}'
@@ -422,10 +427,10 @@ def FDR_calculator(FP, TP):
 
     return (FDR_accept, float(FDR_value))
 
-def show_Fdr(psm_list, fdr_float):
+def show_Fdr(psm_list, fdr_float, charge_left_given = -1, charge_right_given = -1):
     
     # list_sorted = sorted(psm_list, key=lambda x: (x.fPredictProbability, 1 - x.fRankProduct) , reverse=True)
-    list_sorted = sorted(psm_list, key=lambda x: (x.fPredictProbability) , reverse=True)
+    list_sorted = sorted(psm_list, key=lambda x: (-x.fPredictProbability, -x.fMassDiff, -x.PTMscore, x.IdentifiedPeptide))
     Fwd_num = 0
     Rev_num = 0
     Shu_num = 0
@@ -433,10 +438,11 @@ def show_Fdr(psm_list, fdr_float):
 
     
     psm_filtered_list = []
-    cutoff_probability = 0.0
+    cutoff_probability = 1000.0
     # without considering training label
     for oPsm in list_sorted:
-        
+        if charge_left_given != -1 and (oPsm.ParentCharge < charge_left_given or oPsm.ParentCharge > charge_right_given):
+            continue
         if oPsm.RealLabel == LabelFwd:
             Fwd_num += 1
         elif oPsm.RealLabel == LabelTrain:
@@ -453,18 +459,25 @@ def show_Fdr(psm_list, fdr_float):
             
 
     for oPsm in list_sorted:
+        if charge_left_given != -1 and (oPsm.ParentCharge < charge_left_given or oPsm.ParentCharge > charge_right_given):
+            continue
         if oPsm.fPredictProbability >= cutoff_probability:
             psm_filtered_list.append(oPsm)
      
     # sys.stdout.write('\t'+str(len(psm_filtered_list))+'\n')
     # sys.stdout.write("{:,d}\n{:.2f}%\n{:.2f}%\n{:,d}\n{:.2f}%\n".format(Best_list[0], 100.0*float(Best_list[1])/float(Best_list[0]), 100.0*float(Best_list[2])/float(Best_list[0]), best_fwr_pep, 100.0*float(best_shu_pep)/float(best_fwr_pep)))
     # sys.stdout.write("%d\t[%.2f%%]\t[%.2f%%]\t%d\t[%.2f%%]\n" % (Best_list[0], 100.0*float(Best_list[2])/float(Best_list[0]), 100.0*float(Best_list[1])/float(Best_list[0]), best_fwr_pep, 100.0*float(best_shu_pep)/float(best_fwr_pep)))
-    
+    '''
+    print(str(charge_left_given))
+    print(str(cutoff_probability))
+    print(str(Best_list[2]))
+    print(str(Best_list[0]))
+    '''
     return psm_filtered_list
 
-def show_Fdr_Pep(psm_list, fdr_float):
+def show_Fdr_Pep(psm_list, fdr_float, charge_left_given = -1, charge_right_given = -1):
     
-    list_sorted = sorted(psm_list, key=lambda x: (x.fPredictProbability) , reverse=True)
+    list_sorted = sorted(psm_list, key=lambda x: (-x.fPredictProbability, -x.fMassDiff, -x.PTMscore, x.IdentifiedPeptide))
     
     peptide_set = Set()
     num_fwr_pep = 0
@@ -474,10 +487,11 @@ def show_Fdr_Pep(psm_list, fdr_float):
     best_shu_pep = 0
     
     psm_filtered_list = []
-    cutoff_probability = 0.0
+    cutoff_probability = 1000.0
     # without considering training label
     for oPsm in list_sorted:
-        
+        if charge_left_given != -1 and (oPsm.ParentCharge < charge_left_given or oPsm.ParentCharge > charge_right_given):
+            continue
         pep_str = oPsm.IdentifiedPeptide + '_' + str(oPsm.ParentCharge)
         if pep_str not in peptide_set:
             if oPsm.RealLabel == LabelFwd:
@@ -501,58 +515,140 @@ def show_Fdr_Pep(psm_list, fdr_float):
             
 
     for oPsm in list_sorted:
+        if charge_left_given != -1 and (oPsm.ParentCharge < charge_left_given or oPsm.ParentCharge > charge_right_given):
+            continue
         if oPsm.fPredictProbability >= cutoff_probability:
             psm_filtered_list.append(oPsm)
      
     # sys.stdout.write('\t'+str(len(psm_filtered_list))+'\n')
     # sys.stdout.write("%d\t[%.2f%%]\t[%.2f%%]\t%d\t[%.2f%%]\n" % (Best_list[0], 100.0*float(Best_list[2])/float(Best_list[0]), 100.0*float(Best_list[1])/float(Best_list[0]), best_fwr_pep, 100.0*float(best_shu_pep)/float(best_fwr_pep)))
-    
+    '''
+    print(str(charge_left_given))
+    print(str(cutoff_probability))
+    print(str(best_shu_pep))
+    print(str(best_fwr_pep))
+    '''
     return psm_filtered_list
 
 
-def re_rank(psm_list):
+def re_rank(psm_list, consider_charge_bool = False):
     psm_new_list = []
     psm_dict = {}
-    for oPsm in psm_list:
-        sId = oPsm.FileName + '_' + str(oPsm.ScanNumber)
-        if sId in psm_dict:
-            if oPsm.fPredictProbability > psm_dict[sId].fPredictProbability:
-                psm_dict[sId] = oPsm
-            elif oPsm.fPredictProbability == psm_dict[sId].fPredictProbability:
-                if abs(oPsm.fMassDiff) < abs(psm_dict[sId].fMassDiff): 
+    if consider_charge_bool :
+        for oPsm in psm_list:
+            sId = oPsm.FileName + '_' + str(oPsm.ScanNumber) + '_' + str(oPsm.ParentCharge)
+            if sId in psm_dict:
+                if oPsm.fPredictProbability > psm_dict[sId].fPredictProbability:
                     psm_dict[sId] = oPsm
-                elif abs(oPsm.fMassDiff) == abs(psm_dict[sId].fMassDiff):
-                     # calcualte PTM scores
-                    s1 = ''.join([char if char.isalnum() else '$' for char in oPsm.IdentifiedPeptide ])
-                    s2 = ''.join([char if char.isalnum() else '$' for char in psm_dict[sId].IdentifiedPeptide ])
-                    s1_special_char_count = s1.count('$') - 2
-                    s2_special_char_count = s2.count('$') - 2
-                    if s1 < s2:
+                elif oPsm.fPredictProbability == psm_dict[sId].fPredictProbability:
+                    if abs(oPsm.fMassDiff) < abs(psm_dict[sId].fMassDiff): 
                         psm_dict[sId] = oPsm
-                    elif s1 == s2:
-                        if oPsm.IdentifiedPeptide.upper() < psm_dict[sId].IdentifiedPeptide.upper():
+                    elif abs(oPsm.fMassDiff) == abs(psm_dict[sId].fMassDiff):
+                        # calculate PTM scores
+                        if oPsm.PTMscore < psm_dict[sId].PTMscore:
                             psm_dict[sId] = oPsm
-                        elif oPsm.IdentifiedPeptide.upper() == psm_dict[sId].IdentifiedPeptide.upper():
-                            psm_dict[sId].add_protein(oPsm.protein_list)
+                        elif oPsm.PTMscore == psm_dict[sId].PTMscore:
+                            if oPsm.IdentifiedPeptide.upper() < psm_dict[sId].IdentifiedPeptide.upper():
+                                psm_dict[sId] = oPsm
+                            elif oPsm.IdentifiedPeptide.upper() == psm_dict[sId].IdentifiedPeptide.upper():
+                                psm_dict[sId].add_protein(oPsm.protein_list)
                     
-        else:
-            psm_dict[sId] = oPsm
-    
+            else:
+                psm_dict[sId] = oPsm
+    else :
+        for oPsm in psm_list:
+            sId = oPsm.FileName + '_' + str(oPsm.ScanNumber)
+            if sId in psm_dict:
+                if oPsm.fPredictProbability > psm_dict[sId].fPredictProbability:
+                    psm_dict[sId] = oPsm
+                elif oPsm.fPredictProbability == psm_dict[sId].fPredictProbability:
+                    if abs(oPsm.fMassDiff) < abs(psm_dict[sId].fMassDiff): 
+                        psm_dict[sId] = oPsm
+                    elif abs(oPsm.fMassDiff) == abs(psm_dict[sId].fMassDiff):
+                        # calculate PTM scores
+                        if oPsm.PTMscore < psm_dict[sId].PTMscore:
+                            psm_dict[sId] = oPsm
+                        elif oPsm.PTMscore == psm_dict[sId].PTMscore:
+                            if oPsm.IdentifiedPeptide.upper() < psm_dict[sId].IdentifiedPeptide.upper():
+                                psm_dict[sId] = oPsm
+                            elif oPsm.IdentifiedPeptide.upper() == psm_dict[sId].IdentifiedPeptide.upper():
+                                psm_dict[sId].add_protein(oPsm.protein_list)
+                    
+            else:
+                psm_dict[sId] = oPsm
+
     for _key, value in psm_dict.iteritems():
         psm_new_list.append(value)
+    '''
+    fw = open("/media/xgo/Seagate/Proteomics/Experiments/SIP/ScoreCompare/filtering/SE_50/tmp/psm_temp.txt", 'w')
     
+    for oPsm in psm_new_list:
+        if oPsm.RealLabel == LabelTrain:
+            continue 
+        oPsm.clean_protein_name()
+        fw.write(oPsm.FileName)
+        fw.write('\t')
+        fw.write(str(oPsm.ScanNumber))
+        fw.write('\t')
+        fw.write(str(oPsm.ParentCharge))
+        fw.write('\t')
+        fw.write('%.3f' % oPsm.MeasuredParentMass)
+        fw.write('\t')
+        fw.write('%.3f' % oPsm.CalculatedParentMass)
+        fw.write('\t')
+        fw.write('%.3f' % (oPsm.fMassDiff))
+        fw.write('\t')
+        fw.write('%.3f' % (1000000*(oPsm.fMassDiff)/oPsm.CalculatedParentMass))
+        fw.write('\t')
+        fw.write(oPsm.ScanType)
+        fw.write('\t')
+        fw.write(oPsm.SearchName)
+        fw.write('\t')
+        fw.write('SiprosEnsemble')
+        fw.write('\t')
+        fw.write(str(oPsm.fPredictProbability))
+        fw.write('\t')
+        fw.write('NA')
+        fw.write('\t')
+        fw.write(oPsm.DeltaP)
+        fw.write('\t')
+        fw.write(oPsm.IdentifiedPeptide)
+        fw.write('\t')
+        fw.write(oPsm.OriginalPeptide)
+        fw.write('\t')
+        fw.write(oPsm.ProteinNames)
+        fw.write('\t')
+        fw.write(str(len(oPsm.protein_list)))
+        fw.write('\t')
+        if oPsm.RealLabel == LabelFwd:
+            fw.write('T')
+        else:
+            fw.write('F')
+        fw.write('\n')
+    
+    fw.close()
+    '''
     return psm_new_list
 
 def cutoff_filtering(psm_list, config_dict=None):
     fdr_given = float(config_dict[pro_iden_str + FDR_Threshold_str])
     for oPsm in psm_list:
         oPsm.fPredictProbability = oPsm.lfScores[0]
-    psm_new_list = re_rank(psm_list)
+    psm_new_list = re_rank(psm_list, False)
+    psm_return_list = []
+    charge_set = [[1, 1], [2, 2], [3, 10000]]
     if config_dict[pro_iden_str + FDR_Filtering_str] == 'PSM':
-        psm_filtered_list_local = show_Fdr(psm_new_list, fdr_given)
+        for e in charge_set:
+            psm_filtered_list_local = show_Fdr(psm_new_list, fdr_given, e[0], e[1])
+            psm_return_list.extend(psm_filtered_list_local)
     else:
-        psm_filtered_list_local = show_Fdr_Pep(psm_new_list, fdr_given)        
-    return psm_filtered_list_local
+        for e in charge_set:  
+            psm_filtered_list_local = show_Fdr_Pep(psm_new_list, fdr_given, e[0], e[1])
+            psm_return_list.extend(psm_filtered_list_local)
+            
+    # psm_return_list = re_rank(psm_return_list, False)
+    
+    return psm_return_list
 
 def logistic_regression_no_category(psm_list, config_dict=None):
     fdr_given = float(config_dict[pro_iden_str + FDR_Threshold_str])*(Test_Fwd_Ratio)
@@ -992,7 +1088,7 @@ def parse_config(config_filename):
     
     if all_config_dict[pep_iden_str + search_type_str] == 'SIP':
         train_str = ''
-        test_str = all_config_dict[sip_iden_str + decoy_prefix_str]
+        test_str = all_config_dict[pro_iden_str + testing_decoy_prefix_str]
         reserve_str = ''
         return all_config_dict
     

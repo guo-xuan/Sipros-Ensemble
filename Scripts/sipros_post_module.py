@@ -589,6 +589,10 @@ class PepSpectrumMatch:
     def addPepScores(self, pep):
         for e in self.lPepScores:
             if e.sIdentifiedPeptide == pep.sIdentifiedPeptide:
+                if e.lfScores[0] < pep.lfScores[0]:
+                    e.lfScores = pep.lfScores
+                    e.fCalculatedParentMass = pep.fCalculatedParentMass
+                    e.sSearchName = pep.sSearchName
                 words = pep.sProteinNames.split(',')
                 for sProtein in words:
                     if e.sProteinNames.find(sProtein) == -1:
@@ -605,7 +609,7 @@ class PepSpectrumMatch:
         for j in self.lPepScores:
             del j.liRanks[:]
         for i in range(iNumScores):
-            lPep = sorted(self.lPepScores, key=lambda pep: (pep.lfScores[i], MassDiff(pep), PtmScore(pep), pep.sIdentifiedPeptide), reverse=True)
+            lPep = sorted(self.lPepScores, key=lambda pep: (-pep.lfScores[i], -MassDiff(pep), -PtmScore(pep), pep.sIdentifiedPeptide))
             iRank = 1
             for j in lPep:
                 j.liRanks.append(iRank)
@@ -628,7 +632,7 @@ class PepSpectrumMatch:
         iNumScores = len(self.lPepScores[0].lfScores)
         
         for i in range(iNumScores):
-            lPep = sorted(self.lPepScores, key=lambda pep: (pep.lfScores[i], MassDiff(pep), PtmScore(pep), pep.sIdentifiedPeptide), reverse=True)
+            lPep = sorted(self.lPepScores, key=lambda pep: (-pep.lfScores[i], -MassDiff(pep), -PtmScore(pep), pep.sIdentifiedPeptide))
             self.pep_rank_list.append(lPep)
             iRank = 1
             for j in lPep:
@@ -837,7 +841,7 @@ class PepSpectrumMatch:
             feature_list.append(str(self.iParentCharge))
             feature_list.append(str(self.fMeasuredParentMass))
             feature_list.append(self.sScanType)
-            feature_list.append(self.sSearchName)
+            feature_list.append(pep.sSearchName)
             feature_list.append(pep.sIdentifiedPeptide)
             feature_list.append(pep.sOriginalPeptide)
             feature_list.append(str(pep.fCalculatedParentMass))
@@ -873,7 +877,7 @@ class PepSpectrumMatch:
             feature_list.append(str(self.iParentCharge))
             feature_list.append(str(self.fMeasuredParentMass))
             feature_list.append(self.sScanType)
-            feature_list.append(self.sSearchName)
+            feature_list.append(pep.sSearchName)
             feature_list.append(pep.sIdentifiedPeptide)
             feature_list.append(pep.sOriginalPeptide)
             feature_list.append(str(pep.fCalculatedParentMass))
@@ -964,9 +968,11 @@ class PepSpectrumMatch:
 
 # # lOnePsm: + spectrum * peptide * peptide + spectrum
 def SelectTopRankedPsm(lOnePsm):
+    psm_dict = {}
     psm = PepSpectrumMatch(lOnePsm[0][0])
+    psm_dict[psm.iParentCharge] = psm
     '''
-    if psm.iScanNumber == 18472:
+    if psm.iScanNumber == 4299:
         print 'check'
     '''
     iCharge = 0
@@ -977,13 +983,19 @@ def SelectTopRankedPsm(lOnePsm):
                 # a spectrum line
                 iCharge = get_charge(sline)
                 sSearchName = get_search_name(sline)
+                if iCharge not in psm_dict:
+                    psm = PepSpectrumMatch(sline)
+                    psm_dict[iCharge] = psm
             else:
                 # a peptide line
-                pep = PepScores(psm.fMeasuredParentMass, iCharge, sSearchName, sline)
-                psm.addPepScores(pep)
+                pep = PepScores(psm_dict[iCharge].fMeasuredParentMass, iCharge, sSearchName, sline)
+                psm_dict[iCharge].addPepScores(pep)
     # sorting and then ranking
-    psm.ranking()
-    return psm
+    psm_list = []
+    for k,v in psm_dict.items():
+        v.ranking()
+        psm_list.append(v)
+    return psm_list
 
 # # peak a line from the file
 def peek_line(f):
@@ -1162,13 +1174,14 @@ class RankPsm(Process):
             psm = self.qPsmUnprocessed.get(True)
             if psm is None:
                 break
-            oPsm = SelectTopRankedPsm(psm)
+            Psm_list = SelectTopRankedPsm(psm)
             del psm
             self.iCount += 1
             if self.iCount % 10 == 0:
                 pass
                 # print "Rank # scans %i" % self.iCount
-            self.qPsmProcessed.put(oPsm, True)
+            for oPsm in Psm_list:
+                self.qPsmProcessed.put(oPsm, True)
         self.qPsmProcessed.put(None)
         self.qPsmUnprocessed.put(None)
         return
