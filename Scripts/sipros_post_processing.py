@@ -47,6 +47,8 @@ reserve_str = ''
 
 Test_Fwd_Ratio = 1
 
+mass_window_max_int = 0
+
 # # Class for ignoring comments '#' in sipros file
 CommentedFile = sipros_post_module.CommentedFile
 #feature_name_list = ['ParentCharge', 'MVH', 'Xcorr', 'WDP', 'ScoreAgreement', 'MassDifferent', 'DeltaRP1', 'DeltaRP2', 'DeltaRP3', 'DeltaRS1', 'DeltaRS2', 'DeltaRS3', 'DiffRP1', 'DiffRP2', 'DiffRP3', 'DiffRS1', 'DiffRS2', 'DiffRS3', 'DiffNorRP1', 'DiffNorRP2', 'DiffNorRP3', 'DiffNorRS1', 'DiffNorRS2', 'DiffNorRS3', 'NMC', 'IPSC', 'OPSC', 'UPSC', 'SPSC', 'pep_psm', 'pro_pep']
@@ -231,7 +233,8 @@ class PSM:
     def set_mass_diff(self, measured_mass, calculated_mass):
         MassDiffOriginal = measured_mass - calculated_mass
         MassDiff = MassDiffOriginal
-        for i in range(-4, 4):
+        global mass_window_max_int
+        for i in range(-mass_window_max_int, mass_window_max_int):
             if abs(MassDiffOriginal - i*PSM.fNeutronMass) < abs(MassDiff):
                 MassDiff = MassDiffOriginal - i*PSM.fNeutronMass
                 self.iMassWindow = i
@@ -1071,6 +1074,8 @@ remove_decoy_identification_str = 'Remove_Decoy_Identification'
 cleave_after_residues_str = 'Cleave_After_Residues'
 cleave_before_residues_str = 'Cleave_Before_Residues'
 Mass_Tolerance_Parent_Ion_str = 'Mass_Tolerance_Parent_Ion'
+Parent_Mass_Windows_str = 'Parent_Mass_Windows'
+Mass_Tolerance_Parent_Ion_str = 'Mass_Tolerance_Parent_Ion'
 
 ## Parse config file
 def parse_config(config_filename):
@@ -1083,6 +1088,19 @@ def parse_config(config_filename):
     
     # Save all config values to dictionary
     all_config_dict = parseconfig.parseConfigKeyValues(config_filename)
+    
+    # get the mass window
+    line_str = all_config_dict[pep_iden_str + Parent_Mass_Windows_str]
+    e_list = line_str.strip().split(',')
+    global mass_window_max_int
+    mass_window_max_int = 0
+    for e in e_list:
+        v = abs(int(e.strip()))
+        if v > mass_window_max_int:
+            mass_window_max_int = v
+    line_str = all_config_dict[pep_iden_str + Mass_Tolerance_Parent_Ion_str]
+    if float(line_str.strip()) > 0.05:
+        mass_window_max_int += 1
     
     global train_str, test_str, reserve_str
     
