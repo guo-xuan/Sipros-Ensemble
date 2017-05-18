@@ -1,5 +1,6 @@
 # GNU Compiler for OpenMP installations
 CC := g++
+GCC = gcc
 OPTS := -std=c++11 -fopenmp -O3 -g
 
 # Intel Compiler for OpenMP installations
@@ -11,5 +12,6 @@ OPTS := -std=c++11 -fopenmp -O3 -g
 # MOPTS := -std=c++11 -openmp -O3 -g
 
 # Intel MPI C++ Compiler installations
-MCC := icpc
-MOPTS := -std=c++11 -openmp -O3 -g -lmpi -lmpi++
+MCC := /home/xgo/local/bin/mpiCC
+MGCC := /home/xgo/local/bin/mpicc
+MOPTS := -std=c++11 -fopenmp -O3 -g

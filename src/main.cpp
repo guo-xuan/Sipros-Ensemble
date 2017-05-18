@@ -19,6 +19,13 @@ void searchFT2Files(vector<string> & vsFT2Filenames, const string & sWorkingDire
 	working_dir.getFiles(vsFT2Filenames);
 	working_dir.setPattern(".MS2");
 	working_dir.getFiles(vsFT2Filenames);
+
+	//get mzML
+	working_dir.setPattern(".mzml");
+	working_dir.getFiles(vsFT2Filenames);
+	working_dir.setPattern(".mzML");
+	working_dir.getFiles(vsFT2Filenames);
+
 	iFileNum = (int) vsFT2Filenames.size();
 	if (iFileNum == 0) {
 		cerr << "no scan file in the working directory" << endl;
@@ -28,8 +35,7 @@ void searchFT2Files(vector<string> & vsFT2Filenames, const string & sWorkingDire
 		vsFT2Filenames.at(i) = sWorkingDirectory + ProNovoConfig::getSeparator() + vsFT2Filenames.at(i);
 }
 
-void searchConfigureFiles(vector<string> & vsConfigureFilenames, const string & sConfigFileDirectory,
-		bool bScreenOutput) {
+void searchConfigureFiles(vector<string> & vsConfigureFilenames, const string & sConfigFileDirectory, bool bScreenOutput) {
 	int i, iFileNum;
 	DirectoryStructure working_dir(sConfigFileDirectory);
 	working_dir.setPattern(".cfg");
@@ -90,7 +96,7 @@ void initializeArguments(int argc, char **argv, vector<string> & vsFT2Filenames,
 			exit(0);
 		} else if (vsArguments[i] == "-p") {
 			MVH::ProbabilityCutOff = atof(vsArguments[++i].c_str());
-			CometSearch::ProbabilityCutOff = MVH::ProbabilityCutOff;
+			CometSearchMod::ProbabilityCutOff = MVH::ProbabilityCutOff;
 		} else {
 			cerr << "Unknown option " << vsArguments[i] << endl << endl;
 			exit(1);
@@ -125,7 +131,7 @@ void initializeArguments(int argc, char **argv, vector<string> & vsFT2Filenames,
 void handleScan(const string & sFT2filename, const string & sOutputDirectory, const string & sConfigFilename, bool bScreenOutput) {
 	MS2ScanVector * pMainMS2ScanVector = new MS2ScanVector(sFT2filename, sOutputDirectory, sConfigFilename, bScreenOutput);
 
-	if (bScreenOutput){
+	if (bScreenOutput) {
 		cout << "Reading MS2 scan file " << sFT2filename << endl;
 		cout << "Using Configuration file " << sConfigFilename << endl;
 	}
@@ -133,8 +139,13 @@ void handleScan(const string & sFT2filename, const string & sOutputDirectory, co
 	if (!pMainMS2ScanVector->loadFT2file())
 		cerr << "Error: Failed to load file: " << sFT2filename << endl;
 	else {
-		// search all MS2 scans and write output to a file
-		pMainMS2ScanVector->startProcessing();
+		if(ProNovoConfig::getSearchType() == "SIP"){
+			pMainMS2ScanVector->startProcessingWDPSIP();
+		}else{
+			// search all MS2 scans and write output to a file
+			pMainMS2ScanVector->startProcessing();
+		}
+
 		// pMainMS2ScanVector->startProcessingXcorr();
 		// pMainMS2ScanVector->startProcessingMVHTask();
 		// pMainMS2ScanVector->startProcessingXcorrTask();
@@ -153,11 +164,11 @@ int main(int argc, char **argv) {
 	bool bScreenOutput;
 	string sWorkingDirectory, sConfigFilename, sSingleWorkingFile, sOutputDirectory;
 	initializeArguments(argc, argv, vsFT2Filenames, sWorkingDirectory, vsConfigureFilenames, sSingleWorkingFile, sOutputDirectory, bScreenOutput);
-	// omp_set_num_threads(2);
+	// omp_set_num_threads(32);
 
 	// Process one FT2 file at a time
 	for (int i = 0; i < (int) vsFT2Filenames.size(); i++) {
-		for(int j = 0; j < (int) vsConfigureFilenames.size(); ++j){
+		for (int j = 0; j < (int) vsConfigureFilenames.size(); ++j) {
 			// Load config file
 			sConfigFilename = vsConfigureFilenames.at(j);
 			if (!ProNovoConfig::setFilename(sConfigFilename)) {

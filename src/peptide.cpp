@@ -79,6 +79,7 @@ void Peptide::preprocessing(bool isMS2HighRes, const map<char, double>& mapResid
 			iPeptideLength = iPeptideLength + 1;
 
 	sNewPeptide = neutralLossProcess(sPeptide);
+	sNeutralLossPeptide = sNewPeptide;
 	if (isMS2HighRes) {
 		calculateIsotope(sNewPeptide, mapResidueMass); // just for weightsum
 		//calculateExpectedFragments(mapResidueMass); // just for ranksum

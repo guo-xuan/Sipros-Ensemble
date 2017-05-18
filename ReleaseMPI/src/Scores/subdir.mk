@@ -4,15 +4,15 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
-../src/Scores/CometSearch.cpp \
+../src/Scores/CometSearchMod.cpp \
 ../src/Scores/MVH.cpp 
 
 OBJS += \
-./src/Scores/CometSearch.o \
+./src/Scores/CometSearchMod.o \
 ./src/Scores/MVH.o 
 
 CPP_DEPS += \
-./src/Scores/CometSearch.d \
+./src/Scores/CometSearchMod.d \
 ./src/Scores/MVH.d 
 
 

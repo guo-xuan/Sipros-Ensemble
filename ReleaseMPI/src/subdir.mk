@@ -39,12 +39,14 @@ CPP_DEPS += \
 ./src/ptm.d \
 ./src/tokenvector.d 
 
+override CXXFLAGS = -Wextra -static -Wno-char-subscripts -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -D__LINUX__ -I$(MSTOOLKIT)/include -I$(COMETSEARCH)
+
 
 # Each subdirectory must supply rules for building sources it contributes
 src/%.o: ../src/%.cpp
 	@echo 'Building file: $<'
 	@echo 'Invoking: C++ Compiler'
-	-$(MCC) $(MOPTS) -c -o "$@" "$<"
+	-$(MCC) $(MOPTS) $(CXXFLAGS) -c -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 

@@ -107,7 +107,7 @@ void initializeArguments(int argc, char **argv, vector<string> & vsFT2Filenames,
 			exit(0);
 		} else if (vsArguments[i] == "-p") {
 			MVH::ProbabilityCutOff = atof(vsArguments[++i].c_str());
-			CometSearch::ProbabilityCutOff = MVH::ProbabilityCutOff;
+			CometSearchMod::ProbabilityCutOff = MVH::ProbabilityCutOff;
 		} else {
 			cerr << "Unknown option " << vsArguments[i] << endl << endl;
 			exit(1);

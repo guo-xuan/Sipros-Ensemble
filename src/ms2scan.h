@@ -5,13 +5,14 @@
 #include <string>
 
 #include "peptide.h"
-#include "./Scores/CometSearch.h"
 #include "./Scores/MVH.h"
+#include "Scores/CometSearchMod.h"
 //#include "TandemMassSpectrum.h"
 
 #define BIN_RES         1000
 #define LOW_BIN_RES     10
 #define TOP_N           50
+#define TOP_N_SIP       5
 #define TOPPICKNUM      20
 #define ZERO            0.00000001
 #define SMALLINCREMENT  0.00000001 // to solve the incorrect cut off 
@@ -284,6 +285,7 @@ public:
 	double dMaxIntensity;
 	void sumIntensity();
 	void scoreFeatureCalculation();
+	void scoreFeatureCalculationWDPSip();
 	int iNumPeptideAssigned;
 	int getMaxNumProteinPsm();
 	string sRTime;

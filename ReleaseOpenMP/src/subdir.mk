@@ -7,7 +7,6 @@ CPP_SRCS += \
 ../src/directoryStructure.cpp \
 ../src/isotopologue.cpp \
 ../src/main.cpp \
-../src/mpimain.cpp \
 ../src/ms2scan.cpp \
 ../src/ms2scanvector.cpp \
 ../src/peptide.cpp \
@@ -32,7 +31,6 @@ CPP_DEPS += \
 ./src/directoryStructure.d \
 ./src/isotopologue.d \
 ./src/main.d \
-./src/mpimain.d \
 ./src/ms2scan.d \
 ./src/ms2scanvector.d \
 ./src/peptide.d \
@@ -46,7 +44,7 @@ CPP_DEPS += \
 src/%.o: ../src/%.cpp
 	@echo 'Building file: $<'
 	@echo 'Invoking: C++ Compiler'
-	-$(CC) $(OPTS) -c -o "$@" "$<"
+	-$(CC) $(OPTS) $(CXXFLAGS) -c -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 

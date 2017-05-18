@@ -620,6 +620,7 @@ bool Isotopologue::computeAtomicComposition(string sSequence, vector<int> & myAt
  */
 IsotopeDistribution Isotopologue::sum_backup(const IsotopeDistribution & distribution0, const IsotopeDistribution & distribution1) {
 	//debug begin
+	/*
 	for (int k = 0; k < ((int) distribution0.vMass.size()) - 1; k++) {
 		if (distribution0.vMass.at(k) > distribution0.vMass.at(k + 1)) {
 			cerr << "error emass" << endl;
@@ -632,7 +633,10 @@ IsotopeDistribution Isotopologue::sum_backup(const IsotopeDistribution & distrib
 			exit(1);
 		}
 	}
+	*/
 	//debug end
+
+	double ProbabilityCutoff_local = 0.000001;
 
 	IsotopeDistribution sumDistribution;
 	double currentMass;
@@ -671,7 +675,7 @@ IsotopeDistribution Isotopologue::sum_backup(const IsotopeDistribution & distrib
 	vector<double>::iterator iteProb = sumDistribution.vProb.begin();
 	vector<double>::iterator iteMass = sumDistribution.vMass.begin();
 	while (iteProb != sumDistribution.vProb.end()) {
-		if ((*iteProb) > ProbabilityCutoff) {
+		if ((*iteProb) > ProbabilityCutoff_local) {
 			break;
 		}
 		iteProb++;
@@ -685,7 +689,7 @@ IsotopeDistribution Isotopologue::sum_backup(const IsotopeDistribution & distrib
 	iteProb = sumDistribution.vProb.end() - 1;
 	iteMass = sumDistribution.vMass.end() - 1;
 	while (iteProb != sumDistribution.vProb.begin()) {
-		if ((*iteProb) > ProbabilityCutoff) {
+		if ((*iteProb) > ProbabilityCutoff_local) {
 			break;
 		}
 		iteProb--;

@@ -12,8 +12,8 @@
 #include "tokenvector.h"
 #include "proNovoConfig.h"
 #include "proteindatabase.h"
-#include "./Scores/CometSearch.h"
 #include "./Scores/MVH.h"
+#include "Scores/CometSearchMod.h"
 
 #define ZERO            0.00000001
 #define PEPTIDE_ARRAY_SIZE  2000000
@@ -47,16 +47,19 @@ class MS2ScanVector {
 	static bool myless(MS2Scan * pMS2Scan1, MS2Scan * pMS2Scan2);
 	static bool mylessScanId(MS2Scan * pMS2Scan1, MS2Scan * pMS2Scan2);
 	void preProcessAllMS2();  // Preprocessing all MS2 scans by multi-threading
+	void preProcessAllMS2WDPSIP();  // Preprocessing all MS2 scans by multi-threading
 	void preProcessAllMS2Xcorr();  // Preprocessing all MS2 scans by multi-threading
 	void preProcessAllMS2XcorrVector();  // Preprocessing all MS2 scans by multi-threading, vector replaced in Comet
 	void searchDatabase(); // Search all MS2 scans against the protein list by multi-threading
+	void searchDatabaseWDPSIP(); // Search all MS2 scans against the protein list by multi-threading
 	void searchDatabaseXcorr(); // Search all MS2 scans against the protein list by multi-threading
 	void searchDatabaseMVHTask();// task version of search database
 	void searchDatabaseXcorrTask();// task version of search database
 	void searchDatabaseXcorrTaskSIP();// task version of search database
+
 	// find every MS2 scan whose precursor mass matches peptide mass
 	bool assignPeptides2Scans(Peptide * currentPeptide);
-	void processPeptideArray(vector<Peptide*>& vpPeptideArray);
+	void processPeptideArrayWDPSIP(vector<Peptide*>& vpPeptideArray);
 	void processPeptideArrayMVH(vector<Peptide*>& vpPeptideArray);
 	void processPeptideArrayMVHTask(vector<Peptide*>& vpPeptideArray, omp_lock_t * pLck);
 	void processPeptideArrayXcorr(vector<Peptide*>& vpPeptideArray);
@@ -67,9 +70,11 @@ class MS2ScanVector {
 	void postProcessAllMS2();
 	void postProcessXcorr();
 	void postProcessXcorrSIP();
+	void postProcessWDPSIP();
 	void postProcessAllMS2WDP();
 	void postProcessAllMS2WDPSIP();
 	void postProcessAllMS2Xcorr();
+	void postProcessAllMS2XcorrSIP();
 	void postProcessAllMS2MVH();
 	void postProcessAllMS2MVHSIP();
 	// write results to a SIP file
@@ -94,11 +99,13 @@ public:
 	// Return false if there is a problem with the file
 	bool loadFT2file();
 	bool ReadFT2File();    //Read FT2 files
+	bool ReadMzmlFile();   //Read mzML files
 	void startProcessing(); // start functions to process the loaded FT2 file
 	void startProcessingXcorr(); // start functions to process the loaded FT2 file
 	void startProcessingMVHTask(); // start functions to process the loaded FT2 file
 	void startProcessingXcorrTask(); // start functions to process the loaded FT2 file
 	void startProcessingXcorrTaskSIP(); // start functions to process the loaded FT2 file
+	void startProcessingWDPSIP(); // start functions to process the loaded FT2 file with WDP as prime score without tasking
 
 	// variables for the MVH thread
 	vector<vector<double> *> _ppdAAforward;
