@@ -151,8 +151,12 @@ void handleScan(const string & sFT2filename, const string & sOutputDirectory, co
 	if (!pMainMS2ScanVector->loadFT2file()) {
 		cerr << "Error: Failed to load file: " << sFT2filename << endl;
 	} else {
-		// search all MS2 scans and write output to a file
-		pMainMS2ScanVector->startProcessing();
+		if (ProNovoConfig::getSearchType() == "SIP") {
+			pMainMS2ScanVector->startProcessingWDPSIP();
+		} else {
+			// search all MS2 scans and write output to a file
+			pMainMS2ScanVector->startProcessing();
+		}
 	}
 
 	//free memory of vpAllMS2Scans
