@@ -1,6 +1,16 @@
 # Sipros Ensemble
 
-Sipros is a database-searching algorithm for peptide and protein identification in shotgun meta/proteomics. The detailed user manual of the database-searching and how to use it to achieve best results is provided here: [http://siprosensemble.omicsbio.org/user-manual](http://siprosensemble.omicsbio.org/user-manual). This is a quick start guide generally for developers and testers. Users with limited experience with MS-based database-searching are advised to use the user manual.
+Sipros is a database-searching algorithm for peptide and protein identification in shotgun meta/proteomics. To run Sipors, you need one or more input spectral files in mzML, FT2, or ms2 formats and a SiprosConfig.cfg file. Then issue a command such as:
+```
+Sipros_Openmp -f input.mzML -c SiprosConfig.cfg -o destination_folder
+Sipros_Openmp -f input.FT2 -c SiprosConfig.cfg -o destination_folder
+Sipros_Openmp -f input.ms2 -c SiprosConfig.cfg -o destination_folder
+Sipros_MPI -f input.mzML -c SiprosConfig.cfg -o destination_folder
+Sipros_Openmp -w input_folder -c SiprosConfig.cfg -o destination_folder
+Sipros_MPI -w input_folder -c SiprosConfig.cfg -o destination_folder
+```
+
+The detailed user manual of the database-searching and how to use it to achieve best results is provided here: [http://siprosensemble.omicsbio.org/user-manual](http://siprosensemble.omicsbio.org/user-manual). This is a quick start guide generally for developers and testers. Users with limited experience with MS-based database-searching are advised to use the user manual.
 
 ### Current Version
 * v1.0
