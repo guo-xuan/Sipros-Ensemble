@@ -14,4 +14,4 @@ OPTS := -std=c++11 -fopenmp -O3 -g
 # Intel MPI C++ Compiler installations
 MCC := icpc
 MGCC := icc
-MOPTS := -std=c++11 --openmp -O3 -g -lmpi -lmpi++
+MOPTS := -std=c++11 -qopenmp -O3 -g -lmpi -lmpi++
