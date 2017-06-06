@@ -1198,6 +1198,7 @@ bool MS2Scan::findProductIonSIP(const vector<double> & vdIonMass, const vector<d
 			break;
 	}
 
+	/*
 	// calculate score weight for this product ion
 	// this formula is still very ad hoc empirical
 	dScoreWeight = 0;
@@ -1219,6 +1220,28 @@ bool MS2Scan::findProductIonSIP(const vector<double> & vdIonMass, const vector<d
 			dScoreWeight = 1.0;
 		}
 	}
+*/
+
+	// dScoreWeight is a variant of cross correlation
+	// between vdObservedRelativeInt and vdExpectedRelativeInt
+	// assume means of both is 0
+	int iIsotopicEnvelopeSize = vdIonProb.size();
+	double dXY = 0;
+	double dXX = 0;
+	double dYY = 0;
+
+	for (i = 0; i < iIsotopicEnvelopeSize; ++i) {
+		dXY = dXY + vdExpectedRelativeInt[i] * vdObservedRelativeInt[i];
+		dXX = dXX + pow(vdExpectedRelativeInt[i], 2);
+		dYY = dYY + pow(vdObservedRelativeInt[i], 2);
+	}
+
+	if (dXX == 0 || dYY == 0)
+		dScoreWeight = 0;
+	else
+		dScoreWeight = dXY / sqrt(dXX * dYY);
+
+	dScoreWeight = dScoreWeight + 1.0;
 
 	// test whether the iCharge is consistant with viZinput
 	// if not, lower the dScoreWeight
