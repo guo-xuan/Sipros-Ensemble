@@ -140,7 +140,8 @@ void handleScan(const string & sFT2filename, const string & sOutputDirectory, co
 		cerr << "Error: Failed to load file: " << sFT2filename << endl;
 	else {
 		if(ProNovoConfig::getSearchType() == "SIP"){
-			pMainMS2ScanVector->startProcessingWDPSIP();
+			pMainMS2ScanVector->startProcessingXcorrTaskSIP();
+			// pMainMS2ScanVector->startProcessingWDPSIP();
 		}else{
 			// search all MS2 scans and write output to a file
 			pMainMS2ScanVector->startProcessing();
