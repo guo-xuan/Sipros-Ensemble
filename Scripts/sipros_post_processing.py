@@ -52,7 +52,7 @@ mass_window_max_int = 0
 # # Class for ignoring comments '#' in sipros file
 CommentedFile = sipros_post_module.CommentedFile
 #feature_name_list = ['ParentCharge', 'MVH', 'Xcorr', 'WDP', 'ScoreAgreement', 'MassDifferent', 'DeltaRP1', 'DeltaRP2', 'DeltaRP3', 'DeltaRS1', 'DeltaRS2', 'DeltaRS3', 'DiffRP1', 'DiffRP2', 'DiffRP3', 'DiffRS1', 'DiffRS2', 'DiffRS3', 'DiffNorRP1', 'DiffNorRP2', 'DiffNorRP3', 'DiffNorRS1', 'DiffNorRS2', 'DiffNorRS3', 'NMC', 'IPSC', 'OPSC', 'UPSC', 'SPSC', 'pep_psm', 'pro_pep']
-#                            0        1      2        3      4                 5                6           7           8           9           10          11         12          13         14         15         16         17         18            19            20            21            22            23            24     25      26      27      28        31          32       33    34         35           36         37              38 
+#                     0               1      2        3      4                 5                6           7           8           9           10          11         12          13         14         15         16         17         18            19            20            21            22            23            24     25      26      27      28        31          32       33    34         35           36         37              38 
 feature_name_list = ['ParentCharge', 'MVH', 'Xcorr', 'WDP', 'ScoreAgreement', 'MassDifferent', 'DeltaRP1', 'DeltaRP2', 'DeltaRP3', 'DeltaRS1', 'DeltaRS2', 'DeltaRS3', 'DiffRP1', 'DiffRP2', 'DiffRP3', 'DiffRS1', 'DiffRS2', 'DiffRS3', 'DiffNorRP1', 'DiffNorRP2', 'DiffNorRP3', 'DiffNorRS1', 'DiffNorRS2', 'DiffNorRS3', 'NMC', 'IPSC', 'OPSC', 'UPSC', 'SPSC', 'MassWindow', 'PPC', 'OPSC_U', 'OPSC_Ma', 'OPSC_D_Mi', 'PSC_U', 'PSC_Ma', 'PSC_D_Mi']
 feature_selection_list = [0, 1, 2, 3, 4, 5]
 ptm_str = ['~', '!', '@', '>', '<', '%', '^', '&', '*', '(', ')', '/', '$']
@@ -66,6 +66,8 @@ LabelFwd = 1
 LabelTrain = 2
 LabelTest = 3
 LabelReserve = 4
+
+LabelSipTrainFwd = 1
 
 # # Class for PepOutFields object
 class PsmFields4(namedtuple('PsmFields',
@@ -179,6 +181,7 @@ class PSM:
         
         self.SPSC_UMD = [0, 0, 0]
         
+        self.TrainingLabel = 0
         
     def get_feature_list(self):
         del self.feature_list[:]
@@ -205,8 +208,8 @@ class PSM:
         self.feature_list.append((self.PPC)) # 31: 30
         # self.feature_list.append((self.UPPC)) # 31: 30
         # self.feature_list.append((self.SPPC)) # 32: 31
-        self.feature_list.extend(self.OPSC_UMD) # 32 - 35: 31 - 34
-        self.feature_list.extend(self.SPSC_UMD) # 32 - 35: 31 - 34
+        # self.feature_list.extend(self.OPSC_UMD) # 32 - 35: 31 - 34
+        # self.feature_list.extend(self.SPSC_UMD) # 32 - 35: 31 - 34
         
         for c in ptm_selection_list:
             self.feature_list.append(self.IdentifiedPeptide.count(ptm_str[c])) # 32: 31
@@ -260,6 +263,10 @@ class PSM:
                     l.append(sProtein)
         self.ProteinNames = '{'+','.join(l) + '}'
         self.protein_list = l
+        
+    def set_real_label(self):
+        self.RealLabel = protein_type(self.ProteinNames, self.protein_list)
+
 
 # # Version control
 def get_version():
@@ -633,8 +640,9 @@ def re_rank(psm_list, consider_charge_bool = False):
     '''
     return psm_new_list
 
-def cutoff_filtering(psm_list, config_dict=None):
-    fdr_given = float(config_dict[pro_iden_str + FDR_Threshold_str])
+def cutoff_filtering(psm_list, config_dict=None, fdr_given=None):
+    if fdr_given == None:
+        fdr_given = float(config_dict[pro_iden_str + FDR_Threshold_str])
     for oPsm in psm_list:
         oPsm.fPredictProbability = oPsm.lfScores[0]
     psm_new_list = re_rank(psm_list, False)
@@ -652,6 +660,78 @@ def cutoff_filtering(psm_list, config_dict=None):
     # psm_return_list = re_rank(psm_return_list, False)
     
     return psm_return_list
+
+def logistic_regression_sip(psm_list, config_dict=None):
+    fdr_given = float(config_dict[pro_iden_str + FDR_Threshold_str])*(Test_Fwd_Ratio)
+    # machine learning
+    # # construct training data
+    train_data_list = []
+    train_label_list = []
+    test_data_list = []
+    psm_rank_list = []
+    num_feature_int = (31 + len(ptm_selection_list))
+    positive_int = 1
+    negative_int = 0
+    num_pos = 0
+    num_neg = 0
+    for oPsm in psm_list:
+        if len(oPsm.feature_list) != num_feature_int:
+            print('error 17052201')
+            pass
+        if oPsm.RealLabel == LabelReserve:
+            continue
+        test_data_list.append(oPsm.feature_list)
+        psm_rank_list.append(oPsm)
+        if oPsm.TrainingLabel == LabelSipTrainFwd:
+            train_data_list.append(oPsm.feature_list)
+            train_label_list.append(positive_int)
+            num_pos += 1
+        elif oPsm.RealLabel == LabelTrain:
+            train_data_list.append(oPsm.feature_list)
+            train_label_list.append(negative_int)
+            num_neg += 1
+    # print(str(num_pos))
+    # print(str(num_neg))
+        
+    train_data_np = np.array(train_data_list)[:, feature_selection_list]
+    train_label_np = np.array(train_label_list)
+    
+    # only forward left
+    unique_np = np.unique(train_label_np)
+    if unique_np.shape[0] == 1:
+        psm_filtered_list_local = show_Fdr(psm_list, fdr_given)
+        return psm_filtered_list_local
+    
+    # # training
+    logreg = linear_model.LogisticRegression(penalty='l2', 
+                                             dual=False, 
+                                             C=1, 
+                                             fit_intercept=True, 
+                                             intercept_scaling=1, 
+                                             random_state=None, 
+                                             solver='liblinear', 
+                                             max_iter=100, 
+                                             multi_class='ovr', 
+                                             verbose=0, 
+                                             warm_start=False, 
+                                             n_jobs=-1)
+    logreg.fit(train_data_np, train_label_np)
+
+    # # test
+    test_unknown_np = np.array(test_data_list)[:, feature_selection_list]
+    predict_np = logreg.predict_proba(test_unknown_np)
+    
+    for i in range(len(predict_np)):
+        psm_rank_list[i].fPredictProbability = predict_np[i, 1]
+        psm_rank_list[i].ML_feature.append(predict_np[i, 1])
+   
+    psm_new_list = re_rank(psm_rank_list)
+    
+    if config_dict[pro_iden_str + FDR_Filtering_str] == 'PSM':
+        psm_filtered_list_local = show_Fdr(psm_new_list, fdr_given)
+    else:
+        psm_filtered_list_local = show_Fdr_Pep(psm_new_list, fdr_given)        
+    return psm_filtered_list_local
 
 def logistic_regression_no_category(psm_list, config_dict=None):
     fdr_given = float(config_dict[pro_iden_str + FDR_Threshold_str])*(Test_Fwd_Ratio)
@@ -1028,6 +1108,9 @@ def generate_Prophet_features_test(lPsm, config_dict):
         else:
             oPsm.UPSC = 0
         oPsm.SPSC = max_linked_unique_per_psm + max_linked_shared_per_psm
+        # debug
+        # oPsm.SPSC = max_linked_unique_per_psm
+        # debug
         # oPsm.SPSC = float(max_linked_unique_per_psm)/float(len(oPsm.protein_list)) + float(max_linked_shared_per_psm)/float(len(oPsm.protein_list))
         # oPsm.SPSC = max_per_psm
         
@@ -1105,8 +1188,9 @@ def parse_config(config_filename):
     global train_str, test_str, reserve_str
     
     if all_config_dict[pep_iden_str + search_type_str] == 'SIP':
+        test_str = os.path.commonprefix([all_config_dict[pro_iden_str + training_decoy_prefix_str], all_config_dict[pro_iden_str + testing_decoy_prefix_str]])
         train_str = ''
-        test_str = all_config_dict[pro_iden_str + testing_decoy_prefix_str]
+        # test_str = all_config_dict[pro_iden_str + testing_decoy_prefix_str]
         reserve_str = ''
         return all_config_dict
     
@@ -1120,6 +1204,15 @@ def parse_config(config_filename):
     # return config dictionary
     return all_config_dict
 
+def config_reset(all_config_dict):
+    global train_str, test_str, reserve_str
+    
+    train_str = all_config_dict[pro_iden_str + training_decoy_prefix_str]
+    test_str = all_config_dict[pro_iden_str + testing_decoy_prefix_str]
+    if pro_iden_str + reserved_decoy_prefix_str in all_config_dict:
+        reserve_str = all_config_dict[pro_iden_str + reserved_decoy_prefix_str]
+    else:
+        reserve_str = ''
 
 class Peptide:
     
@@ -1483,7 +1576,8 @@ def main(argv=None):
     config_dict = parse_config(config_file)
     
     if config_dict[pep_iden_str + search_type_str] == 'SIP':
-        sip_filtering(input_file, config_dict, output_folder, start_time)
+        # sip_filtering(input_file, config_dict, output_folder, start_time)
+        sip_filtering_LR(input_file, config_dict, output_folder, start_time)
         return
     
     # read the big psm table
@@ -1546,7 +1640,7 @@ def sip_filtering(input_file, config_dict, output_folder, start_time):
 
 
     # write output
-    sys.stderr.write('[Step 4] Report output:                                     Running -> ')
+    sys.stderr.write('[Step 3] Report output:                                     Running -> ')
     (psm_txt_file_str, pep_txt_file_str) = generate_psm_pep_txt(base_out, output_folder, psm_filtered_list, config_dict)
     sys.stderr.write('Done!\n')
     
@@ -1556,7 +1650,61 @@ def sip_filtering(input_file, config_dict, output_folder, start_time):
     sys.stderr.write('------------------------------------------------------------------------------\n')
     sys.stderr.write('[%s] Ending Sipros Ensemble filtering\n' % curr_time())
     sys.stderr.write('Run complete [%s elapsed]\n' %  format_time(duration))
+
+def sip_filtering_LR(input_file, config_dict, output_folder, start_time):
+    # read the big psm table
+    sys.stderr.write('[Step 1] Parse options and read PSM file:                   Running -> ')
+    # reading data from PSM table
+    (psm_list, base_out) = read_psm_table(input_file)
+    # mass filtering
+    psm_list = mass_filter(psm_list, config_dict)
+    sys.stderr.write('Done!\n')
     
+    # find score-cutoff
+    sys.stderr.write('[Step 2] Re-rank PSMs and find score cutoff:                Running -> ')
+    psm_filtered_list = cutoff_filtering(psm_list, config_dict)
+    sys.stderr.write('Done!\n')
+    
+    # train a machine learning model: logistic regression
+    sys.stderr.write('[Step 3] Feature extraction:                                Running -> ')
+    # generate features
+    generate_Prophet_features_test(psm_list, config_dict)
+    # generate_Prophet_features_group(psm_list, config_dict)
+    # set feature all PSMs
+    for oPsm in psm_list:
+        oPsm.get_feature_list()
+    # reset the config
+    config_reset(config_dict)
+    # find out the train and testing ratio
+    find_train_test_ratio(config_dict)
+    # mark the positive train data
+    for oPsm in psm_list:
+        oPsm.set_real_label()
+    for oPsm in psm_filtered_list:
+        if oPsm.RealLabel == LabelFwd:
+            oPsm.TrainingLabel = LabelSipTrainFwd
+    sys.stderr.write('Done!\n')
+    
+    # machine learning
+    sys.stderr.write('[Step 4] Train ML and re-rank PSMs:                         Running -> ')
+    del feature_selection_list[:]
+    # feature_selection_list.extend([1, 2, 3, 5, 15, 16, 17, 24, 26, 28])
+    feature_selection_list.extend([1, 2, 15, 24, 26, 28])
+    psm_filtered_list = logistic_regression_sip(psm_list, config_dict)
+    sys.stderr.write('Done!\n')
+    
+    # write output
+    sys.stderr.write('[Step 5] Report output:                                     Running -> ')
+    (psm_txt_file_str, pep_txt_file_str) = generate_psm_pep_txt(base_out, output_folder, psm_filtered_list, config_dict)
+    sys.stderr.write('Done!\n')
+    
+    # Time record, calculate elapsed time, and display work end
+    finish_time = datetime.now()
+    duration = finish_time - start_time
+    sys.stderr.write('------------------------------------------------------------------------------\n')
+    sys.stderr.write('[%s] Ending Sipros Ensemble filtering\n' % curr_time())
+    sys.stderr.write('Run complete [%s elapsed]\n' %  format_time(duration))
+
     
 if __name__ == '__main__':
     sys.exit(main())
