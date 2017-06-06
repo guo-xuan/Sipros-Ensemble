@@ -1208,15 +1208,21 @@ bool MS2Scan::findProductIonSIP(const vector<double> & vdIonMass, const vector<d
 	if (vbObserved[iIndex4SecondHighestInt]) {
 		// if the second highest peak is found
 		// to be implemented
+//		dScoreWeight = 2.0;
 		dScoreWeight = 2.0;
+
 	} else {
 		if (vdExpectedRelativeInt[iIndex4SecondHighestInt] > dDetectionLimit4RelativeIntensity) {
 			// if the second highest peak is not found and is expected to
 			// be found because its relative intensity is higher than the detection limit
-			dScoreWeight = 0.5;
+//			dScoreWeight = 0.5;
+			dScoreWeight = 2.0;
+
 		} else {
 			// if the second highest peak is not found and is expected to not be found
-			dScoreWeight = 1.0;
+//			dScoreWeight = 1.0;
+			dScoreWeight = 2.0;
+
 		}
 	}
 
@@ -1237,8 +1243,8 @@ bool MS2Scan::findProductIonSIP(const vector<double> & vdIonMass, const vector<d
 			dTotalRelativeIntensity += vdExpectedRelativeInt[i];
 		}
 	}
-	dAverageMZError = dTotalMZError / dTotalRelativeIntensity;
-//      dAverageMZError = dMostAbundantMZError;
+//	dAverageMZError = dTotalMZError / dTotalRelativeIntensity;
+	dAverageMZError = dMostAbundantMZError;
 
 	return true;
 }
@@ -1313,12 +1319,15 @@ void MS2Scan::scoreWeightSumHighMS2(Peptide* currentPeptide) //it's primaryScore
 
 	for (i = 0; i < (int) vFoundIons.size(); ++i) {
 		if (vFoundIons[i].getComplementaryFragmentObserved())
-			dBonus4ComplementaryFragmentObserved = 2.0;
+			// dBonus4ComplementaryFragmentObserved = 2.0;
+		dBonus4ComplementaryFragmentObserved = 1.0;
 		else
 			dBonus4ComplementaryFragmentObserved = 1.0;
 		// if (ProNovoConfig::getSearchType() == "SIP")
-			dScore += ProNovoConfig::scoreError(fabs(vFoundIons[i].getMZError() - dAverageMZError)) * vFoundIons[i].getScoreWeight()
-					* dBonus4ComplementaryFragmentObserved;
+		//	dScore += ProNovoConfig::scoreError(fabs(vFoundIons[i].getMZError() - dAverageMZError)) * vFoundIons[i].getScoreWeight()
+		//			* dBonus4ComplementaryFragmentObserved;
+			dScore += 2;
+
 		/*else
 			// no mass error calibration
 			dScore += ProNovoConfig::scoreError(fabs(vFoundIons[i].getMZError())) * vFoundIons[i].getScoreWeight() * dBonus4ComplementaryFragmentObserved;
@@ -1629,8 +1638,9 @@ double MS2Scan::scoreWeightSumHighMS2(string * currentPeptide, vector<vector<dou
 			dBonus4ComplementaryFragmentObserved = 1.0;
 		}
 		if (ProNovoConfig::getSearchType() == "SIP") {
-			dScore += ProNovoConfig::scoreError(fabs(vFoundIons[i].getMZError() - dAverageMZError)) * vFoundIons[i].getScoreWeight()
-					* dBonus4ComplementaryFragmentObserved;
+		//	dScore += ProNovoConfig::scoreError(fabs(vFoundIons[i].getMZError() - dAverageMZError)) * vFoundIons[i].getScoreWeight()
+		//		* dBonus4ComplementaryFragmentObserved;
+			 dScore += ProNovoConfig::scoreError(fabs(vFoundIons[i].getMZError() - dAverageMZError)) * dBonus4ComplementaryFragmentObserved;
 		} else {	// no mass error calibration
 			dScore += ProNovoConfig::scoreError(fabs(vFoundIons[i].getMZError())) * vFoundIons[i].getScoreWeight() * dBonus4ComplementaryFragmentObserved;
 		}
