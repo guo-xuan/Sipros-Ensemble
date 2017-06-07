@@ -520,6 +520,34 @@ void MS2ScanVector::GetAllRangeFromMass(double dPeptideMass, vector<std::pair<in
 		vpPeptideMassRanges.push_back(lastPairRange);
 }
 
+// all ranges of MS2 scans are stored in  vpPeptideMassWindows
+void MS2ScanVector::GetAllRangeFromMass(vector<double> vdPeptideMass, vector<std::pair<int, int> >& vpPeptideMassRanges) {
+	int i;
+	pair<int, int> pairMS2Range;
+	pair<int, int> lastPairRange(-100, -100);
+	vector<pair<double, double> > vpPeptideMassWindows;
+	vpPeptideMassWindows.clear();
+	vpPeptideMassRanges.clear();
+	ProNovoConfig::getPeptideMassWindows(vdPeptideMass, vpPeptideMassWindows);
+	for (i = 0; i < (int) vpPeptideMassWindows.size(); i++) {
+		pairMS2Range = GetRangeFromMass(vpPeptideMassWindows.at(i).first, vpPeptideMassWindows.at(i).second);
+		if ((pairMS2Range.first > -1) && (pairMS2Range.second > -1)) {
+			if ((lastPairRange.first < 0) || (lastPairRange.second < 0))
+				lastPairRange = pairMS2Range;
+			else {
+				if (lastPairRange.second >= pairMS2Range.first)
+					lastPairRange.second = pairMS2Range.second;
+				else {
+					vpPeptideMassRanges.push_back(lastPairRange);
+					lastPairRange = pairMS2Range;
+				}
+			}
+		}
+	}
+	if ((lastPairRange.first > -1) && (lastPairRange.second > -1))
+		vpPeptideMassRanges.push_back(lastPairRange);
+}
+
 pair<int, int> MS2ScanVector::GetRangeFromMass(double lb, double ub)
 //lb and ub are lower and upper bounds of acceptable parent mass values
 		{
@@ -864,8 +892,11 @@ void MS2ScanVector::processPeptideArrayXcorrTaskSIP(vector<Peptide*>& vpPeptideA
 	for (i = 0; i < iPeptideArraySize; i++) {
 		bAssigned = false;
 		bProcessed = false;
+		// get the isotopic distribution of current peptide
+		vpPeptideArray.at(i)->calculatePeptideDistribution();
 		// assign peptide to scan
-		GetAllRangeFromMass(vpPeptideArray.at(i)->getPeptideMass(), vpPeptideMassRanges);
+		// GetAllRangeFromMass(vpPeptideArray.at(i)->getPeptideMass(), vpPeptideMassRanges);
+		GetAllRangeFromMass(vpPeptideArray.at(i)->getPeptideMassVector(), vpPeptideMassRanges);
 		for (j = 0; j < (int) vpPeptideMassRanges.size(); j++) {
 			// j = 1;
 			pairMS2Range = vpPeptideMassRanges.at(j);

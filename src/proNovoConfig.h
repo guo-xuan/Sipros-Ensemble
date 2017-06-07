@@ -214,6 +214,9 @@ public:
 	static bool getPeptideMassWindows(double dPeptideMass,
 			vector<pair<double, double> > & vpPeptideMassWindows);
 
+	static bool getPeptideMassWindows(vector<double> & vdPeptideMass,
+			vector<pair<double, double> > & vpPeptideMassWindows);
+
 	// retrieve <Max_PTM_Count>
 	static int getMaxPTMcount() {
 		return iMaxPTMcount;

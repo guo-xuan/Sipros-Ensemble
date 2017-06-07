@@ -49,6 +49,9 @@ public:
 	vector<vector<double> > vvdBionMass;
 	vector<vector<double> > vvdBionProb;
 
+	vector<double> vdPeptideMass;
+	vector<double> vdPeptideProb;
+
 	Peptide();
 	~Peptide();
 
@@ -72,6 +75,9 @@ public:
 	;
 	double getPeptideMass() const {
 		return dPeptideMass;
+	}
+	vector<double> getPeptideMassVector() const {
+		return vdPeptideMass;
 	}
 	;
 	double getPeptideScore() const {
@@ -103,6 +109,9 @@ public:
 		this->dscore = dscore;
 	}
 	;
+
+	// get the full distribution
+	void calculatePeptideDistribution();
 
 	// calculate all expected y and b ions from sPeptide
 	void calculateExpectedFragments(const string & sNewPeptide, const map<char, double> & mapResidueMass);

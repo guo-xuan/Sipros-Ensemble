@@ -87,6 +87,7 @@ class MS2ScanVector {
 	//calculate mean and standard deviation of scores of a ms2 scan
 	void calculateMeanAndDeviation(int inumberScore, double dScoreSum, double dScoreSquareSum, double & dMean, double & dDeviation);
 	void GetAllRangeFromMass(double dPeptideMass, vector<pair<int, int> > & vpPeptideMassRanges);
+	void GetAllRangeFromMass(vector<double> vdPeptideMass, vector<pair<int, int> > & vpPeptideMassRanges);
 	string ParsePath(string sPath);
 
 public:

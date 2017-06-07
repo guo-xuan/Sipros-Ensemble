@@ -352,6 +352,127 @@ bool Isotopologue::computeIsotopicDistribution(string sSequence, IsotopeDistribu
 
 }
 
+bool Isotopologue::computePeptideMass(string sSequence, vector<double> & vdPeptideMass, vector<double> & vdPeptideProb) {
+	// get the mass for a proton
+	double dProtonMass = ProNovoConfig::getProtonMass();
+	int i = 0;
+
+	vdPeptideMass.clear();
+	vdPeptideProb.clear();
+
+	map<string, IsotopeDistribution>::iterator ResidueIter;
+
+	vector<IsotopeDistribution> vResidueDistribution;
+	IsotopeDistribution sumDistribution;
+	IsotopeDistribution currentDistribution;
+
+	string currentResidue;
+	string currentPTM;
+
+	if (sSequence.at(0) != '[') {
+		cerr << "ERROR: First character in a peptide sequence must be [." << endl;
+		return false;
+	}
+
+	int iStartResidueIndex = 1;
+	ResidueIter = vResidueIsotopicDistribution.find("Nterm");
+	if (ResidueIter != vResidueIsotopicDistribution.end()) {
+		currentDistribution = ResidueIter->second;
+
+		if (!isalpha(sSequence.at(1))) {
+			iStartResidueIndex = 2;
+			currentPTM = sSequence.at(1);
+			ResidueIter = vResidueIsotopicDistribution.find(currentPTM);
+			if (ResidueIter == vResidueIsotopicDistribution.end()) {
+				cerr << "ERROR: cannot find this PTM in the config file " << currentPTM << endl;
+				return false;
+			}
+
+			currentDistribution = sum(currentDistribution, ResidueIter->second);
+		}
+
+		vResidueDistribution.push_back(currentDistribution);
+	} else {
+		cerr << "ERROR: can't find the N-terminus" << endl;
+		return false;
+	}
+
+	for (i = iStartResidueIndex; i < (int)sSequence.length(); i++) {
+		if (sSequence.at(i) == ']') {
+			break;
+		}
+
+		if (!isalpha(sSequence.at(i))) {
+			cerr << "ERROR: One residue can only have one PTM (Up to only one symbol after an amino acid)" << endl;
+			return false;
+		}
+		currentResidue = sSequence.substr(i, 1);
+		ResidueIter = vResidueIsotopicDistribution.find(currentResidue);
+		if (ResidueIter == vResidueIsotopicDistribution.end()) {
+			cerr << "ERROR: cannot find this residue in the config file. " << currentResidue << endl;
+			return false;
+		}
+		currentDistribution = ResidueIter->second;
+		if (i + 1 < sSequence.length()) {
+			if (!isalpha(sSequence[i + 1]) && sSequence[i + 1] != ']') // this residue is modified
+					{
+				currentPTM = sSequence[i + 1];
+				ResidueIter = vResidueIsotopicDistribution.find(currentPTM);
+				if (ResidueIter == vResidueIsotopicDistribution.end()) {
+					cerr << "ERROR: cannot find this PTM in the config file " << currentPTM << endl;
+					return false;
+				}
+
+				// this PTM can subtract mass from the residue
+				// the currentDistribution could even be negative.
+				currentDistribution = sum(currentDistribution, ResidueIter->second);
+
+				i = i + 1; // increment index to the next residue
+			}
+		}
+
+		vResidueDistribution.push_back(currentDistribution);
+	}
+
+	ResidueIter = vResidueIsotopicDistribution.find("Cterm");
+	if (ResidueIter != vResidueIsotopicDistribution.end()) {
+		currentDistribution = ResidueIter->second;
+
+		if (i + 1 < (int)sSequence.length()) {
+			if (!isalpha(sSequence[i + 1])) {
+				currentPTM = sSequence[i + 1];
+				ResidueIter = vResidueIsotopicDistribution.find(currentPTM);
+				if (ResidueIter == vResidueIsotopicDistribution.end()) {
+					cerr << "ERROR: cannot find this PTM in the config file " << currentPTM << endl;
+					return false;
+				}
+
+				currentDistribution = sum(currentDistribution, ResidueIter->second);
+			}
+		}
+
+		vResidueDistribution.push_back(currentDistribution);
+	} else {
+		cerr << "ERROR: can't find the C-terminus" << endl;
+		return false;
+	}
+
+	// compute the peptide mass and probability
+	// start with the N-terminus distribution, which should the first element
+	currentDistribution = vResidueDistribution.front();
+	sumDistribution = currentDistribution;
+
+	for (int j = 1; j < (int)vResidueDistribution.size(); j++) {
+		currentDistribution = vResidueDistribution.at(j);
+		sumDistribution = sum(currentDistribution, sumDistribution);
+	}
+
+	vdPeptideMass = sumDistribution.vMass;
+	vdPeptideProb = sumDistribution.vProb;
+
+	return true;
+}
+
 bool Isotopologue::computeProductIon(string sSequence, vector<vector<double> > & vvdYionMass, vector<vector<double> > & vvdYionProb,
 		vector<vector<double> > & vvdBionMass, vector<vector<double> > & vvdBionProb) {
 	// get the mass for a proton

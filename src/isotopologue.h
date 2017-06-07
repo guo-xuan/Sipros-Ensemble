@@ -59,6 +59,9 @@ public:
 	bool computeProductIon(string sSequence, vector<vector<double> > & vvdYionMass, vector<vector<double> > & vvdYionProb,
 			vector<vector<double> > & vvdBionMass, vector<vector<double> > & vvdBionProb);
 
+	// calculate the peptide mass vector with probabilities
+	bool computePeptideMass(string sSequence, vector<double> & vdPeptideMass, vector<double> & vdPeptideProb);
+
 	// compute isotoptic distribution for an amino acid sequence
 	bool computeIsotopicDistribution(string sSequence, IsotopeDistribution & myIsotopeDistribution);
 

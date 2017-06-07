@@ -581,3 +581,22 @@ bool ProNovoConfig::getPeptideMassWindows(double dPeptideMass, vector<pair<doubl
 	return bReVal;
 }
 
+bool MassWindowCompare(pair<double, double> a, pair<double, double> b){
+	return a.first < b.first;
+}
+
+bool ProNovoConfig::getPeptideMassWindows(vector<double> & vdPeptideMass, vector<pair<double, double> > & vpPeptideMassWindows) {
+	bool bReVal = true;
+	double dCurrentLowerBound, dCurrentUpperBound, dPeptideMass;
+	int i, j;
+	for (i = 0; i < (int) vpPeptideMassWindowOffset.size(); i++) {
+		for (j = 0; j < (int) vdPeptideMass.size(); ++j) {
+			dPeptideMass = vdPeptideMass.at(j);
+			dCurrentLowerBound = dPeptideMass + vpPeptideMassWindowOffset.at(i).first;
+			dCurrentUpperBound = dPeptideMass + vpPeptideMassWindowOffset.at(i).second;
+			vpPeptideMassWindows.push_back(pair<double, double>(dCurrentLowerBound, dCurrentUpperBound));
+		}
+	}
+	sort(vpPeptideMassWindows.begin(), vpPeptideMassWindows.end(), MassWindowCompare);
+	return bReVal;
+}

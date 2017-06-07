@@ -99,6 +99,28 @@ void Peptide::preprocessingMVH() {
 	sNeutralLossPeptide = neutralLossProcess(sPeptide);
 }
 
+void Peptide::calculatePeptideDistribution() {
+	// calculate the full distribution of parent isotopic distribution
+	ProNovoConfig::configIsotopologue.computePeptideMass(sPeptide, this->vdPeptideMass, this->vdPeptideProb);
+	// store the calculated parent masses with certain probabilities
+	vector<double> vTemp;
+	double dMax = 0;
+	for (int i = 0; i < (int) vdPeptideProb.size(); ++i) {
+		if (dMax < vdPeptideProb.at(i)) {
+			dMax = vdPeptideProb.at(i);
+		}
+	}
+	dMax *= 0.8;
+	for (int i = 0; i < (int) vdPeptideProb.size(); ++i) {
+		if (vdPeptideProb.at(i) >= dMax) {
+			vTemp.push_back(vdPeptideMass.at(i));
+		}
+	}
+	vdPeptideMass = vTemp;
+	// sort from small to large
+	sort(vdPeptideMass.begin(), vdPeptideMass.end());
+}
+
 void Peptide::preprocessingSIP(const map<char, double>& mapResidueMass) {
 	int i;
 	iPeptideLength = 0;
