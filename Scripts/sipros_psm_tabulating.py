@@ -105,7 +105,7 @@ def parse_config(config_filename):
             continue
 
     # return config dictionary
-    return (config_dict, modification_dict, element_modification_list_dict)
+    return (config_dict, modification_dict, element_modification_list_dict, all_config_dict)
 
 
 # # Parse options
@@ -766,7 +766,10 @@ def main(argv=None):
     # Parse options and get config file
     sys.stderr.write('[Step 1] Parse options and get config file: Running -> ')
     # Call parse_config to open and read config file
-    (config_dict, modification_dict, element_modification_list_dict) = parse_config(_sConfig)
+    (config_dict, modification_dict, element_modification_list_dict, all_config_dict) = parse_config(_sConfig)
+    SIP = False
+    if all_config_dict["[Peptide_Identification]Search_Type"] == "SIP":
+        SIP = True
     '''
     writePepxml('/media/xgo/Seagate/Proteomics/Experiments/Pepxml/OSU_D10_FASP_Elite_03202014_05.SE_Spe2Pep.txt.tab', config_dict, modification_dict, element_modification_list_dict)
     return
@@ -793,7 +796,7 @@ def main(argv=None):
     
     # PSM processor (Consumer)
     for i in range(iNumThreads - 2):
-        PsmProcessor = RankPsm(qPsmUnprocessed, qPsmProcessed, name=('PsmProcessor' + str(i)))
+        PsmProcessor = RankPsm(qPsmUnprocessed, qPsmProcessed, name=('PsmProcessor' + str(i)), isSIP=SIP)
         PsmProcessor.daemon = True
         PsmProcessor.start()
     

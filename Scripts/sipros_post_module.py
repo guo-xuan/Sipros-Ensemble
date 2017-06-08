@@ -485,10 +485,43 @@ class PsmPack:
             self.current += 1
             return self.lPsm[self.current - 1]
 
-
+fNeutronMass = 1.00867108694132 # it is Neutron mass
 # # the mass difference, inverted, larger better.
 def MassDiff(oPepScores):
-    fDiff = abs(oPepScores.fCalculatedParentMass - oPepScores.fMeasuredParentMass)
+    fDiff = oPepScores.fCalculatedParentMass - oPepScores.fMeasuredParentMass
+    fTemp = fDiff
+    fCeil = 0
+    fDown = 0
+    if fDiff >= 0:
+        fDiff = fTemp
+        fCeil = math.ceil(fTemp)*fNeutronMass
+        fFloor = math.floor(fTemp)*fNeutronMass
+        if fFloor > fTemp:
+            fFloor -= fNeutronMass
+        if fCeil - fNeutronMass > fTemp:
+            fCeil -= fNeutronMass
+        if fTemp > fCeil - fTemp:
+            fTemp = fCeil - fTemp
+        if fDiff > fDiff - fFloor:
+            fDiff = abs(fDiff - fFloor)
+        if abs(fTemp) < abs(fDiff):
+            fDiff = fTemp
+    else:
+        fCeil = math.ceil(fDiff)*fNeutronMass
+        if fCeil < fDiff:
+            fCeil += fNeutronMass
+        fFloor = math.floor(fDiff)*fNeutronMass
+        if fFloor + fNeutronMass < fDiff:
+            fFloor += fNeutronMass
+        fDiff = fTemp
+        if abs(fTemp) > fCeil - fTemp:
+            fTemp = fCeil - fTemp
+        if abs(fDiff) > fDiff - fFloor:
+            fDiff = fDiff - fFloor
+        fTemp = abs(fTemp)
+        fDiff = abs(fDiff)
+        if fTemp < fDiff:
+            fDiff = fTemp
     return -fDiff
 
 # # the PTM score, the count of PTM, larger better
@@ -506,7 +539,7 @@ def RankProductInvert(liRank):
 # # Pep info in the Spe2Pep file
 class PepScores:
 
-    def __init__(self, _fMeasuredParentMass, _iCharge, _sSearchName, sPeptideLine):
+    def __init__(self, _fMeasuredParentMass, _iCharge, _sSearchName, sPeptideLine, isSIP=False):
         self.fMeasuredParentMass = _fMeasuredParentMass
         self.iCharge = _iCharge
         asWords = sPeptideLine.split('\t')
@@ -525,6 +558,9 @@ class PepScores:
         self.fRankProduct = 0.0
         self.iRank = 0
         self.sSearchName = _sSearchName
+        self.fPct = 0
+        if isSIP:
+            self.fPct = float(_sSearchName[_sSearchName.find('_') + 1:_sSearchName.find("Pct")])
         # delta -> comet way
         # diff -> difference between current one to the next best one
         # diffnor -> difference between current one to the next best one normalized by the current one
@@ -609,7 +645,7 @@ class PepSpectrumMatch:
         for j in self.lPepScores:
             del j.liRanks[:]
         for i in range(iNumScores):
-            lPep = sorted(self.lPepScores, key=lambda pep: (-pep.lfScores[i], -MassDiff(pep), -PtmScore(pep), pep.sIdentifiedPeptide))
+            lPep = sorted(self.lPepScores, key=lambda pep: (-pep.lfScores[i], -MassDiff(pep), -PtmScore(pep), pep.sIdentifiedPeptide, pep.fPct))
             iRank = 1
             for j in lPep:
                 j.liRanks.append(iRank)
@@ -632,7 +668,7 @@ class PepSpectrumMatch:
         iNumScores = len(self.lPepScores[0].lfScores)
         
         for i in range(iNumScores):
-            lPep = sorted(self.lPepScores, key=lambda pep: (-pep.lfScores[i], -MassDiff(pep), -PtmScore(pep), pep.sIdentifiedPeptide))
+            lPep = sorted(self.lPepScores, key=lambda pep: (-pep.lfScores[i], -MassDiff(pep), -PtmScore(pep), pep.sIdentifiedPeptide, pep.fPct))
             self.pep_rank_list.append(lPep)
             iRank = 1
             for j in lPep:
@@ -665,7 +701,7 @@ class PepSpectrumMatch:
         for i in self.lPepScores:
             i.fRankProduct = RankProductInvert(i.liRanks)
         # lPep: ranked by rank product
-        lPep = sorted(self.lPepScores, key=lambda pep: (pep.fRankProduct, MassDiff(pep), PtmScore(pep), pep.sIdentifiedPeptide), reverse=True)
+        lPep = sorted(self.lPepScores, key=lambda pep: (pep.fRankProduct, MassDiff(pep), PtmScore(pep), pep.sIdentifiedPeptide, -pep.fPct), reverse=True)
         for j in range(0, len(lPep) - 1):
             lPep[j].iRank = j
             for i in range(iNumScores):
@@ -967,7 +1003,7 @@ class PepSpectrumMatch:
         return iNumIntEnz
 
 # # lOnePsm: + spectrum * peptide * peptide + spectrum
-def SelectTopRankedPsm(lOnePsm):
+def SelectTopRankedPsm(lOnePsm, isSIP=False):
     psm_dict = {}
     psm = PepSpectrumMatch(lOnePsm[0][0])
     psm_dict[psm.iParentCharge] = psm
@@ -988,7 +1024,7 @@ def SelectTopRankedPsm(lOnePsm):
                     psm_dict[iCharge] = psm
             else:
                 # a peptide line
-                pep = PepScores(psm_dict[iCharge].fMeasuredParentMass, iCharge, sSearchName, sline)
+                pep = PepScores(psm_dict[iCharge].fMeasuredParentMass, iCharge, sSearchName, sline, isSIP)
                 psm_dict[iCharge].addPepScores(pep)
     # sorting and then ranking
     psm_list = []
@@ -1157,12 +1193,13 @@ class Spe2PepReader(Process):
 # # thread class for ranking the PSM
 class RankPsm(Process):
 
-    def __init__(self, qPsmUnprocessed, qPsmProcessed, name=None):
+    def __init__(self, qPsmUnprocessed, qPsmProcessed, name=None, isSIP=False):
         super(RankPsm, self).__init__()
         self.name = name
         self.qPsmUnprocessed = qPsmUnprocessed
         self.qPsmProcessed = qPsmProcessed
         self.iCount = 0
+        self.SIP = isSIP
         return
 
     def run(self):
@@ -1174,7 +1211,7 @@ class RankPsm(Process):
             psm = self.qPsmUnprocessed.get(True)
             if psm is None:
                 break
-            Psm_list = SelectTopRankedPsm(psm)
+            Psm_list = SelectTopRankedPsm(psm, self.SIP)
             del psm
             self.iCount += 1
             if self.iCount % 10 == 0:
