@@ -1574,12 +1574,12 @@ def main(argv=None):
     
     # get the configuration parameters
     config_dict = parse_config(config_file)
-    
+    '''
     if config_dict[pep_iden_str + search_type_str] == 'SIP':
         # sip_filtering(input_file, config_dict, output_folder, start_time)
         sip_filtering_LR(input_file, config_dict, output_folder, start_time)
         return
-    
+    '''
     # read the big psm table
     sys.stderr.write('[Step 1] Parse options and read PSM file:                   Running -> ')
     # find out the train and testing ratio

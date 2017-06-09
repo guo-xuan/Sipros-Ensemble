@@ -64,7 +64,7 @@ fi
 
 # Generate PSM table
 if [ "$TabFile" == "" ]; then
-TabFile=$(python ${exePath}/sipros_psm_tabulating.py -i ${SipFolder}/ -c ${ConfigureFile} -o ${OutputFolder}/)
+TabFile=$(python2 ${exePath}/sipros_psm_tabulating.py -i ${SipFolder}/ -c ${ConfigureFile} -o ${OutputFolder}/)
 fi
 
 # PSM Filtering

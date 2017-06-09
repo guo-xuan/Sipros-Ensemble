@@ -36,6 +36,8 @@ LabelFwd = 1
 LabelRev = 2
 LabelShu = 3
 
+SIP_WDP_score_idx = 0
+
 # # Class Usage
 class Usage(Exception):
     def __init__(self, msg):
@@ -602,7 +604,7 @@ class PepSpectrumMatch:
     iPurgeTrigger = 100
     iRankSave = 20
 
-    def __init__(self, sSpectrumLine):
+    def __init__(self, sSpectrumLine, SIP=False):
         asWords = sSpectrumLine.split('\t')
         self.sFileName = asWords[1]
         self.iScanNumber = int(asWords[2])
@@ -621,6 +623,7 @@ class PepSpectrumMatch:
         self.oRestPep = None
         self.lTopPep = []
         self.pep_rank_list = []
+        self.SIPmode = SIP
 
     def addPepScores(self, pep):
         for e in self.lPepScores:
@@ -637,8 +640,29 @@ class PepSpectrumMatch:
                 return
         self.lPepScores.append(pep)
         if len(self.lPepScores) > self.iPurgeTrigger:
-            self.purge()
-
+            if self.SIPmode:
+                self.purgeSIP()
+                if len(self.lPepScores) > self.iPurgeTrigger:
+                    self.purge()
+            else:
+                self.purge()
+            
+    def purgeSIP(self):
+        # put pep with different search name into the same list
+        pep_dict = {}
+        for pep in self.lPepScores:
+            if pep.sIdentifiedPeptide not in pep_dict:
+                pep_dict[pep.sIdentifiedPeptide] = [pep]
+            else:
+                pep_dict[pep.sIdentifiedPeptide].append(pep)
+        # use WDP to select the right percentage
+        self.lPepScores = []
+        for _k, v in pep_dict.items():
+            if len(v) == 0:
+                self.lPepScores.append(v[0])
+            else:
+                lPep = sorted(v, key=lambda pep: (-pep.lfScores[SIP_WDP_score_idx], pep.fPct))
+                self.lPepScores.append(lPep[0])
 
     def purge(self):
         iNumScores = len(self.lPepScores[0].lfScores)
@@ -1005,7 +1029,7 @@ class PepSpectrumMatch:
 # # lOnePsm: + spectrum * peptide * peptide + spectrum
 def SelectTopRankedPsm(lOnePsm, isSIP=False):
     psm_dict = {}
-    psm = PepSpectrumMatch(lOnePsm[0][0])
+    psm = PepSpectrumMatch(lOnePsm[0][0], isSIP)
     psm_dict[psm.iParentCharge] = psm
     '''
     if psm.iScanNumber == 4299:
@@ -1020,7 +1044,7 @@ def SelectTopRankedPsm(lOnePsm, isSIP=False):
                 iCharge = get_charge(sline)
                 sSearchName = get_search_name(sline)
                 if iCharge not in psm_dict:
-                    psm = PepSpectrumMatch(sline)
+                    psm = PepSpectrumMatch(sline, isSIP)
                     psm_dict[iCharge] = psm
             else:
                 # a peptide line
