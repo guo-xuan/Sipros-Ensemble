@@ -39,7 +39,7 @@ CPP_DEPS += \
 ./src/ptm.d \
 ./src/tokenvector.d 
 
-override CXXFLAGS = -Wextra -static -Wno-char-subscripts -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -D__LINUX__ -I$(MSTOOLKIT)/include -I$(COMETSEARCH)
+override CXXFLAGS = -Wextra -static -Wno-char-subscripts -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -D__LINUX__ -I$(MSTOOLKIT)/include
 
 
 # Each subdirectory must supply rules for building sources it contributes

@@ -136,6 +136,7 @@ class PSM:
         self.iInnerId = 0
         self.fPredictProbability = 0.0
         self.fMassDiff = 0.0
+        self.dM = 0.0
         self.MeasuredParentMass = float(psm_field.MeasuredParentMass)
         self.CalculatedParentMass = float(psm_field.CalculatedParentMass)
         self.iMassWindow = 0
@@ -234,6 +235,49 @@ class PSM:
         feature_list.extend(self.lfScores)
         
     def set_mass_diff(self, measured_mass, calculated_mass):
+        fDiff = calculated_mass - measured_mass
+        fTemp = fDiff
+        fCeil = 0
+        fDown = 0
+        if fDiff >= 0:
+            fDiff = fTemp
+            fCeil = math.ceil(fTemp)*PSM.fNeutronMass
+            fFloor = math.floor(fTemp)*PSM.fNeutronMass
+            if fFloor > fTemp:
+                fFloor -= PSM.fNeutronMass
+            if fCeil - PSM.fNeutronMass > fTemp:
+                fCeil -= PSM.fNeutronMass
+            if fTemp > fCeil - fTemp:
+                fTemp = fCeil - fTemp
+            if fDiff > fDiff - fFloor:
+                fDiff = abs(fDiff - fFloor)
+            if abs(fTemp) < abs(fDiff):
+                fDiff = fTemp
+                self.dM = -fTemp
+            else:
+                self.dM = fDiff
+        else:
+            fCeil = math.ceil(fDiff)*PSM.fNeutronMass
+            if fCeil < fDiff:
+                fCeil += PSM.fNeutronMass
+            fFloor = math.floor(fDiff)*PSM.fNeutronMass
+            if fFloor + PSM.fNeutronMass < fDiff:
+                fFloor += PSM.fNeutronMass
+            fDiff = fTemp
+            if abs(fTemp) > fCeil - fTemp:
+                fTemp = fCeil - fTemp
+            if abs(fDiff) > fDiff - fFloor:
+                fDiff = fDiff - fFloor
+            fTemp = abs(fTemp)
+            fDiff = abs(fDiff)
+            if fTemp < fDiff:
+                fDiff = fTemp
+                self.dM = -fTemp
+            else:
+                self.dM = fDiff
+        self.fMassDiff = fDiff
+        
+        '''
         MassDiffOriginal = measured_mass - calculated_mass
         MassDiff = MassDiffOriginal
         global mass_window_max_int
@@ -242,6 +286,7 @@ class PSM:
                 MassDiff = MassDiffOriginal - i*PSM.fNeutronMass
                 self.iMassWindow = i
         self.fMassDiff = MassDiff
+        '''
         
     def set_fdr_product(self):
         val = 1.0
@@ -292,7 +337,7 @@ Outputs:
 # # Parse options
 def parse_options(argv):
 
-    opts, _args = getopt.getopt(argv[1:], "hvVi:c:o:",
+    opts, _args = getopt.getopt(argv[1:], "hvVi:c:o:x:",
                                     ["help",
                                      "version",
                                      "input",
@@ -303,6 +348,7 @@ def parse_options(argv):
     input_file = ""
     output_folder = ""
     config_file = ""
+    debug_code = ""
 
     # Basic options
     for option, value in opts:
@@ -318,14 +364,16 @@ def parse_options(argv):
             output_folder = value
         if option in ("-c", "--config"):
             config_file = value
-
+        if option in ("-x"):
+            debug_code = value
+            
     if input_file == "" or output_folder == "":
         print(help_message)
         sys.exit(0)
 
     output_folder = os.path.join(output_folder, '')
 
-    return (input_file, config_file, output_folder)
+    return (input_file, config_file, output_folder, debug_code)
 
 # # Decoy Reverse Forward protein
 def protein_type(protein_sequence, lProtein=None):
@@ -1560,6 +1608,56 @@ def find_train_test_ratio(config_dict):
     Test_Fwd_Ratio = float(num_test_int) / float(num_fwd_int)
     return Test_Fwd_Ratio
 
+def generatePINPercolator(psm_list, output_str):
+    with open(output_str, 'w') as fw:
+        fw.write("SpecId\tLabel\tScanNr\tExpMass\tCalcMass\tPEP\tPRO\tMVH\tdeltMVH\tXcorr\tdeltXcorr\tWDP\tDdeltWDP\tPepLen\tdM\tabsdM\tCharge1\tCharge2\tCharge3\tCharge4\tCharge5\tenzInt\tPeptide\tProtein")
+        fw.write('\n')
+        row_list = []
+        for psm in psm_list:
+            del row_list[:]
+            fileID = psm.FileName[psm.FileName.rfind('_')+1:psm.FileName.rfind('.')]
+            row_list.append(str(psm.ScanNumber)+fileID+str(psm.ParentCharge)) # SpecId
+            if psm.RealLabel == LabelFwd: # Label
+                row_list.append("1")
+            elif psm.RealLabel == LabelReserve:
+                row_list.append("1")
+            else:
+                row_list.append("-1")
+            row_list.append(str(psm.ScanNumber)+fileID) # ScanNr
+            row_list.append(str(psm.MeasuredParentMass)) # ExpMass
+            row_list.append(str(psm.CalculatedParentMass)) # CalcMass
+            row_list.append(str(psm.OPSC)) # PEP
+            row_list.append(str(psm.SPSC)) # PRO
+            row_list.append(str(psm.lfScores[0])) # MVH
+            row_list.append(str(psm.score_differential_list[9])) # deltMVH
+            row_list.append(str(psm.lfScores[1])) # Xcorr
+            row_list.append(str(psm.score_differential_list[10])) # deltXcorr
+            row_list.append(str(psm.lfScores[2])) # WDP
+            row_list.append(str(psm.score_differential_list[11])) # deltWDP
+            row_list.append(str(len(psm.OriginalPeptide) - 2)) # PepLen
+            row_list.append(str(psm.dM)) # dM
+            if abs(psm.dM) > PSM.fNeutronMass:
+                print("error mass difference")
+            row_list.append(str(psm.fMassDiff)) # absdM
+            for i in range(1, 4): # Charge 1-4
+                if psm.ParentCharge > i:
+                    row_list.append("0")
+                else:
+                    row_list.append("1")
+            if psm.ParentCharge > 4: # Charge5
+                row_list.append("1")
+            else:
+                row_list.append("0")
+            row_list.append(str(psm.NMC)) # enzInt
+            row_list.append(psm.IdentifiedPeptide.replace("[", "-.").replace("]", ".-")) # Peptide
+            row_list.append("\t".join(psm.protein_list)) # Protein
+            fw.write("\t".join(row_list))
+            fw.write("\n")
+
+def debug_mode(psm_list, output_folder):
+    
+    generatePINPercolator(psm_list, output_folder[:-1])
+
 def main(argv=None):
     if argv is None:
         argv = sys.argv
@@ -1570,16 +1668,16 @@ def main(argv=None):
     sys.stderr.write('------------------------------------------------------------------------------\n')
     
     # parse options
-    (input_file, config_file, output_folder) = parse_options(argv)
+    (input_file, config_file, output_folder, debug_code) = parse_options(argv)
     
     # get the configuration parameters
     config_dict = parse_config(config_file)
-    '''
+    
     if config_dict[pep_iden_str + search_type_str] == 'SIP':
         # sip_filtering(input_file, config_dict, output_folder, start_time)
         sip_filtering_LR(input_file, config_dict, output_folder, start_time)
         return
-    '''
+    
     # read the big psm table
     sys.stderr.write('[Step 1] Parse options and read PSM file:                   Running -> ')
     # find out the train and testing ratio
@@ -1602,6 +1700,10 @@ def main(argv=None):
     sys.stderr.write('Done!\n')
     
     # machine learning
+    if debug_code != "":
+        debug_mode(psm_list, output_folder)
+        return
+    
     sys.stderr.write('[Step 3] Train ML and re-rank PSMs:                         Running -> ')
     del feature_selection_list[:]
     feature_selection_list.extend([1, 2, 3, 5, 15, 16, 17, 24, 26, 28])

@@ -111,10 +111,10 @@ public:
 
 	void preprocessingMVH();
 
-	void preprocessingSIP(const map<char, double>& mapResidueMass);
+	void preprocessingSIP();
 
 	// this function doesn't need mapResidueMass as input
-	void calculateIsotope(const string & sNewPeptide, const map<char, double> & mapResidueMass);
+	void calculateIsotope(const string & sNewPeptide);
 
 	string neutralLossProcess(const string & sCurrentPeptide);
 

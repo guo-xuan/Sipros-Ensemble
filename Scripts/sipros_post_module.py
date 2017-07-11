@@ -632,6 +632,12 @@ class PepSpectrumMatch:
                     e.lfScores = pep.lfScores
                     e.fCalculatedParentMass = pep.fCalculatedParentMass
                     e.sSearchName = pep.sSearchName
+                    e.fPct = pep.fPct
+                elif e.lfScores[0] == pep.lfScores[0] and self.SIPmode:
+                    if e.fPct > pep.fPct:
+                        e.fCalculatedParentMass = pep.fCalculatedParentMass
+                        e.sSearchName = pep.sSearchName
+                        e.fPct = pep.fPct
                 words = pep.sProteinNames.split(',')
                 for sProtein in words:
                     if e.sProteinNames.find(sProtein) == -1:

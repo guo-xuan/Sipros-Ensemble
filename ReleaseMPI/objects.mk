@@ -4,5 +4,5 @@
 
 USER_OBJS :=
 
-LIBS := -lcometsearch -lmstoolkitlite -lm -lpthread
+LIBS := -lmstoolkitlite -lm -lpthread
 

@@ -86,7 +86,7 @@ class ProteinDatabase
     void mutatePeptide(const string & sOriginalPeptideContent, string & sMutatedPeptide);
     bool mutatePeptideLessCleavage(Peptide* mutationPeptide, const string & sOriginalPeptideContent, int iendCleavagePos, string & sMutatedPeptide);
     bool mutatePeptideEqualCleavage(Peptide* mutationPeptide, const string & sOriginalPeptideContent, int iendCleavagePos, string & sMutatedPeptide);
-    bool mutatePeptideMoreCleavage(Peptide* mutationPeptide, const string & sOriginalPeptideContent, int iendCleavagePos, string & sMutatedPeptide);
+    bool mutatePeptideMoreCleavage(Peptide* mutationPeptide, const string & sOriginalPeptideContent, string & sMutatedPeptide);
     // check cleavage info for the new mutated peptide;
     bool verifyPeptide (const string & sMutatedPeptide);
     void setPeptideInfo(Peptide* thePeptide, const string & sIdentifyPeptide, const double & dMass);

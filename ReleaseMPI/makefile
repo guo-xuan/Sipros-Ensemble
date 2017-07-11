@@ -40,38 +40,10 @@ endif
 
 # Add inputs and outputs from these tool invocations to the build variables 
 OBJS += SiprosReader.o
-DEPS = \
-../src/CometSearch/CometData.h \
-../src/CometSearch/CometDataInternal.h \
-../src/CometSearch/CometPreprocess.h \
-../src/CometSearch/CometWriteOut.h \
-../src/CometSearch/CometWriteSqt.h \
-../src/CometSearch/OSSpecificThreading.h \
-../src/CometSearch/CometMassSpecUtils.h \
-../src/CometSearch/CometSearch.h \
-../src/CometSearch/CometWritePepXML.h \
-../src/CometSearch/CometWriteTxt.h \
-../src/CometSearch/Threading.h \
-../src/CometSearch/CometPostAnalysis.h \
-../src/CometSearch/CometSearchManager.h \
-../src/CometSearch/CometWritePercolator.h \
-../src/CometSearch/Common.h \
-../src/CometSearch/ThreadPool.h \
-../src/CometSearch/CometMassSpecUtils.cpp \
-../src/CometSearch/CometSearch.cpp \
-../src/CometSearch/CometWritePepXML.cpp \
-../src/CometSearch/CometWriteTxt.cpp \
-../src/CometSearch/CometPostAnalysis.cpp \
-../src/CometSearch/CometSearchManager.cpp \
-../src/CometSearch/CometWritePercolator.cpp \
-../src/CometSearch/Threading.cpp \
-../src/CometSearch/CometPreprocess.cpp \
-../src/CometSearch/CometWriteOut.cpp \
-../src/CometSearch/CometWriteSqt.cpp
 
 MSTOOLKIT = ../src/MSToolkit
-COMETSEARCH = ../src/CometSearch
-override CXXFLAGS = -Wall -Wextra -Wno-char-subscripts -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -D__LINUX__ -I$(MSTOOLKIT)/include -I$(COMETSEARCH)
+
+override CXXFLAGS = -Wall -Wextra -Wno-char-subscripts -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -D__LINUX__ -I$(MSTOOLKIT)/include
 
 # All Target
 all: Sipros_MPI
@@ -81,8 +53,8 @@ all: Sipros_MPI
 Sipros_MPI: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: C++ Linker'
-	cd ./src/MSToolkit ; make lite ; cd ../CometSearch ; make
-	$(MCC) $(MOPTS) $(CXXFLAGS) -L"./src/MSToolkit" -L"./src/CometSearch" -o "Sipros_MPI" $(OBJS) $(USER_OBJS) $(LIBS)
+	cd ./src/MSToolkit ; make lite 
+	$(MCC) $(MOPTS) $(CXXFLAGS) -L"./src/MSToolkit" -o "Sipros_MPI" $(OBJS) $(USER_OBJS) $(LIBS)
 	$(RM) $(OBJS)$(C++_DEPS)$(C_DEPS)$(CC_DEPS)$(CPP_DEPS)$(EXECUTABLES)$(CXX_DEPS)$(C_UPPER_DEPS) 
 	@echo 'Finished building target: $@'
 	@echo ' '

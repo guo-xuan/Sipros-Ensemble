@@ -198,7 +198,7 @@ void MS2Scan::scoreWeightSum(Peptide* currentPeptide) {
 		iExBreward = iCurrentBreward;
 	}
 	// save score
-	saveScoreSIP(dScore, currentPeptide, vpWeightSumTopPeptides, vdWeightSumAllScores);
+	saveScoreSIP(dScore, currentPeptide, vpWeightSumTopPeptides);
 }
 
 /*
@@ -396,7 +396,7 @@ void MS2Scan::scoreRankSumHighMS2(Peptide* currentPeptide) {
 	dUvalue = iUnMatchPeakSum + (iMZSize - (iNumFragments * 2 - iUnOberserve) + 0.5 * iEmptyMZ) * iUnOberserve;
 	if (iMZSize > 0)
 		dScore = CalculateRankSum(dUvalue, iIonNumber, iUnMatchPeakNumber);
-	saveScore(dScore, currentPeptide, vpWeightSumTopPeptides, vdWeightSumAllScores, "RankSum");
+	saveScore(dScore, currentPeptide, vpWeightSumTopPeptides, "RankSum");
 }
 
 void MS2Scan::scoreRankSum(Peptide* currentPeptide) {
@@ -490,7 +490,7 @@ void MS2Scan::scoreRankSum(Peptide* currentPeptide) {
 	dUvalue = iUnMatchPeakSum + (iMZSize - (iNumFragments * 2 - iUnOberserve) + 0.5 * iEmptyMZ) * iUnOberserve;
 	if (iMZSize > 0)
 		dScore = CalculateRankSum(dUvalue, iIonNumber, iUnMatchPeakNumber);
-	saveScore(dScore, currentPeptide, vpWeightSumTopPeptides, vdWeightSumAllScores, "RankSum");
+	saveScore(dScore, currentPeptide, vpWeightSumTopPeptides, "RankSum");
 }
 
 /*
@@ -594,7 +594,7 @@ void MS2Scan::WeightCompare(const string& sPeptide, vector<bool> & vbFragmentZ2)
 		vbFragmentZ2.push_back(subscore.at(i) > threshold);
 }
 
-void MS2Scan::saveScore(const double & dScore, const Peptide * currentPeptide, vector<PeptideUnit *> & vpTopPeptides, vector<double> & vdAllScores,
+void MS2Scan::saveScore(const double & dScore, const Peptide * currentPeptide, vector<PeptideUnit *> & vpTopPeptides,
 		string sScoreFunction) {
 	PeptideUnit * copyPeptide;
 
@@ -620,7 +620,7 @@ void MS2Scan::saveScore(const double & dScore, const Peptide * currentPeptide, v
 	}
 }
 
-void MS2Scan::saveScoreSIP(const double & dScore, const Peptide * currentPeptide, vector<PeptideUnit *> & vpTopPeptides, vector<double> & vdAllScores,
+void MS2Scan::saveScoreSIP(const double & dScore, const Peptide * currentPeptide, vector<PeptideUnit *> & vpTopPeptides,
 		string sScoreFunction) {
 	PeptideUnit * copyPeptide;
 
@@ -671,7 +671,7 @@ void MS2Scan::scorePeptidesMVH(vector<double> * sequenceIonMasses, vector<double
 			dMvh = 0;
 			if (!mergePeptide(vpWeightSumTopPeptides, vpPeptides.at(i)->getPeptideSeq(), vpPeptides.at(i)->getProteinName())) {
 				if (MVH::ScoreSequenceVsSpectrum(vpPeptides.at(i)->sNeutralLossPeptide, this, sequenceIonMasses, pdAAforward, pdAAreverse, dMvh, Seqs)) {
-					saveScore(dMvh, vpPeptides.at(i), vpWeightSumTopPeptides, vdWeightSumAllScores);
+					saveScore(dMvh, vpPeptides.at(i), vpWeightSumTopPeptides);
 				}
 			}
 
@@ -683,16 +683,16 @@ void MS2Scan::scorePeptidesMVH(vector<double> * sequenceIonMasses, vector<double
 	vpPeptides.clear();
 }
 
-void MS2Scan::scorePeptidesXcorr(bool *pbDuplFragment, double * _pdAAforward, double * _pdAAreverse, unsigned int *** _uiBinnedIonMasses, int test) {
+void MS2Scan::scorePeptidesXcorr(bool *pbDuplFragment, double * _pdAAforward, double * _pdAAreverse, unsigned int *** _uiBinnedIonMasses) {
 	int i = 0;
 	double dXcorr = 0;
 	for (i = 0; i < (int) vpPeptides.size(); i++) {
 		dXcorr = 0;
 		if (!mergePeptide(vpWeightSumTopPeptides, vpPeptides.at(i)->getPeptideSeq(), vpPeptides.at(i)->getProteinName())) {
 			if (CometSearchMod::ScorePeptides(&(vpPeptides.at(i)->sNeutralLossPeptide), pbDuplFragment, _pdAAforward, _pdAAreverse, this, _uiBinnedIonMasses,
-					dXcorr, test)) {
+					dXcorr)) {
 				if (dXcorr > 0) {
-					saveScore(dXcorr, vpPeptides.at(i), vpWeightSumTopPeptides, vdWeightSumAllScores);
+					saveScore(dXcorr, vpPeptides.at(i), vpWeightSumTopPeptides);
 				}
 			}
 		}
@@ -1327,7 +1327,7 @@ void MS2Scan::scoreWeightSumHighMS2(Peptide* currentPeptide) //it's primaryScore
 	}
 
 	// saveScore(dScore, currentPeptide, vpWeightSumTopPeptides, vdWeightSumAllScores);
-	saveScoreSIP(dScore, currentPeptide, vpWeightSumTopPeptides, vdWeightSumAllScores);
+	saveScoreSIP(dScore, currentPeptide, vpWeightSumTopPeptides);
 }
 
 bool MS2Scan::binarySearch(const double& dTarget, const vector<double>& vdList, const double& dTolerance, vector<int>& viIndex4Found) {
@@ -1367,7 +1367,7 @@ bool MS2Scan::binarySearch(const double& dTarget, const vector<double>& vdList, 
 }
 
 bool MS2Scan::isAnyScoreInTopN(int _iIndexPeptide, int _iRankThreshold) {
-	for (int k = 0; k < vpWeightSumTopPeptides.at(_iIndexPeptide)->vdScores.size(); k++) {
+	for (int k = 0; k < ((int)vpWeightSumTopPeptides.at(_iIndexPeptide)->vdScores.size()); k++) {
 		if (vpWeightSumTopPeptides.at(_iIndexPeptide)->vdRank.at(k) <= _iRankThreshold) {
 			return true;
 		}
@@ -1381,7 +1381,7 @@ bool scoreSort(pair<double, int> _a, pair<double, int> _b) {
 
 void MS2Scan::scoreFeatureCalculationWDPSip(){
 	vector<pair<double, int> > vp;
-	double dMax, dDiff;
+	// double dMax;
 	if (vpWeightSumTopPeptides.size() <= 0) {
 		return;
 	}
@@ -1392,12 +1392,12 @@ void MS2Scan::scoreFeatureCalculationWDPSip(){
 			vp.push_back(make_pair(vpWeightSumTopPeptides.at(j)->vdScores.at(i), j));
 		}
 		sort(vp.begin(), vp.end(), scoreSort);
-		dMax = vp.at(0).first;
+		// dMax = vp.at(0).first;
 		if (vp.size() == 1) {
 			vpWeightSumTopPeptides.at(0)->vdRank.push_back(1);
 
 		} else {
-			for (int j = 0; j < vpWeightSumTopPeptides.size(); j++) {
+			for (int j = 0; j < ((int)vpWeightSumTopPeptides.size()); j++) {
 				vpWeightSumTopPeptides.at(vp.at(j).second)->vdRank.push_back(j + 1);
 			}
 		}
@@ -1417,7 +1417,7 @@ void MS2Scan::sumIntensity() {
 
 void MS2Scan::scoreFeatureCalculation() {
 	vector<pair<double, int> > vp;
-	double dMax, dDiff;
+	// double dMax;
 	if (vpWeightSumTopPeptides.size() <= 0) {
 		return;
 	}
@@ -1449,12 +1449,12 @@ void MS2Scan::scoreFeatureCalculation() {
 			vp.push_back(make_pair(vpWeightSumTopPeptides.at(j)->vdScores.at(i), j));
 		}
 		sort(vp.begin(), vp.end(), scoreSort);
-		dMax = vp.at(0).first;
+		// dMax = vp.at(0).first;
 		if (vp.size() == 1) {
 			vpWeightSumTopPeptides.at(0)->vdRank.push_back(1);
 
 		} else {
-			for (int j = 0; j < vpWeightSumTopPeptides.size(); j++) {
+			for (int j = 0; j < ((int)vpWeightSumTopPeptides.size()); j++) {
 				vpWeightSumTopPeptides.at(vp.at(j).second)->vdRank.push_back(j + 1);
 			}
 		}

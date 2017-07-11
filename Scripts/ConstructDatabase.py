@@ -46,18 +46,20 @@ psm_int = 4
 ## Parse options
 def parse_options(argv):
 
-    opts, _args = getopt.getopt(argv[1:], "hvVw:d:o:p:",
+    opts, _args = getopt.getopt(argv[1:], "hvVw:d:o:p:x:",
                                 ["help",
                                  "version",
                                  "working-directory",
                                  "database-file",
                                  "output-file",
-                                 "input-file"])
+                                 "input-file",
+                                 "xdebug"])
 
     working_directory = "./"
     database_file = ""
     output_file = ""
     input_file_format_int = 0
+    output_protein_file = None
 
     # Basic options
     for option, value in opts:
@@ -75,6 +77,8 @@ def parse_options(argv):
             database_file = value
         if option in ("-o", "--output-file"):
             output_file = value
+        if option in ("-x", "--xdebug"):
+            output_protein_file = value
         if option in ("-p"):
             if value == 'ro':
                 input_file_format_int = input_file_format_int | pro_int
@@ -92,7 +96,7 @@ def parse_options(argv):
         print(help_message)
         sys.exit(0)
 
-    return (working_directory, database_file, output_file, input_file_format_int)
+    return (working_directory, database_file, output_file, input_file_format_int, output_protein_file)
 
 reverse_prefix_str = 'Rev'
 
@@ -187,7 +191,7 @@ def create_database(protein_set, output_str, protein_database_str):
     
     fw.close()
     
-def create_database_multiple_files(directory_str, output_str, protein_database_str, input_file_format_int):
+def create_database_multiple_files(directory_str, output_str, protein_database_str, input_file_format_int, output_protein_id_str=None):
     
     file_list = []
     
@@ -219,6 +223,14 @@ def create_database_multiple_files(directory_str, output_str, protein_database_s
                 protein_set.add(protein)                
     
     create_database(protein_set, output_str, protein_database_str)
+    
+    if output_protein_id_str:
+        fw = open(output_protein_id_str, 'w')
+        for protein in protein_set:
+            fw.write(protein)
+            fw.write("\n")
+        fw.close()
+            
 
 
 # # +------+
@@ -229,9 +241,9 @@ def main(argv=None):
         argv = sys.argv
     
     # parse options
-    (working_dir, protein_database_str, output_str, input_file_format_int) = parse_options(argv)
+    (working_dir, protein_database_str, output_str, input_file_format_int, output_protein_file) = parse_options(argv)
     
-    create_database_multiple_files(working_dir, output_str, protein_database_str, input_file_format_int)
+    create_database_multiple_files(working_dir, output_str, protein_database_str, input_file_format_int, output_protein_file)
     
     print("Done")
 

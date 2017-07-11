@@ -111,29 +111,32 @@ double AminoAcidMasses::end() {
 }
 
 double AminoAcidMasses::find(char _cAminoAcid) {
-	if (_cAminoAcid >= AminoAcidMassesSize || _cAminoAcid < 0) {
+	/*
+	if (((int)_cAminoAcid) >= AminoAcidMassesSize ) {
 		cerr << "error AminoAcidMasses. " << endl;
 		exit(1);
 		return dERROR;
-	}
+	}*/
 	return vdMasses.at((int) _cAminoAcid);
 }
 
 double AminoAcidMasses::operator[](char _cAminoAcid) const {
-	if (_cAminoAcid >= AminoAcidMassesSize || _cAminoAcid < 0) {
+	/*
+	if (((int)_cAminoAcid) >= AminoAcidMassesSize) {
 		cerr << "error AminoAcidMasses. " << endl;
 		exit(1);
 		return dERROR;
-	}
+	}*/
 	return vdMasses.at((int) _cAminoAcid);
 }
 
 double & AminoAcidMasses::operator[](char _cAminoAcid) {
+	/*
 	if (_cAminoAcid >= AminoAcidMassesSize || _cAminoAcid < 0) {
 		cerr << "error AminoAcidMasses. " << endl;
 		exit(1);
 		return dERROR;
-	}
+	}*/
 	return vdMasses.at((int) _cAminoAcid);
 }
 

@@ -37,7 +37,8 @@ public:
 	// set the basic info
 	void setProductIon(char cIonTypeInput, int iIonNumberInput, int iChargeInput);
 	// set observed info
-	void setObservedInfo(double dMZErrorInput, double dWeightInput, double dMostAbundantMZInput, int iMostAbundantPeakIndexInput);
+	void setObservedInfo(double dMZErrorInput, double dWeightInput, double dMostAbundantMZInput,
+			int iMostAbundantPeakIndexInput);
 	void setComplementaryFragmentObserved(bool bComplementaryFragmentObservedInput);
 	char getIonType() {
 		return cIonType;
@@ -175,9 +176,8 @@ public:
 	static bool mygreater(double i, double j);
 	void binCalculation();
 	void binCalculation2D(); // replace binCalculation();
-	void saveScore(const double & dScore, const Peptide * currentPeptide, vector<PeptideUnit *> & vpTopPeptides, vector<double> & vdAllScores,
-			string sScoreFunction = "WeightSum");
-	void saveScoreSIP(const double & dScore, const Peptide * currentPeptide, vector<PeptideUnit *> & vpTopPeptides, vector<double> & vdAllScores,
+	void saveScore(const double & dScore, const Peptide * currentPeptide, vector<PeptideUnit *> & vpTopPeptides, string sScoreFunction = "WeightSum");
+	void saveScoreSIP(const double & dScore, const Peptide * currentPeptide, vector<PeptideUnit *> & vpTopPeptides,
 			string sScoreFunction = "WeightSum");
 	static bool GreaterScore(PeptideUnit * p1, PeptideUnit * p2);
 	void WeightCompare(const string & sPeptide, vector<bool> & vbFragmentZ2);
@@ -192,7 +192,8 @@ public:
 
 	// static bool mySUGreater (ScanUnit s1, ScanUnit s2);
 
-	bool binarySearch(const double & dTarget, const vector<double> & vdList, const double & dTolerance, vector<int> & viIndex4Found);
+	bool binarySearch(const double & dTarget, const vector<double> & vdList, const double & dTolerance,
+			vector<int> & viIndex4Found);
 
 	// build the map between y or b ions for observed intensity and related mass (only for one ion)
 	bool findProductIon(const vector<double> & vdIonMass,   // expected mass
@@ -244,8 +245,10 @@ public:
 	void preprocessXcorr();
 	// score all peptides matched to this scan
 	void scorePeptides();
-	void scorePeptidesMVH(vector<double> * sequenceIonMasses, vector<double> * pdAAforward, vector<double> * pdAAreverse, vector<char> * Seqs);
-	void scorePeptidesXcorr(bool *pbDuplFragment, double * _pdAAforward, double * _pdAAreverse, unsigned int *** _uiBinnedIonMasses, int test);
+	void scorePeptidesMVH(vector<double> * sequenceIonMasses, vector<double> * pdAAforward,
+			vector<double> * pdAAreverse, vector<char> * Seqs);
+	void scorePeptidesXcorr(bool *pbDuplFragment, double * _pdAAforward, double * _pdAAreverse,
+			unsigned int *** _uiBinnedIonMasses);
 	void scorePeptidesLowMS2();
 	void scorePeptidesHighMS2();
 
@@ -302,8 +305,9 @@ public:
 	//-----------WDP End---------------------
 	double scoreWeightSum(string * currentPeptide, vector<double> * pvdYionMass, vector<double> * pvdBionMass);
 	// void scoreRankSum_test(Peptide * currentPeptide);
-	double scoreWeightSumHighMS2(string * currentPeptide, vector<vector<double> > * vvdYionMass, vector<vector<double> > * vvdYionProb,
-			vector<vector<double> > * vvdBionMass, vector<vector<double> > * vvdBionProb);
+	double scoreWeightSumHighMS2(string * currentPeptide, vector<vector<double> > * vvdYionMass,
+			vector<vector<double> > * vvdYionProb, vector<vector<double> > * vvdBionMass,
+			vector<vector<double> > * vvdBionProb);
 	//-----------WDP End---------------------
 };
 

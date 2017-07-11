@@ -226,7 +226,7 @@ bool MzMLWriter::writeIndex(){
   if(bTabs) fprintf(fptr," ");
   fprintf(fptr,"</indexList>\n");
   if(bTabs) fprintf(fptr," ");
-  fprintf(fptr,"<indexListOffset>%lld</indexListOffset>\n",offset);
+  fprintf(fptr,"<indexListOffset>%lld</indexListOffset>\n",((long long int)offset));
 
   return true;
 }
@@ -551,7 +551,7 @@ bool MzMLWriter::exportChromatogram(BasicChromatogram& c, int tabs){
   x.offset = ftell(fptr);
   vChromIndex.push_back(x);
 
-  fprintf(fptr, "<chromatogram index=\"%d\" id=\"%s\" defaultArrayLength=\"%d\">\n", chromIndex++, tmp, c.size());
+  fprintf(fptr, "<chromatogram index=\"%d\" id=\"%s\" defaultArrayLength=\"%d\">\n", chromIndex++, tmp, ((int)c.size()));
   if (!exportPrecursor(c, tabs + 1)) return false;
   if (c.getProdMZ()>0) {
     if (!exportProduct(c,tabs+1)) return false;
@@ -631,7 +631,7 @@ bool MzMLWriter::exportOffset(string idRef, f_off offset, int tabs){
     tbs.append(tabs,' ');
     fprintf(fptr,"%s",&tbs[0]);
   }
-  fprintf(fptr,"<offset idRef=\"%s\">%lld</offset>\n",&idRef[0],offset);
+  fprintf(fptr,"<offset idRef=\"%s\">%lld</offset>\n",&idRef[0], ((long long int)offset));
   return true;
 }
 

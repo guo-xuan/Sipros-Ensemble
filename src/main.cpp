@@ -8,7 +8,7 @@
 
 using namespace std;
 
-void searchFT2Files(vector<string> & vsFT2Filenames, const string & sWorkingDirectory, bool bScreenOutput) {
+void searchFT2Files(vector<string> & vsFT2Filenames, const string & sWorkingDirectory) {
 	int i, iFileNum;
 	DirectoryStructure working_dir(sWorkingDirectory);
 	working_dir.setPattern(".ft2");
@@ -35,7 +35,7 @@ void searchFT2Files(vector<string> & vsFT2Filenames, const string & sWorkingDire
 		vsFT2Filenames.at(i) = sWorkingDirectory + ProNovoConfig::getSeparator() + vsFT2Filenames.at(i);
 }
 
-void searchConfigureFiles(vector<string> & vsConfigureFilenames, const string & sConfigFileDirectory, bool bScreenOutput) {
+void searchConfigureFiles(vector<string> & vsConfigureFilenames, const string & sConfigFileDirectory) {
 	int i, iFileNum;
 	DirectoryStructure working_dir(sConfigFileDirectory);
 	working_dir.setPattern(".cfg");
@@ -115,14 +115,14 @@ void initializeArguments(int argc, char **argv, vector<string> & vsFT2Filenames,
 		sConfigFileDirectory = sWorkingDirectory;
 
 	if (sConfigFileDirectory != "")
-		searchConfigureFiles(vsConfigureFilenames, sConfigFileDirectory, bScreenOutput);
+		searchConfigureFiles(vsConfigureFilenames, sConfigFileDirectory);
 	else
 		vsConfigureFilenames.push_back(sConfigFilename);
 
 	if (sSingleWorkingFile != "")
 		vsFT2Filenames.push_back(sSingleWorkingFile);
 	else
-		searchFT2Files(vsFT2Filenames, sWorkingDirectory, bScreenOutput);
+		searchFT2Files(vsFT2Filenames, sWorkingDirectory);
 	if ((sOutputDirectory == "") && (sWorkingDirectory != ""))
 		sOutputDirectory = sWorkingDirectory;
 
@@ -145,11 +145,6 @@ void handleScan(const string & sFT2filename, const string & sOutputDirectory, co
 			// search all MS2 scans and write output to a file
 			pMainMS2ScanVector->startProcessing();
 		}
-
-		// pMainMS2ScanVector->startProcessingXcorr();
-		// pMainMS2ScanVector->startProcessingMVHTask();
-		// pMainMS2ScanVector->startProcessingXcorrTask();
-		// pMainMS2ScanVector->startProcessingXcorrTaskSIP();
 	}
 	delete pMainMS2ScanVector; //free memory of vpAllMS2Scans
 }

@@ -587,7 +587,7 @@ bool ProteinDatabase::mutatePeptideEqualCleavage(Peptide* mutationPeptide, const
 	return bReVal;
 }
 
-bool ProteinDatabase::mutatePeptideMoreCleavage(Peptide* mutationPeptide, const string& sOriginalPeptideContent, int iendCleavagePos, string& sMutatedPeptide)
+bool ProteinDatabase::mutatePeptideMoreCleavage(Peptide* mutationPeptide, const string& sOriginalPeptideContent, string& sMutatedPeptide)
 // This function is used to mutate original peptides with one more
 // maximum missed cleavage sites. One missed cleavage site needs to
 // be silenced for meeting the requirement of maximum missed cleavage sites
@@ -648,7 +648,7 @@ bool ProteinDatabase::getNextMutationPeptide(Peptide* mutationPeptide)
 		else if (iclCheck == ProNovoConfig::getMaxMissedCleavages())
 			bReVal = mutatePeptideEqualCleavage(mutationPeptide, sOriginalPeptideContent, iendCleavagePos, sMutatedPeptide);
 		else
-			bReVal = mutatePeptideMoreCleavage(mutationPeptide, sOriginalPeptideContent, iendCleavagePos, sMutatedPeptide);
+			bReVal = mutatePeptideMoreCleavage(mutationPeptide, sOriginalPeptideContent, sMutatedPeptide);
 	}
 	return bReVal;
 }

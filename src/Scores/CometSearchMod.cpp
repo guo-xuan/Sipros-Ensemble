@@ -1346,7 +1346,7 @@ void CometSearchMod::print(Query * pScoring) {
  }*/
 
 bool CometSearchMod::ScorePeptides(string * currentPeptide, bool *pbDuplFragment, double * _pdAAforward, double * _pdAAreverse, MS2Scan * mstSpectrum,
-		unsigned int *** _uiBinnedIonMasses, double & dXcorr, int test) {
+		unsigned int *** _uiBinnedIonMasses, double & dXcorr) {
 	double dInverseBinWidth = 0, dOneMinusBinOffset = 0;
 	if (mstSpectrum->isMS2HighRes) {
 		dInverseBinWidth = ProNovoConfig::dHighResInverseBinWidth;
@@ -1746,22 +1746,12 @@ bool CometSearchMod::ScorePeptidesSIP(vector<vector<double> > & vvdYionMass, vec
 
 	// Now get the set of binned fragment ions once to compare this peptide against all matching spectra.
 	int ctCharge = 0;
-	int ctIonSeries = 0;
-	int iWhichIonSeries = 0;
-	int ctLen = 0;
+	// int ctIonSeries = 0;
+	// int iWhichIonSeries = 0;
+	// int ctLen = 0;
 	int iVal = 0;
 	Query * pQuery = mstSpectrum->pQuery;
-	// seg debug b
-	if (pQuery == NULL) {
-		cout << "Error 96" << endl;
-	}
-	// seg debug e
 	int iMaxFragCharge = pQuery->_spectrumInfoInternal.iMaxFragCharge;
-	// seg debug b
-	if (iMaxFragCharge >= iMaxPercusorCharge) {
-		cout << "Error 9" << endl;
-	}
-	// seg debug e
 	int iIonMassSize = 0, iIsotopicDistSize = 0;
 	double dFragmentIonMassZ = 0;
 	for (ctCharge = 1; ctCharge <= iMaxFragCharge; ctCharge++) {
@@ -1834,7 +1824,7 @@ bool CometSearchMod::ScorePeptidesSIP(vector<vector<double> > & vvdYionMass, vec
 	}
 	vdBinnedIonMasses.at(0) = 1;
 	dXcorr = 0;
-	bool bUseNLPeaks = false;
+	// bool bUseNLPeaks = false;
 	float **ppSparseFastXcorrData;              // use this if bSparseMatrix
 	int bin, x, y;
 	int iMax = pQuery->_spectrumInfoInternal.iArraySize / SPARSE_MATRIX_SIZE + 1;
@@ -1882,22 +1872,14 @@ bool CometSearchMod::ScorePeptidesSIPNoCancelOut(vector<vector<double> > & vvdYi
 
 	// Now get the set of binned fragment ions once to compare this peptide against all matching spectra.
 	int ctCharge = 0;
-	int ctIonSeries = 0;
-	int iWhichIonSeries = 0;
-	int ctLen = 0;
+	// int ctIonSeries = 0;
+	// int iWhichIonSeries = 0;
+	// int ctLen = 0;
 	int iVal = 0;
 	Query * pQuery = mstSpectrum->pQuery;
-	// seg debug b
-	if (pQuery == NULL) {
-		cout << "Error 96" << endl;
-	}
-	// seg debug e
+
 	int iMaxFragCharge = pQuery->_spectrumInfoInternal.iMaxFragCharge;
-	// seg debug b
-	if (iMaxFragCharge >= iMaxPercusorCharge) {
-		cout << "Error 9" << endl;
-	}
-	// seg debug e
+
 	int iIonMassSize = 0, iIsotopicDistSize = 0;
 	double dFragmentIonMassZ = 0;
 	for (ctCharge = 1; ctCharge <= iMaxFragCharge; ctCharge++) {
@@ -1982,7 +1964,7 @@ bool CometSearchMod::ScorePeptidesSIPNoCancelOut(vector<vector<double> > & vvdYi
 
 	vdBinnedIonMasses.at(0) = 1;
 	dXcorr = 0;
-	bool bUseNLPeaks = false;
+	// bool bUseNLPeaks = false;
 	float **ppSparseFastXcorrData;              // use this if bSparseMatrix
 	int bin, x, y;
 	int iMax = pQuery->_spectrumInfoInternal.iArraySize / SPARSE_MATRIX_SIZE + 1;

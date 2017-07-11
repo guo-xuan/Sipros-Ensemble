@@ -758,7 +758,7 @@ def main(argv=None):
     
     # multiple threading
     iNumThreads = cpu_count()
-    iNumThreads = 3
+    # iNumThreads = 3
     if iNumThreads < 3:
         sys.stderr.write('This script needs at least three cores per CPU.')
     else:

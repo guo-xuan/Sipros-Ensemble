@@ -377,7 +377,7 @@ bool MVH::CalculateSequenceIonsSIP(string & sSequence, int maxIonCharge, bool us
 	int iIonMassSize = 0, iIsotopicDistSize = 0;
 	double dFragmentIonMassZ = 0;
 	int iLenMinus1 = iPeptideLength - 1;
-	if (vvdYionMass.size() != iLenMinus1 || vvdBionMass.size() != iLenMinus1) {
+	if (((int)vvdYionMass.size()) != iLenMinus1 || ((int)vvdBionMass.size()) != iLenMinus1) {
 		cout << "check 111" << endl;
 	}
 	// calculate y ion MZs

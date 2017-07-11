@@ -8,10 +8,11 @@ OPTS := -std=c++11 -fopenmp -O3 -g
 # OPTS := -std=c++11 -fopenmp -O3 -g
 
 # MPI C++ Compiler for OpenMPI installations (default)
-# MCC := mpic++
-# MOPTS := -std=c++11 -openmp -O3 -g
+MCC := /home/xgo/local/bin/mpic++
+MGCC := /home/xgo/local/bin/mpicc
+MOPTS := -std=c++11 -fopenmp -O3 -g
 
 # Intel MPI C++ Compiler installations
-MCC := icpc
-MGCC := icc
-MOPTS := -std=c++11 -qopenmp -O3 -g -lmpi -lmpi++
+# MCC := icpc
+# MGCC := icc
+# MOPTS := -std=c++11 -qopenmp -O3 -g -lmpi -lmpi++

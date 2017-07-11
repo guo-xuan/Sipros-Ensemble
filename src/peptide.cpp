@@ -2,6 +2,13 @@
 
 Peptide::Peptide() {
 	iPeptideLength = 0;
+	cOriginalPrefix = '-';
+	cOriginalSuffix = '-';
+	dscore = 0;
+	dPeptideMass = 0;
+	ibeginPos = 0;
+	cIdentifyPrefix = '-';
+	cIdentifySuffix = '-';
 }
 
 Peptide::~Peptide() {
@@ -67,7 +74,7 @@ void Peptide::calculateExpectedFragments(const string & sNewPeptide, const map<c
 		vdYionMasses.push_back(dMass - vdBionMasses[i]);
 }
 
-void Peptide::calculateIsotope(const string & sNewPeptide, const map<char, double>& mapResidueMass) {
+void Peptide::calculateIsotope(const string & sNewPeptide) {
 	ProNovoConfig::configIsotopologue.computeProductIon(sNewPeptide, vvdYionMass, vvdYionProb, vvdBionMass, vvdBionProb);
 }
 
@@ -81,7 +88,7 @@ void Peptide::preprocessing(bool isMS2HighRes, const map<char, double>& mapResid
 	sNewPeptide = neutralLossProcess(sPeptide);
 	sNeutralLossPeptide = sNewPeptide;
 	if (isMS2HighRes) {
-		calculateIsotope(sNewPeptide, mapResidueMass); // just for weightsum
+		calculateIsotope(sNewPeptide); // just for weightsum
 		//calculateExpectedFragments(mapResidueMass); // just for ranksum
 	} else
 		calculateExpectedFragments(sNewPeptide, mapResidueMass);
@@ -99,7 +106,7 @@ void Peptide::preprocessingMVH() {
 	sNeutralLossPeptide = neutralLossProcess(sPeptide);
 }
 
-void Peptide::preprocessingSIP(const map<char, double>& mapResidueMass) {
+void Peptide::preprocessingSIP() {
 	int i;
 	iPeptideLength = 0;
 	for (i = 0; i < (int) sPeptide.length(); ++i) {
@@ -110,7 +117,7 @@ void Peptide::preprocessingSIP(const map<char, double>& mapResidueMass) {
 
 	sNeutralLossPeptide = neutralLossProcess(sPeptide);
 	// get isotope distribution
-	calculateIsotope(sNeutralLossPeptide, mapResidueMass); // just for weightsum
+	calculateIsotope(sNeutralLossPeptide); // just for weightsum
 	// re-scale the probability
 	int iLen2 = 0, j = 0;
 	double dMaxProb = 0;
