@@ -147,14 +147,14 @@ void handleScan(const string & sFT2filename, const string & sOutputDirectory, co
 	if (bScreenOutput) {
 		cout << "Reading MS2 scan file " << sFT2filename << endl;
 	}
-	if (!pMainMS2ScanVector->loadFT2file()) {
+	if (!pMainMS2ScanVector->loadMassData()) {
 		cerr << "Error: Failed to load file: " << sFT2filename << endl;
 	} else {
 		if (ProNovoConfig::getSearchType() == "SIP") {
-			pMainMS2ScanVector->startProcessingWDPSIP();
+			pMainMS2ScanVector->startProcessingWdpSip();
 		} else {
 			// search all MS2 scans and write output to a file
-			pMainMS2ScanVector->startProcessing();
+			pMainMS2ScanVector->startProcessingMvh();
 		}
 	}
 

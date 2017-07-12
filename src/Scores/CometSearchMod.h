@@ -166,12 +166,8 @@ public:
 
 	static bool Preprocess(struct Query *pScoring, MS2Scan * mstSpectrum, double *pdTmpRawData, double *pdTmpFastXcorrData, double *pdTmpCorrelationData,
 			double *pdSmoothedSpectrum, double *pdTmpPeakExtracted);
-	static bool PreprocessVector(struct Query *pScoring, MS2Scan * mstSpectrum, vector<double> & pdTmpRawData, vector<double> & pdTmpFastXcorrData,
-			vector<double> & pdTmpCorrelationData, vector<double> & pdTmpSmoothedSpectrum, vector<double> & pdTmpPeakExtracted);
 	static bool LoadIons(struct Query *pScoring, double *pdTmpRawData, MS2Scan * mstSpectrum, struct PreprocessStruct *pPre);
-	static bool LoadIonsVector(struct Query *pScoring, vector<double> & pdTmpRawData, MS2Scan * mstSpectrum, struct PreprocessStruct *pPre);
 	static void MakeCorrData(double *pdTmpRawData, double *pdTmpCorrelationData, struct Query *pScoring, struct PreprocessStruct *pPre);
-	static void MakeCorrDataVector(vector<double> & pdTmpRawData, vector<double> & pdTmpCorrelationData, struct Query *pScoring, struct PreprocessStruct *pPre);
 	static bool Smooth(double *data, int iArraySize, double *pdSmoothedSpectrum);
 	static bool PeakExtract(double *data, int iArraySize, double *pdTmpPeakExtracted);
 	static void GetTopIons(double *pdTmpRawData, struct msdata *pTmpSpData, int iArraySize);
@@ -179,14 +175,8 @@ public:
 	static void StairStep(struct msdata *pTmpSpData, double dFragmentBinSize);
 	static void print(struct Query *pScoring);
 
-	/*static bool ScorePeptides(Peptide * currentPeptide, bool *pbDuplFragment, double* _pdAAforward,
-	 double * _pdAAreverse, MS2Scan * mstSpectrum, unsigned int *** _uiBinnedIonMasses, double & dXcorr,
-	 int test);*/
 	static bool ScorePeptides(string * currentPeptide, bool *pbDuplFragment, double* _pdAAforward, double * _pdAAreverse, MS2Scan * mstSpectrum,
 			unsigned int *** _uiBinnedIonMasses, double & dXcorr);
-	static bool ScorePeptidesSIP(vector<vector<double> > & vvdYionMass, vector<vector<double> > & vvdYionProb, vector<vector<double> > & vvdBionMass,
-			vector<vector<double> > & vvdBionProb, MS2Scan * mstSpectrum, vector<bool> & pbDuplFragment, vector<double> & vdBinnedIonMasses,
-			vector<int> & vdBin, double & dXcorr);
 	static bool ScorePeptidesSIPNoCancelOut(vector<vector<double> > & vvdYionMass, vector<vector<double> > & vvdYionProb, vector<vector<double> > & vvdBionMass,
 				vector<vector<double> > & vvdBionProb, MS2Scan * mstSpectrum, vector<bool> & pbDuplFragment, vector<double> & vdBinnedIonMasses,
 				vector<int> & vdBin, double & dXcorr);
