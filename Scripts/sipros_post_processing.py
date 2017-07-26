@@ -4,6 +4,11 @@ Created on Sep 7, 2016
 @author: xgo
 '''
 
+'''
+To-dos
+remove .tab
+'''
+
 import getopt, sys, os
 import numpy as np
 import csv
@@ -36,14 +41,9 @@ format_time = sipros_post_module.format_time
 
 get_file_list_with_ext =  sipros_post_module.get_file_list_with_ext
 
-# Some hard-coded parameters
-train_str = 'Rev_' # 'Rev_'
-test_str = 'TestRev_' # 'Shu_'
+train_str = 'Rev_1_' 
+test_str = 'TestRev_' 
 reserve_str = 'Rev_2_'
-
-train_str = 'Rev1_' # 'Rev_'
-test_str = 'Rev2_' # 'Shu_'
-reserve_str = ''
 
 Test_Fwd_Ratio = 1
 
@@ -131,7 +131,8 @@ class PSM:
         self.OriginalPeptide = psm_field.OriginalPeptide
         self.OriginalPeptide = PSM.pattern.sub('', self.IdentifiedPeptide)
         self.protein_list = []
-        self.RealLabel = protein_type(self.ProteinNames, self.protein_list)
+        # self.RealLabel = protein_type(self.ProteinNames, self.protein_list)
+        self.RealLabel = get_protein_type(self.ProteinNames, self.protein_list)
         self.lRanks = []
         self.iInnerId = 0
         self.fPredictProbability = 0.0
@@ -298,6 +299,14 @@ class PSM:
     def clean_protein_name(self):
         self.ProteinNames = ""
         l = []
+        if not reserve_str == "":
+            for sProtein in self.protein_list:
+                sProtein.strip()
+                if not (sProtein.startswith(reserve_str)):
+                    l.append(sProtein)
+            self.protein_list = l
+            l = []
+        
         for sProtein in self.protein_list:
             sProtein.strip()
             if train_str == "":
@@ -417,6 +426,55 @@ def protein_type(protein_sequence, lProtein=None):
                 return LabelReserve
     
     return LabelTrain
+
+def get_protein_type(protein_sequence, lProtein=None):
+    """
+    get the protein type
+    if all reserved type, return LabelReserve
+    if all testing type, return LabelTest
+    if all training type, return LabelTrain
+    otherwise, it is forward protein, return LabelFwd
+    """
+    sProteins = protein_sequence.replace('{', '')
+    sProteins = sProteins.replace('}', '')
+    asProteins = sProteins.split(',')
+    if lProtein != None:
+        del lProtein[:]
+        for sProtein in asProteins:
+            sProtein = sProtein.strip()
+            if sProtein not in lProtein:
+                lProtein.append(sProtein)
+                
+    protein_list_tmp_1 = []
+    protein_list_tmp_2 = []
+    
+    reserve_type = True
+    if reserve_str != '':
+        for sProtein in asProteins:
+            if not sProtein.startswith(reserve_str):
+                protein_list_tmp_1.append(sProtein)
+                reserve_type = False
+        if reserve_type:
+            return LabelReserve
+    
+    training_type = True
+    if train_str != '':
+        for sProtein in protein_list_tmp_1:
+            if not sProtein.startswith(train_str):
+                protein_list_tmp_2.append(sProtein)
+                training_type = False
+        if training_type:
+            return LabelTrain
+    
+    testing_type = True
+    if test_str != '':
+        for sProtein in protein_list_tmp_2:
+            if not sProtein.startswith(test_str):
+                testing_type = False
+        if testing_type:
+            return LabelTest
+    
+    return LabelFwd
 
 ## Get base_out filename
 get_base_out = sipros_post_module.get_base_out
@@ -1397,7 +1455,7 @@ def generate_psm_pep_txt(base_out, out_folder, psm_filtered_list, config_dict):
     pep_decoy_int = 0
     pep_set = Set()
     for oPsm in psm_filtered_list:
-        if oPsm.RealLabel == LabelTrain:
+        if oPsm.RealLabel == LabelTrain or oPsm.RealLabel == LabelReserve:
             continue
         pep_str = oPsm.IdentifiedPeptide + '_' + str(oPsm.ParentCharge)
         if pep_str not in pep_set:
@@ -1501,7 +1559,7 @@ def generate_psm_pep_txt(base_out, out_folder, psm_filtered_list, config_dict):
     # pep_sub_dict for preparing pep_out
     pep_sub_dict = {}    # initialize dict of list
     for oPsm in psm_filtered_list:
-        if oPsm.RealLabel == LabelTrain:
+        if oPsm.RealLabel == LabelTrain or oPsm.RealLabel == LabelReserve:
             continue
         pep_ID = oPsm.IdentifiedPeptide + '_+_' + str(oPsm.ParentCharge)
         if pep_ID in pep_sub_dict:
@@ -1563,7 +1621,10 @@ def remark_concensus(psm_list):
     for oPsm in psm_list:
         unique_id_str = oPsm.FileName + '_' + str(oPsm.ScanNumber) + '_' + oPsm.IdentifiedPeptide
         count_int = psm_dict[unique_id_str]
-        oPsm.iLocalRank = 3 - count_int
+        if count_int >= 3:
+            oPsm.iLocalRank = 0
+        else:
+            oPsm.iLocalRank = 3 - count_int
         if count_int == 2:
             psm_set.add(oPsm.FileName + '_' + str(oPsm.ScanNumber))
     

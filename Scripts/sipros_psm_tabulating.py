@@ -4,6 +4,12 @@ Created on Jun 28, 2016
 @author: Xuan Guo
 '''
 
+'''
+To-do
+remove non-necessary columns
+
+'''
+
 import sys, os
 import getopt
 import csv

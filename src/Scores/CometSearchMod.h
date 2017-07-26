@@ -1,6 +1,7 @@
 /*
  * CometSearch.h
- *
+ *  Original coming from...
+ *  Links
  *  Created on: May 13, 2016
  *      Author: xgo
  */
