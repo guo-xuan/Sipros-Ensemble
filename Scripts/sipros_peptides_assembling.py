@@ -129,7 +129,9 @@ psm_file_ext = '.psm.txt'
 pep_iden_str = '[Peptide_Identification]'
 fasta_database_str = 'FASTA_Database'
 pro_iden_str = '[Protein_Identification]'
-decoy_prefix_str = 'Testing_Decoy_Prefix'
+testing_decoy_prefix_str = 'Testing_Decoy_Prefix'
+training_decoy_prefix_str = 'Training_Decoy_Prefix'
+reserved_decoy_prefix_str = 'Reserved_Decoy_Prefix'
 min_peptide_per_protein_str = 'Min_Peptide_Per_Protein'
 min_unique_peptide_per_protein_str = 'Min_Unique_Peptide_Per_Protein'
 remove_decoy_identification_str = 'Remove_Decoy_Identification'
@@ -203,15 +205,19 @@ def parse_config(config_filename):
     all_config_dict = parseconfig.parseConfigKeyValues(config_filename)
 
     # only save protein_identification config info to config_dict
-    config_dict[decoy_prefix_str] = decoy_prefix
+    config_dict[testing_decoy_prefix_str] = decoy_prefix
     config_dict[min_peptide_per_protein_str] = min_peptide_per_protein
     config_dict[min_unique_peptide_per_protein_str] = min_unique_peptide_per_protein
     config_dict[remove_decoy_identification_str] = remove_decoy_identification
     for key, value in all_config_dict.items():
         if key == (pep_iden_str + fasta_database_str):
             config_dict[fasta_database_str] = value
-        elif key == (pro_iden_str + decoy_prefix_str):
-            config_dict[decoy_prefix_str] = value
+        elif key == (pro_iden_str + testing_decoy_prefix_str):
+            config_dict[testing_decoy_prefix_str] = value
+        elif key == (pro_iden_str + training_decoy_prefix_str):
+            config_dict[training_decoy_prefix_str] = value
+        elif key == (pro_iden_str + reserved_decoy_prefix_str):
+            config_dict[reserved_decoy_prefix_str] = value
         elif key == (pro_iden_str + min_peptide_per_protein_str):
             config_dict[min_peptide_per_protein_str] = value
         elif key == (pro_iden_str + min_unique_peptide_per_protein_str):
@@ -280,6 +286,8 @@ def read_fasta_file(working_dir, config_dict):
 
     return fasta_ID_dict
 
+# the ratio between test decoy psms and forward psms
+test_decoy_fwr_ratio = 1
 
 ## Read fasta file and only save the description in the filtered PSM
 def read_fasta_necessary_file(working_dir, config_dict, pro_greedy_list):
@@ -338,13 +346,33 @@ def read_fasta_necessary_file(working_dir, config_dict, pro_greedy_list):
     # FASTA ID is space delimited file
     fasta_ID_del = ' '
     
-    # print(str(len(pro_set)))
+    train_str = config_dict[training_decoy_prefix_str]
+    test_str = config_dict[testing_decoy_prefix_str]
+    reserved_str = ''
+    if reserved_decoy_prefix_str in config_dict:
+        reserve_str = config_dict[reserved_decoy_prefix_str]
+    num_train_int = 0
+    num_test_int = 0
+    num_reserved_int = 0
+    num_fwd_int = 0
+    less_train_str = '>' + train_str
+    less_test_str = '>' + test_str
+    less_reserve_str = '>' + reserve_str
     
     # read lines
     for line in fasta_file:
         line = line.strip()
         # check line start with '>'
         if line.startswith('>'):
+            if line.startswith(less_train_str):
+                num_train_int += 1
+            elif line.startswith(less_test_str):
+                num_test_int += 1
+            elif reserve_str != '' and line.startswith(less_reserve_str):
+                num_reserved_int += 1
+            else:
+                num_fwd_int += 1
+            
             # protein ID is the first word without '>'
             protein_ID = line.split(fasta_ID_del)[0][1:]
             # 
@@ -359,7 +387,12 @@ def read_fasta_necessary_file(working_dir, config_dict, pro_greedy_list):
 
             # save the fasta ID and description to the fasta_ID_dict
             fasta_ID_dict[protein_ID] = protein_desc    # initialize dictionary
-
+            
+    global test_decoy_fwr_ratio
+    test_decoy_fwr_ratio = float(num_test_int) / float(num_fwd_int)
+    
+    fasta_file.close()
+    
     return fasta_ID_dict
 
 ## check pep and psm files pair set, and save run#
@@ -762,7 +795,6 @@ def check_decoy_match(ProteinNames, decoy_prefix):
 
     return TF
 
-
 ## Report output files
 def report_output(config_dict,
                   run_num_dict,
@@ -788,7 +820,7 @@ def report_output(config_dict,
     remove_decoy_identification = config_dict[remove_decoy_identification_str]
 
     # to get decoy_prefix
-    decoy_prefix = config_dict[decoy_prefix_str]
+    decoy_prefix = config_dict[testing_decoy_prefix_str]
 
     # total number of proteins
     total_proteins_before_filtering = len(pro_pep_dict.keys())
@@ -811,7 +843,11 @@ def report_output(config_dict,
     # protein FDR
     protein_fdr = 0.0
     if float(total_proteins_after_filtering) != 0:
-        protein_fdr = divide(float(decoy_proteins_after_filtering), float(total_proteins_after_filtering))
+        protein_fdr = divide(float(decoy_proteins_after_filtering), float(target_proteins_after_filtering))
+        protein_fdr = (1/test_decoy_fwr_ratio) * protein_fdr
+    
+    # adjust fdr for the hidden training
+        
     protein_fdr = PrettyFloat(protein_fdr)
 
     # output header
@@ -855,15 +891,16 @@ def report_output(config_dict,
     def_para_msg += "#\t# Numbers of proteins before filtering\n"
     def_para_msg += "#\tDecoy_Proteins_Before_Filtering = " + str(decoy_proteins_before_filtering) + "\n"
     def_para_msg += "#\tTarget_Proteins_Before_Filtering = " + str(target_proteins_before_filtering) + "\n"
-    def_para_msg += "#\tTotal_Proteins_Before_Filtering = " + str(total_proteins_before_filtering) + "\n"
+    #def_para_msg += "#\tTotal_Proteins_Before_Filtering = " + str(total_proteins_before_filtering) + "\n"
     def_para_msg += "#\t\n"
     def_para_msg += "#\t# Numbers of proteins after filtering\n"
     def_para_msg += "#\tDecoy_Proteins_After_Filtering = " + str(decoy_proteins_after_filtering) + "\n"
     def_para_msg += "#\tTarget_Proteins_After_Filtering = " + str(target_proteins_after_filtering) + "\n"
-    def_para_msg += "#\tTotal_Proteins_After_Filtering = " + str(total_proteins_after_filtering) + "\n"
+    #= "#\tTotal_Proteins_After_Filtering = " + str(total_proteins_after_filtering) + "\n"
     def_para_msg += "#\t\n"
-    def_para_msg += "#\t# Protein FDR = Decoy_Proteins_After_Filtering / Total_Proteins_After_Filtering\n"
-    def_para_msg += "#\tProtein_FDR = " + set_float_digit(protein_fdr) + "\n"
+    def_para_msg += "#\t# Protein FDR = Decoy_Proteins_After_Filtering / Target_Proteins_After_Filtering\n"
+    def_para_msg += '#\tProtein_FDR = {0:.2f}%\n'.format(100*protein_fdr)
+    # def_para_msg += "#\tProtein_FDR = " + set_float_digit(protein_fdr) + "\n"
     def_para_msg += "#\t\n"
 
     pro_out_file.write(def_para_msg)
@@ -1261,90 +1298,77 @@ def report_output(config_dict,
 ## +------+
 def main(argv=None):
 
-    # try to get arguments and error handling
-    try:
-        if argv is None:
-            argv = sys.argv
-        try:
-            # parse options
-            (working_dir, config_filename, psm_txt_file_str, pep_txt_file_str) = parse_options(argv)
+    if argv is None:
+        argv = sys.argv
 
-            # Display work start and time record
-            start_time = datetime.now()
-            sys.stderr.write('[%s] Beginning sipros_peptides_assembling.py run (V%s)\n' % (curr_time(), get_version()))
-            sys.stderr.write('------------------------------------------------------------------------------\n')
+    # parse options
+    (working_dir, config_filename, psm_txt_file_str, pep_txt_file_str) = parse_options(argv)
 
-            # Parse options and get config file
-            sys.stderr.write('[Step 1] Parse options and read fasta file:                   Running -> ')
-            # Call parse_config to open and read config file
-            config_dict = parse_config(config_filename)
-            # Read fasta file and retrieve protein ID and description
-            # fasta_ID_dict = read_fasta_file(working_dir, config_dict)
-            # Get .pep.txt output file(s) in working directory
-            pep_file_list = get_file_list_with_ext(working_dir, pep_file_ext)
-            # Get .psm.txt output file(s) in working directory
-            psm_file_list = get_file_list_with_ext(working_dir, psm_file_ext)
-            # check pep and psm files pair set, and save run#
-            (run_num_dict, psm_run_num_dict) = get_run_num(pep_file_list, psm_file_list)
-            # Get base_out for output
-            base_out_default = 'Sipros_searches'
-            base_out = get_base_out(pep_file_list, base_out_default, working_dir)
-            sys.stderr.write('Done!\n')
+    # Display work start and time record
+    start_time = datetime.now()
+    sys.stderr.write('[%s] Beginning sipros_peptides_assembling.py run (V%s)\n' % (curr_time(), get_version()))
+    sys.stderr.write('------------------------------------------------------------------------------\n')
 
-            # Read and load pep and psm files
-            sys.stderr.write('[Step 2] Load %s file(s):                               Running -> ' % (pep_file_ext))
-            (pep_data_dict, psm_data_dict, pro_pep_dict, pep_pro_dict) = read_run_files(run_num_dict)
-            sys.stderr.write('Done!\n')
+    # Parse options and get config file
+    sys.stderr.write('[Step 1] Parse options and read fasta file:                   Running -> ')
+    # Call parse_config to open and read config file
+    config_dict = parse_config(config_filename)
+    # Read fasta file and retrieve protein ID and description
+    # fasta_ID_dict = read_fasta_file(working_dir, config_dict)
+    # Get .pep.txt output file(s) in working directory
+    pep_file_list = get_file_list_with_ext(working_dir, pep_file_ext)
+    # Get .psm.txt output file(s) in working directory
+    psm_file_list = get_file_list_with_ext(working_dir, psm_file_ext)
+    # check pep and psm files pair set, and save run#
+    (run_num_dict, psm_run_num_dict) = get_run_num(pep_file_list, psm_file_list)
+    # Get base_out for output
+    base_out_default = 'Sipros_searches'
+    base_out = get_base_out(pep_file_list, base_out_default, working_dir)
+    sys.stderr.write('Done!\n')
 
-            # Merge indistinguishable proteins that have an identical set of peptides
-            sys.stderr.write('[Step 3] Merge indistinguishable proteins:                    Running -> Done!\n')
+    # Read and load pep and psm files
+    sys.stderr.write('[Step 2] Load %s file(s):                               Running -> ' % (pep_file_ext))
+    (pep_data_dict, psm_data_dict, pro_pep_dict, pep_pro_dict) = read_run_files(run_num_dict)
+    sys.stderr.write('Done!\n')
 
-            # extract proteins that have >2 peptides and at least one of those is unique
-            # then iteratively extract a protein at a time that covers the most peptides
-            sys.stderr.write('[Step 4] Greedy algorithm for identifying a list of proteins: Running -> ')
-            (pro_greedy_list) = greedy_alg(config_dict, pro_pep_dict, pep_pro_dict)
-            # Read fasta file and retrieve protein ID and description
-            fasta_ID_dict = read_fasta_necessary_file(working_dir, config_dict, pro_greedy_list)
-            sys.stderr.write('Done!\n')
+    # Merge indistinguishable proteins that have an identical set of peptides
+    sys.stderr.write('[Step 3] Merge indistinguishable proteins:                    Running -> Done!\n')
 
-            # Report output
-            sys.stderr.write('[Step 5] Report output:                                       Running -> ')
-            # Open output files
-            global pro_out_file
-            pro_out_file = open(base_out + ".pro.txt", 'wb')
-            global pro2pep_out_file
-            pro2pep_out_file = open(base_out + ".pro2pep.txt", 'wb')
-            global pro2psm_out_file
-            pro2psm_out_file = open(base_out + ".pro2psm.txt", 'wb')
-            # Report output files
-            report_output(config_dict,
-                          run_num_dict,
-                          psm_run_num_dict,
-                          pep_data_dict,
-                          psm_data_dict,
-                          pro_pep_dict,
-                          pep_pro_dict,
-                          pro_greedy_list,
-                          fasta_ID_dict)
-            sys.stderr.write('Done!\n')
+    # extract proteins that have >2 peptides and at least one of those is unique
+    # then iteratively extract a protein at a time that covers the most peptides
+    sys.stderr.write('[Step 4] Greedy algorithm for identifying a list of proteins: Running -> ')
+    (pro_greedy_list) = greedy_alg(config_dict, pro_pep_dict, pep_pro_dict)
+    # Read fasta file and retrieve protein ID and description
+    fasta_ID_dict = read_fasta_necessary_file(working_dir, config_dict, pro_greedy_list)
+    sys.stderr.write('Done!\n')
 
-            # Time record, calculate elapsed time, and display work end
-            finish_time = datetime.now()
-            duration = finish_time - start_time
-            sys.stderr.write('------------------------------------------------------------------------------\n')
-            sys.stderr.write('[%s] Ending sipros_peptides_assembling.py run\n' % curr_time())
-            sys.stderr.write('Run complete [%s elapsed]\n' %  format_time(duration))
+    # Report output
+    sys.stderr.write('[Step 5] Report output:                                       Running -> ')
+    # Open output files
+    global pro_out_file
+    pro_out_file = open(base_out + ".pro.txt", 'wb')
+    global pro2pep_out_file
+    pro2pep_out_file = open(base_out + ".pro2pep.txt", 'wb')
+    global pro2psm_out_file
+    pro2psm_out_file = open(base_out + ".pro2psm.txt", 'wb')
+    # Report output files
+    report_output(config_dict,
+                  run_num_dict,
+                  psm_run_num_dict,
+                  pep_data_dict,
+                  psm_data_dict,
+                  pro_pep_dict,
+                  pep_pro_dict,
+                  pro_greedy_list,
+                  fasta_ID_dict)
+    sys.stderr.write('Done!\n')
 
-        # Error handling
-        except (Usage, err):
-            print >> sys.stderr, sys.argv[0].split("/")[-1] + ": " + str(err.msg)
-            return 2
-
-    # Error handling
-    except (Usage, err):
-        print >> sys.stderr, sys.argv[0].split("/")[-1] + ": " + str(err.msg)
-        print >> sys.stderr, "for help use -h/--help"
-        return 2
+    # Time record, calculate elapsed time, and display work end
+    finish_time = datetime.now()
+    duration = finish_time - start_time
+    sys.stderr.write('------------------------------------------------------------------------------\n')
+    sys.stderr.write('[%s] Ending sipros_peptides_assembling.py run\n' % curr_time())
+    sys.stderr.write('Run complete [%s elapsed]\n' %  format_time(duration))
 
 
 ## If this program runs as standalone, then exit.

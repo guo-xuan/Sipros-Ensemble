@@ -3,6 +3,8 @@ Created on Sep 7, 2016
 
 @author: xgo
 '''
+from lib2to3.fixer_util import String
+from __builtin__ import str
 
 '''
 To-dos
@@ -108,6 +110,33 @@ class PsmFields4(namedtuple('PsmFields',
          'DeltaP'])): # 33 ,
     def __init__(self):
         self.data = self
+        
+filename_list = []
+
+def get_set_filename(filename):
+    if filename in filename_list:
+        return filename_list.index(filename)
+    else:
+        filename_list.append(filename)
+        return filename_list.index(filename)
+
+scantype_list = []
+
+def get_set_scantype(scantype):
+    if scantype in scantype_list:
+        return scantype_list.index(scantype)
+    else:
+        scantype_list.append(scantype)
+        return scantype_list.index(scantype)
+    
+searchname_list = []
+
+def get_set_searchname(searchname):
+    if searchname in searchname_list:
+        return searchname_list.index(searchname)
+    else:
+        searchname_list.append(searchname)
+        return searchname_list.index(searchname)    
 
 class PSM:
 
@@ -116,15 +145,13 @@ class PSM:
     pattern = re.compile('[^\w\[\]]')
 
     def __init__(self, psm_field):
-        self.FileName = psm_field.FileName
-        self.bFileNameChanged = False
+        self.FileName = get_set_filename(psm_field.FileName)
         self.ScanNumber = int(psm_field.ScanNumber)
         self.ParentCharge = int(psm_field.ParentCharge)
-        self.ScanType = psm_field.ScanType
-        self.SearchName = psm_field.SearchName
+        self.ScanType = get_set_scantype(psm_field.ScanType)
+        self.SearchName = get_set_searchname(psm_field.SearchName)
         self.lfScores = [float(psm_field.MVH), float(psm_field.Xcorr), float(psm_field.WDP)]
         self.ProteinNames = psm_field.ProteinNames.strip()
-        self.ScoreAgreement = int(psm_field.ScoreAgreement)
         self.IdentifiedPeptide = psm_field.IdentifiedPeptide
         s1 = ''.join([char if char.isalnum() else '$' for char in self.IdentifiedPeptide ])
         self.PTMscore = s1.count('$') - 2
@@ -133,36 +160,24 @@ class PSM:
         self.protein_list = []
         # self.RealLabel = protein_type(self.ProteinNames, self.protein_list)
         self.RealLabel = get_protein_type(self.ProteinNames, self.protein_list)
-        self.lRanks = []
-        self.iInnerId = 0
         self.fPredictProbability = 0.0
         self.fMassDiff = 0.0
         self.dM = 0.0
         self.MeasuredParentMass = float(psm_field.MeasuredParentMass)
         self.CalculatedParentMass = float(psm_field.CalculatedParentMass)
-        self.iMassWindow = 0
         self.set_mass_diff(self.MeasuredParentMass, self.CalculatedParentMass)
         
         self.score_differential_list = []
-        self.sRTime = '-1.000'
-        self.fRtMeasured = 0.0
-        self.fRtPredict = 0.0
-        self.fRtPvalue = 0.0
         self.iLocalRank = 0
         self.DeltaP = 'NA'
         if type(psm_field).__name__ == 'PsmFields3':
             self.score_differential_list.extend(float(i) for i in psm_field[14:-2])
         elif type(psm_field).__name__ == 'PsmFields4':
-            self.score_differential_list.extend(float(i) for i in psm_field[14:32])
-            self.sRTime = psm_field.RetentionTime
-            self.fRtMeasured = float(self.sRTime)
+            self.score_differential_list.extend(float(i) for i in psm_field[23:26])
             self.DeltaP = psm_field.DeltaP 
             self.iLocalRank = int(psm_field.Rank)
         else:
             self.score_differential_list.extend(float(i) for i in psm_field[14:])
-        
-        if len(self.score_differential_list) != 18:
-            sys.stderr.write('error score\n')
         
         self.NMC = 0
         self.IPSC = 0
@@ -175,15 +190,16 @@ class PSM:
         self.SPPC = 0
         self.feature_list = []
         
-        self.ML_feature = []
-        self.FDR_feature = []
-        self.fdr_product = 0
-        
-        self.OPSC_UMD = [0, 0, 0]
-        
-        self.SPSC_UMD = [0, 0, 0]
-        
         self.TrainingLabel = 0
+        
+    def get_feature_final_list(self):
+        del self.feature_list[:]
+        self.feature_list.extend(self.lfScores) # 2, 3, 4: 1, 2, 3
+        self.feature_list.append(abs(self.fMassDiff)) # 6: 5
+        self.feature_list.extend(self.score_differential_list) # 7 - 24: 6 - 23
+        self.feature_list.append(self.NMC) # 25: 24
+        self.feature_list.append((self.OPSC)) # 27: 26
+        self.feature_list.append((self.SPSC)) # 29: 28
         
     def get_feature_list(self):
         del self.feature_list[:]
@@ -195,23 +211,13 @@ class PSM:
         self.feature_list.extend(self.score_differential_list) # 7 - 24: 6 - 23
         self.feature_list.append(self.NMC) # 25: 24
         self.feature_list.append((self.IPSC)) # 26: 25
-        # self.OPSC = self.OPSC_UMD[0] + self.OPSC_UMD[1]*0 + self.OPSC_UMD[2]*0 - 1.0
-        # self.OPSC = self.OPSC_UMD[0]*0.3333 + self.OPSC_UMD[1]*0.5 + self.OPSC_UMD[2] - 1.0
         self.feature_list.append((self.OPSC)) # 27: 26
         self.feature_list.append((self.UPSC)) # 28: 27
-        # self.SPSC = self.SPSC_UMD[0] + self.SPSC_UMD[1]*0 + self.SPSC_UMD[2]*0 - 1.0
-        # self.SPSC = self.SPSC_UMD[0]*0.3333 + self.SPSC_UMD[1]*0.5 + self.SPSC_UMD[2] - 1.0
         self.feature_list.append((self.SPSC)) # 29: 28
  
         self.feature_list.append(abs(self.iMassWindow)) # 30: 29
         
-        # num replicate spectra
-        # self.feature_list.append(self.NRS) # 31: 30
         self.feature_list.append((self.PPC)) # 31: 30
-        # self.feature_list.append((self.UPPC)) # 31: 30
-        # self.feature_list.append((self.SPPC)) # 32: 31
-        # self.feature_list.extend(self.OPSC_UMD) # 32 - 35: 31 - 34
-        # self.feature_list.extend(self.SPSC_UMD) # 32 - 35: 31 - 34
         
         for c in ptm_selection_list:
             self.feature_list.append(self.IdentifiedPeptide.count(ptm_str[c])) # 32: 31
@@ -288,13 +294,6 @@ class PSM:
                 self.iMassWindow = i
         self.fMassDiff = MassDiff
         '''
-        
-    def set_fdr_product(self):
-        val = 1.0
-        for x in self.FDR_feature:
-            val *= (1.0 - x)
-        val = 1.0 - pow(val, 1.0/float(len(self.FDR_feature)))
-        self.fdr_product = val
         
     def clean_protein_name(self):
         self.ProteinNames = ""
@@ -514,11 +513,6 @@ def read_psm_table(input_file):
             psm_obj = PSM(PsmFields_obj)
             psm_list.append(psm_obj)
         
-    i = 0
-    for oPsm in psm_list:
-        oPsm.iInnerId = i
-        i += 1
-        
     # sorting all PSM, first on file name, than scan number
     psm_list = sorted(psm_list, key=lambda psm: (psm.FileName, psm.ScanNumber))
         
@@ -652,7 +646,7 @@ def re_rank(psm_list, consider_charge_bool = False):
     psm_dict = {}
     if consider_charge_bool :
         for oPsm in psm_list:
-            sId = oPsm.FileName + '_' + str(oPsm.ScanNumber) + '_' + str(oPsm.ParentCharge)
+            sId = filename_list[oPsm.FileName] + '_' + str(oPsm.ScanNumber) + '_' + str(oPsm.ParentCharge)
             if sId in psm_dict:
                 if oPsm.fPredictProbability > psm_dict[sId].fPredictProbability:
                     psm_dict[sId] = oPsm
@@ -673,7 +667,7 @@ def re_rank(psm_list, consider_charge_bool = False):
                 psm_dict[sId] = oPsm
     else :
         for oPsm in psm_list:
-            sId = oPsm.FileName + '_' + str(oPsm.ScanNumber)
+            sId = filename_list[oPsm.FileName] + '_' + str(oPsm.ScanNumber)
             if sId in psm_dict:
                 if oPsm.fPredictProbability > psm_dict[sId].fPredictProbability:
                     psm_dict[sId] = oPsm
@@ -829,7 +823,6 @@ def logistic_regression_sip(psm_list, config_dict=None):
     
     for i in range(len(predict_np)):
         psm_rank_list[i].fPredictProbability = predict_np[i, 1]
-        psm_rank_list[i].ML_feature.append(predict_np[i, 1])
    
     psm_new_list = re_rank(psm_rank_list)
     
@@ -911,7 +904,6 @@ def logistic_regression_no_category(psm_list, config_dict=None):
     
     for i in range(len(predict_np)):
         psm_rank_list[i].fPredictProbability = predict_np[i, 1]
-        psm_rank_list[i].ML_feature.append(predict_np[i, 1])
    
     psm_new_list = re_rank(psm_rank_list)
     
@@ -927,43 +919,6 @@ def get_num_missed_cleavage_sites(sIdentifiedSeq, sResiduesBeforeCleavage, sResi
         if sIdentifiedSeq[i] in sResiduesBeforeCleavage and sIdentifiedSeq[i + 1] in sResiduesAfterCleavage:
             count_int += 1
     return count_int
-                    
-def generate_Prophet_features_group(psm_list, config_dict):
-    pep_spectra_U_dict = {}
-    pep_spectra_M_dict = {}
-    pep_spectra_D_dict = {}
-    # iLocalRank = 0, 1, 2, 3
-    pep_spectra_UMD_list = [pep_spectra_U_dict, pep_spectra_M_dict, pep_spectra_D_dict, pep_spectra_D_dict]
-    for oPsm in psm_list:
-        if oPsm.OriginalPeptide not in pep_spectra_UMD_list[oPsm.iLocalRank]:
-            pep_spectra_UMD_list[oPsm.iLocalRank][oPsm.OriginalPeptide] = 1
-        else:
-            pep_spectra_UMD_list[oPsm.iLocalRank][oPsm.OriginalPeptide] += 1
-    pro_spectra_U_dict = {}
-    pro_spectra_M_dict = {}
-    pro_spectra_D_dict = {}
-    pro_spectra_UMD_list = [pro_spectra_U_dict, pro_spectra_M_dict, pro_spectra_D_dict, pro_spectra_D_dict]
-    for oPsm in psm_list:
-        pro_list = oPsm.protein_list
-        for pro in pro_list:
-            if pro not in pro_spectra_UMD_list[oPsm.iLocalRank]:
-                pro_spectra_UMD_list[oPsm.iLocalRank][pro] = 1
-            else:
-                pro_spectra_UMD_list[oPsm.iLocalRank][pro] += 1
-    
-    for oPsm in psm_list:
-        for i in range(3):
-            if oPsm.OriginalPeptide in pep_spectra_UMD_list[i]:
-                # if oPsm.OPSC_UMD[i] < pep_spectra_UMD_list[i][oPsm.OriginalPeptide]:
-                oPsm.OPSC_UMD[i] = pep_spectra_UMD_list[i][oPsm.OriginalPeptide]
-            
-        pro_list = oPsm.protein_list
-
-        for pro in pro_list:
-            for i in range(3):
-                if pro in pro_spectra_UMD_list[i]:
-                    if oPsm.SPSC_UMD[i] < pro_spectra_UMD_list[i][pro]:
-                        oPsm.SPSC_UMD[i] = pro_spectra_UMD_list[i][pro]
 
 def generate_Prophet_features_test(lPsm, config_dict):
     # peptide with PTM dictionary is for IPSC
@@ -1338,9 +1293,9 @@ class Peptide:
         self.SpectralCount += 1
         if self.BestScore < oPsm.fPredictProbability:
             self.BestScore = oPsm.fPredictProbability
-        self.PSMs.append(oPsm.FileName+'['+str(oPsm.ScanNumber) +']')
-        self.ScanType.append(oPsm.ScanType)
-        self.SearchName.append(oPsm.SearchName)
+        self.PSMs.append(filename_list[oPsm.FileName] + '['+str(oPsm.ScanNumber) + ']')
+        self.ScanType.append(scantype_list[oPsm.ScanType])
+        self.SearchName.append(searchname_list[oPsm.SearchName])
         if oPsm.RealLabel == LabelFwd:
             self.TargetMatch = 'T'
         
@@ -1352,9 +1307,9 @@ class Peptide:
         self.ProteinCount = len(oPsm.protein_list)
         self.SpectralCount = 1
         self.BestScore = oPsm.fPredictProbability
-        self.PSMs.append(oPsm.FileName+'['+str(oPsm.ScanNumber) +']')
-        self.ScanType.append(oPsm.ScanType)
-        self.SearchName.append(oPsm.SearchName)
+        self.PSMs.append(filename_list[oPsm.FileName] + '['+str(oPsm.ScanNumber) + ']')
+        self.ScanType.append(scantype_list[oPsm.ScanType])
+        self.SearchName.append(searchname_list[oPsm.SearchName])
         if oPsm.RealLabel == LabelFwd:
             self.TargetMatch = 'T'
         else:
@@ -1516,7 +1471,7 @@ def generate_psm_pep_txt(base_out, out_folder, psm_filtered_list, config_dict):
             if oPsm.RealLabel == LabelTrain:
                 continue 
             oPsm.clean_protein_name()
-            fw.write(oPsm.FileName)
+            fw.write(filename_list[oPsm.FileName])
             fw.write('\t')
             fw.write(str(oPsm.ScanNumber))
             fw.write('\t')
@@ -1530,9 +1485,9 @@ def generate_psm_pep_txt(base_out, out_folder, psm_filtered_list, config_dict):
             fw.write('\t')
             fw.write('%.3f' % (1000000*(oPsm.fMassDiff)/oPsm.CalculatedParentMass))
             fw.write('\t')
-            fw.write(oPsm.ScanType)
+            fw.write(scantype_list[oPsm.ScanType])
             fw.write('\t')
-            fw.write(oPsm.SearchName)
+            fw.write(searchname_list[oPsm.SearchName])
             fw.write('\t')
             fw.write('SiprosEnsemble')
             fw.write('\t')
@@ -1611,7 +1566,7 @@ def generate_psm_pep_txt(base_out, out_folder, psm_filtered_list, config_dict):
 def remark_concensus(psm_list):
     psm_dict = {}
     for oPsm in psm_list:
-        unique_id_str = oPsm.FileName + '_' + str(oPsm.ScanNumber) + '_' + oPsm.IdentifiedPeptide
+        unique_id_str = str(oPsm.FileName) + '_' + str(oPsm.ScanNumber) + '_' + oPsm.IdentifiedPeptide
         if unique_id_str in psm_dict:
             psm_dict[unique_id_str] += 1
         else:
@@ -1619,17 +1574,17 @@ def remark_concensus(psm_list):
     
     psm_set = Set()
     for oPsm in psm_list:
-        unique_id_str = oPsm.FileName + '_' + str(oPsm.ScanNumber) + '_' + oPsm.IdentifiedPeptide
+        unique_id_str = str(oPsm.FileName) + '_' + str(oPsm.ScanNumber) + '_' + oPsm.IdentifiedPeptide
         count_int = psm_dict[unique_id_str]
         if count_int >= 3:
             oPsm.iLocalRank = 0
         else:
             oPsm.iLocalRank = 3 - count_int
         if count_int == 2:
-            psm_set.add(oPsm.FileName + '_' + str(oPsm.ScanNumber))
+            psm_set.add(str(oPsm.FileName) + '_' + str(oPsm.ScanNumber))
     
     for oPsm in psm_list:
-        unique_id_str = oPsm.FileName + '_' + str(oPsm.ScanNumber)
+        unique_id_str = str(oPsm.FileName) + '_' + str(oPsm.ScanNumber)
         if unique_id_str in psm_set:
             if oPsm.iLocalRank == 2:
                 oPsm.iLocalRank = 3 # Mi
@@ -1676,7 +1631,7 @@ def generatePINPercolator(psm_list, output_str):
         row_list = []
         for psm in psm_list:
             del row_list[:]
-            fileID = psm.FileName[psm.FileName.rfind('_')+1:psm.FileName.rfind('.')]
+            fileID = filename_list[psm.FileName][filename_list[psm.FileName].rfind('_')+1:filename_list[psm.FileName].rfind('.')]
             row_list.append(str(psm.ScanNumber)+fileID+str(psm.ParentCharge)) # SpecId
             if psm.RealLabel == LabelFwd: # Label
                 row_list.append("1")
@@ -1754,10 +1709,9 @@ def main(argv=None):
     psm_list = mass_filter(psm_list, config_dict)
     # generate features
     generate_Prophet_features_test(psm_list, config_dict)
-    generate_Prophet_features_group(psm_list, config_dict)
     # set feature all PSMs
     for oPsm in psm_list:
-        oPsm.get_feature_list()
+        oPsm.get_feature_final_list()
     sys.stderr.write('Done!\n')
     
     # machine learning
@@ -1767,7 +1721,8 @@ def main(argv=None):
     
     sys.stderr.write('[Step 3] Train ML and re-rank PSMs:                         Running -> ')
     del feature_selection_list[:]
-    feature_selection_list.extend([1, 2, 3, 5, 15, 16, 17, 24, 26, 28])
+    # feature_selection_list.extend([1, 2, 3, 5, 15, 16, 17, 24, 26, 28])
+    feature_selection_list.extend([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
     psm_filtered_list = logistic_regression_no_category(psm_list, config_dict)
     sys.stderr.write('Done!\n')
 
