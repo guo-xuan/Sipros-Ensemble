@@ -3,8 +3,7 @@ Created on Sep 7, 2016
 
 @author: xgo
 '''
-from lib2to3.fixer_util import String
-from __builtin__ import str
+
 
 '''
 To-dos

@@ -1,44 +1,78 @@
 #!/usr/bin/python
 
+"""
+sipros_prepare_protein_database.py
+
+sipros_prepare_protein_database.py is used created a protein database with decoy sequence
+appended
+
+Created by Xuan Guo on 02/20/2017.
+Copyright (c) 2017 Xuan Guo (ORNL). Allrights reserved.
+"""
 
 ## Import Python package modules
 import sys, getopt, os, random
 
+## Import Sipros package modules
+import sipros_post_module
+import parseconfig
+
+## Check file exist
+check_file_exist = sipros_post_module.check_file_exist
+
 def parse_options(argv):
 
-    opts, _args = getopt.getopt(argv[1:], "hi:o:",
-                                    ["help",
-                             	     "input-file",
-	                			     "output-file"])
+    opts, _args = getopt.getopt(argv[1:], "hi:o:c:")
 
     output_filename = ""
     input_filename  = ""
+    config_filename = ''
 
     # Basic options
     for option, value in opts:
-        if option in ("-h", "--help"):
-            print("-i input-file, -o output-file")
+        if option in ("-h"):
+            print('reverseseq.py -i input-file -o output-file -c config-file')
             sys.exit(1)
-        if option in ("-i", "--input-file"):
+        if option in ("-i"):
             input_filename = value
-        if option in ("-o", "--output-file"):
+        elif option in ("-o"):
             output_filename = value
+        elif option in ('-c'):
+            config_filename = value
+        else:
+            print('reverseseq.py -i input-file -o output-file -c config-file')
+            sys.exit(1) 
 
-    if (input_filename == "") :
-        print("Please specify -i")
+    if input_filename == '' or output_filename == '' or config_filename == '' :
+        print('reverseseq.py -i input-file -o output-file -c config-file')
         sys.exit(1)
+    '''
     if (output_filename == "") :
         (inputFileNameRoot, inputFileNameExt) = os.path.splitext(input_filename)
         output_filename = inputFileNameRoot + "_CFR" + inputFileNameExt
-    return (input_filename, output_filename)
+    '''
+        
+    return input_filename, output_filename, config_filename
 
 
-def ReverseSeq(inputFileName, outputFileName) :
-    outputFile = open(outputFileName, "w")
+def reverse_protein_database(input_file_str, output_file_str, all_config_dict) :
+    
+    probability_1 = 0.5
+    probability_2 = 0.5
+    
+    training_prefix_str = '>Rev1_'
+    testing_prefix_str = '>TestRev_'
+    reserved_prefix_str = '>Rev2_'
+    
+    if '' in all_config_dict:
+        pass
+    
+    
+    outputFile = open(output_file_str, "w")
     id_str = ""
     seq_str = ""
     seq_new_str = ""
-    inputFile = open(inputFileName, "r")
+    inputFile = open(input_file_str, "r")
     line_str = ""
     for line_str in inputFile:
         if line_str[0] == '>':
@@ -138,16 +172,33 @@ def ReverseSeq_3(inputFileName, outputFileName) :
     inputFile.close()
     outputFile.close()
 
+## Parse config file
+def parse_config(config_filename):
+
+    # Save all config values to dictionary
+    all_config_dict = {}    # initialize dictionay
+    # Save config values to dictionary
+    config_dict = {}    # initialize dictionay
+
+    # Call Yinfeng's parseconfig.py module
+    check_file_exist(config_filename)
+    all_config_dict = parseconfig.parseConfigKeyValues(config_filename)
+    
+    return all_config_dict
 
 def main(argv=None):
 
-    # try to get arguments and error handling
     if argv is None:
         argv = sys.argv
-        # parse options
-    (inputFileName, outputFileName) = parse_options(argv)
-    # ReverseSeq_3(inputFileName, outputFileName)
-    ReverseSeq(inputFileName, outputFileName)
+        
+    # parse options
+    input_file_str, output_file_str, config_file_str = parse_options(argv)
+    
+    # parse config file
+    all_config_dict = parse_config(config_file_str)
+    
+    # reverse sequence and save file
+    reverse_protein_database(input_file_str, output_file_str, all_config_dict)
     
     print('Done.')    
     
