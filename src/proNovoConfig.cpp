@@ -294,7 +294,7 @@ bool ProNovoConfig::getParameters() {
 		issStream >> iMaxPTMcount;
 	}
 
-	getConfigValue("[Peptide_Identification]Mass_Tolerance_Parent_Ion", sTemp);
+	getConfigValue("[Peptide_Identification]Search_Mass_Tolerance_Parent_Ion", sTemp);
 	issStream.clear();
 	issStream.str(sTemp);
 	issStream >> dMassAccuracyParentIon;

@@ -89,9 +89,11 @@ void initializeArguments(int argc, char **argv, vector<string> & vsFT2Filenames,
 		else if (vsArguments[i] == "-s")
 			bScreenOutput = false;
 		else if ((vsArguments[i] == "-h") || (vsArguments[i] == "--help")) {
-			cout << "Usage: -w WorkingDirectory -c ConfigurationFile, -f: A single MS2 or FT2 file to be processed" << endl;
-			cout << "If configuration file is not specified, Sipros will look for SiprosConfig.cfg in the directory of FT2 files" << endl;
-			cout << "-o output directory. If not specified, it is the same as that of the input scan file," << endl;
+			cout << "Usage 1: " << endl;
+			cout << "-w WorkingDirectory -c ConfigurationFile -o output directory" << endl;
+			cout << "Usage 2: " << endl;
+			cout << "-f single_ms2_file -c ConfigurationFile -o output directory" << endl;
+			cout << "Other options: " << endl;
 			cout << "-s silence all standard output." << endl;
 			exit(0);
 		} else if (vsArguments[i] == "-p") {

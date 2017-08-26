@@ -1218,7 +1218,7 @@ void MS2ScanVector::writeOutputEnsemble() {
 	sTailFT2FileName = ParsePath(sFT2Filename);
 	sort(vpAllMS2Scans.begin(), vpAllMS2Scans.end(), mylessScanId);
 	string sOutputFileTxt = sOutputFile.substr(0, sOutputFile.length() - 4);
-	sOutputFileTxt += "_Spe2Pep.txt";
+	sOutputFileTxt += ".Spe2Pep.txt";
 	outputFile.open(sOutputFileTxt.c_str());
 
 	configStream.open(sConfigFile.c_str());
@@ -1230,7 +1230,7 @@ void MS2ScanVector::writeOutputEnsemble() {
 
 	//Spectrum level head
 	outputFile << "+\tFilename\tScanNumber\tParentCharge\tMeasuredParentMass"
-			<< "\tScanType\tSearchName\tTotalIntensity\tMaxIntensity\tRetentionTime" << endl;
+			<< "\tScanType\tSearchName\tRetentionTime" << endl;
 	//PSM level head
 	outputFile << "*\tIdentifiedPeptide\tOriginalPeptide\tCalculatedParentMass " << "\tMVH\tXcorr\tWDP\tProteinNames"
 			<< endl;
@@ -1246,9 +1246,9 @@ void MS2ScanVector::writeOutputEnsemble() {
 			outputFile << "\t" << vpAllMS2Scans.at(i)->getScanType();
 			outputFile << "\t" << ProNovoConfig::getSearchName();
 			//sInt sum of intensity
-			outputFile << "\t" << vpAllMS2Scans.at(i)->dSumIntensity;
+			// outputFile << "\t" << vpAllMS2Scans.at(i)->dSumIntensity;
 			//maxInt
-			outputFile << "\t" << vpAllMS2Scans.at(i)->dMaxIntensity;
+			// outputFile << "\t" << vpAllMS2Scans.at(i)->dMaxIntensity;
 			// Retention Time
 			outputFile << "\t" << vpAllMS2Scans.at(i)->getRTime();
 			outputFile << endl;

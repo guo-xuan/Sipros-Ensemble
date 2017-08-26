@@ -12,6 +12,7 @@ Copyright (c) 2017 Xuan Guo (ORNL). Allrights reserved.
 
 ## Import Python package modules
 import sys, getopt, os, random
+from datetime import datetime, date, time
 
 ## Import Sipros package modules
 import sipros_post_module
@@ -19,6 +20,12 @@ import parseconfig
 
 ## Check file exist
 check_file_exist = sipros_post_module.check_file_exist
+
+## Returns the current time in a nice format
+curr_time = sipros_post_module.curr_time
+
+## Format time as a pretty string
+format_time = sipros_post_module.format_time
 
 def parse_options(argv):
 
@@ -31,7 +38,7 @@ def parse_options(argv):
     # Basic options
     for option, value in opts:
         if option in ("-h"):
-            print('reverseseq.py -i input-file -o output-file -c config-file')
+            print('sipros_prepare_protein_database.py -i input-file -o output-file -c config-file')
             sys.exit(1)
         if option in ("-i"):
             input_filename = value
@@ -40,11 +47,11 @@ def parse_options(argv):
         elif option in ('-c'):
             config_filename = value
         else:
-            print('reverseseq.py -i input-file -o output-file -c config-file')
+            print('sipros_prepare_protein_database.py -i input-file -o output-file -c config-file')
             sys.exit(1) 
 
     if input_filename == '' or output_filename == '' or config_filename == '' :
-        print('reverseseq.py -i input-file -o output-file -c config-file')
+        print('sipros_prepare_protein_database.py -i input-file -o output-file -c config-file')
         sys.exit(1)
     '''
     if (output_filename == "") :
@@ -52,125 +59,95 @@ def parse_options(argv):
         output_filename = inputFileNameRoot + "_CFR" + inputFileNameExt
     '''
         
+    print('Command:')
+    print('sipros_prepare_protein_database.py -i {} -o {} -c {}'.format(input_filename, output_filename, config_filename))
+        
     return input_filename, output_filename, config_filename
 
 
 def reverse_protein_database(input_file_str, output_file_str, all_config_dict) :
     
     probability_1 = 0.5
-    probability_2 = 0.5
+    probability_2 = 1
     
-    training_prefix_str = '>Rev1_'
-    testing_prefix_str = '>TestRev_'
-    reserved_prefix_str = '>Rev2_'
+    training_prefix_str = 'Rev1_'
+    testing_prefix_str = 'TestRev_'
+    reserved_prefix_str = 'Rev2_'
     
-    if '' in all_config_dict:
-        pass
+    if '[Protein_Identification]Reserved_Decoy_Prefix' in all_config_dict:
+        probability_1 = 0.333333
+        probability_2 = 0.666666
+        reserved_prefix_str = all_config_dict['[Protein_Identification]Reserved_Decoy_Prefix']
+    else:
+        probability_2 = 1
+        
+    if '[Protein_Identification]Training_Decoy_Prefix' in all_config_dict:
+        training_prefix_str = all_config_dict['[Protein_Identification]Training_Decoy_Prefix']
+    else:
+        print('Value for [Protein_Identification]Training_Decoy_Prefix is missing.')
+        exit(1)
+        
+    if '[Protein_Identification]Testing_Decoy_Prefix' in all_config_dict:
+        testing_prefix_str = all_config_dict['[Protein_Identification]Testing_Decoy_Prefix']
+    else:
+        print('Value for [Protein_Identification]Testing_Decoy_Prefix is missing.')
+        exit(1)
     
-    
-    outputFile = open(output_file_str, "w")
+    output_file = open(output_file_str, "w")
     id_str = ""
     seq_str = ""
     seq_new_str = ""
-    inputFile = open(input_file_str, "r")
+    input_file = open(input_file_str, "r")
     line_str = ""
-    for line_str in inputFile:
+    random_float = 0.0
+    for line_str in input_file:
         if line_str[0] == '>':
             if seq_str != "":
-                if id_str.startswith('>Rev_') or id_str.startswith('>rev_'):
-                    id_str = line_str
-                    seq_str = ""
-                    continue
                 seq_new_str = (seq_str[::-1])
-                outputFile.write(id_str)
-                outputFile.write(seq_str)
-                outputFile.write('\n')
-                if random.random() >= 0.5:
-                    outputFile.write(">Rev1_")
+                output_file.write(id_str)
+                output_file.write(seq_str)
+                output_file.write('\n')
+                random_float = random.random()
+                if random_float <= probability_1:
+                    output_file.write('>')
+                    output_file.write(training_prefix_str)
+                elif random_float <= probability_2:
+                    output_file.write('>')
+                    output_file.write(testing_prefix_str)
                 else:
-                    outputFile.write(">Rev2_")
-                outputFile.write(id_str[1:])
-                outputFile.write(seq_new_str)
-                outputFile.write("\n")
+                    output_file.write('>')
+                    output_file.write(reserved_prefix_str)                    
+                output_file.write(id_str[1:])
+                output_file.write(seq_new_str)
+                output_file.write("\n")
             id_str = line_str
             seq_str = ""
         else:
             seq_str += line_str.strip()
+
     if seq_str != "":
-        if id_str.startswith('>Rev_') or id_str.startswith('>rev_'):
-            id_str = line_str
-            seq_str = ""
+        seq_new_str = (seq_str[::-1])
+        output_file.write(id_str)
+        output_file.write(seq_str)
+        output_file.write('\n')
+        random_float = random.random()
+        if random_float <= probability_1:
+            output_file.write('>')
+            output_file.write(training_prefix_str)
+        elif random_float <= probability_2:
+            output_file.write('>')
+            output_file.write(testing_prefix_str)
         else:
-            seq_new_str = (seq_str[::-1])
-            outputFile.write(id_str)
-            outputFile.write(seq_str)
-            outputFile.write('\n')
-            if random.random() >= 0.5:
-                outputFile.write(">Rev1_")
-            else:
-                outputFile.write(">Rev2_")
-            outputFile.write(id_str[1:])
-            outputFile.write(seq_new_str)
-            outputFile.write("\n")
-        
-    inputFile.close()
-    outputFile.close()
-
-
-def ReverseSeq_3(inputFileName, outputFileName) :
-    outputFile = open(outputFileName, "w")
-    id_str = ""
+            output_file.write('>')
+            output_file.write(reserved_prefix_str)                    
+        output_file.write(id_str[1:])
+        output_file.write(seq_new_str)
+        output_file.write("\n")
+    id_str = line_str
     seq_str = ""
-    seq_new_str = ""
-    inputFile = open(inputFileName, "r")
-    line_str = ""
-    for line_str in inputFile:
-        if line_str[0] == '>':
-            if seq_str != "":
-                if id_str.startswith('>Rev_'):
-                    id_str = line_str
-                    seq_str = ""
-                    continue
-                seq_new_str = (seq_str[::-1])
-                outputFile.write(id_str)
-                outputFile.write(seq_str)
-                outputFile.write('\n')
-                rand_float = random.random()
-                if rand_float < 0.33333333:
-                    outputFile.write(">Rev_1_")
-                elif rand_float < 0.66666666:
-                    outputFile.write(">Rev_2_")
-                else:
-                    outputFile.write(">TestRev_")
-                outputFile.write(id_str[1:])
-                outputFile.write(seq_new_str)
-                outputFile.write("\n")
-            id_str = line_str
-            seq_str = ""
-        else:
-            seq_str += line_str.strip()
-    if seq_str != "":
-        if id_str.startswith('>Rev_'):
-            id_str = line_str
-            seq_str = ""
-        else:
-            seq_new_str = (seq_str[::-1])
-            outputFile.write(id_str)
-            outputFile.write(seq_str)
-            outputFile.write('\n')
-            rand_float = random.random()
-            if rand_float < 0.33333333:
-                outputFile.write(">Rev_1_")
-            elif rand_float < 0.66666666:
-                outputFile.write(">Rev_2_")
-            else:
-                outputFile.write(">TestRev_")
-            outputFile.write(id_str[1:])
-            outputFile.write(seq_new_str)
-            outputFile.write("\n")
         
-    inputFile.close()
-    outputFile.close()
+    input_file.close()
+    output_file.close()
 
 ## Parse config file
 def parse_config(config_filename):
@@ -194,29 +171,28 @@ def main(argv=None):
     # parse options
     input_file_str, output_file_str, config_file_str = parse_options(argv)
     
+    # Display work start and time record
+    start_time = datetime.now()
+    sys.stderr.write('[%s] Beginning sipros_prepare_protein_database.py\n' % (curr_time()))
+    sys.stderr.write('------------------------------------------------------------------------------\n')    
+
     # parse config file
+    sys.stderr.write('[Step 1] Parse options:                           Running -> ')
     all_config_dict = parse_config(config_file_str)
+    sys.stderr.write('Done!\n')
     
     # reverse sequence and save file
+    sys.stderr.write('[Step 2] Generate new database:                   Running -> ')
     reverse_protein_database(input_file_str, output_file_str, all_config_dict)
+    sys.stderr.write('Done!\n')
     
-    print('Done.')    
+    # Time record, calculate elapsed time, and display work end
+    finish_time = datetime.now()
+    duration = finish_time - start_time
+    sys.stderr.write('------------------------------------------------------------------------------\n')
+    sys.stderr.write('[%s] Ending sipros_prepare_protein_database.py \n' % curr_time())
+    sys.stderr.write('Run complete [%s elapsed]\n' %  format_time(duration))
     
-def main2(argv=None):
-    folder_str = "/media/xgo/Seagate/Proteomics/Data/Zhou/Pete/2014_database/"
-    output_str = "/media/xgo/Seagate/Proteomics/Data/Zhou/Pete/2014_database_fwr_rev/"
-    for file_str in os.listdir(folder_str):
-        if file_str.endswith('.faa'):
-            ReverseSeq(folder_str+file_str, output_str+file_str[:-4]+'_fwr_rev.faa')
-            print('.')
-    
-    print('Done.')
-
-
 ## If this program runs as standalone, then go to main.
 if __name__ == "__main__":
     sys.exit(main())
-
-
-
-
