@@ -4,12 +4,6 @@ Created on Sep 7, 2016
 @author: xgo
 '''
 
-
-'''
-To-dos
-remove .tab
-'''
-
 import getopt, sys, os
 import numpy as np
 import csv
@@ -21,7 +15,6 @@ try:
 except ImportError:
     pass
 
-
 from datetime import datetime, date, time
 from collections import namedtuple
 from sklearn import linear_model
@@ -30,7 +23,7 @@ from subprocess import call
 from multiprocessing import Process
 from multiprocessing import Queue, cpu_count
 
-# # Import Sipros package modules
+## Import Sipros package modules
 import sipros_post_module
 import sipros_peptides_assembling
 import parseconfig
@@ -39,38 +32,40 @@ import parseconfig
 curr_time = sipros_post_module.curr_time
 ## Format time as a pretty string
 format_time = sipros_post_module.format_time
-
+## get the file extension
 get_file_list_with_ext =  sipros_post_module.get_file_list_with_ext
-
-train_str = 'Rev_1_' 
-test_str = 'TestRev_' 
-reserve_str = 'Rev_2_'
-
-Test_Fwd_Ratio = 1
-
-mass_window_max_int = 0
-
-# # Class for ignoring comments '#' in sipros file
+## Class for ignoring comments '#' in sipros file
 CommentedFile = sipros_post_module.CommentedFile
-#feature_name_list = ['ParentCharge', 'MVH', 'Xcorr', 'WDP', 'ScoreAgreement', 'MassDifferent', 'DeltaRP1', 'DeltaRP2', 'DeltaRP3', 'DeltaRS1', 'DeltaRS2', 'DeltaRS3', 'DiffRP1', 'DiffRP2', 'DiffRP3', 'DiffRS1', 'DiffRS2', 'DiffRS3', 'DiffNorRP1', 'DiffNorRP2', 'DiffNorRP3', 'DiffNorRS1', 'DiffNorRS2', 'DiffNorRS3', 'NMC', 'IPSC', 'OPSC', 'UPSC', 'SPSC', 'pep_psm', 'pro_pep']
-#                     0               1      2        3      4                 5                6           7           8           9           10          11         12          13         14         15         16         17         18            19            20            21            22            23            24     25      26      27      28        31          32       33    34         35           36         37              38 
-feature_name_list = ['ParentCharge', 'MVH', 'Xcorr', 'WDP', 'ScoreAgreement', 'MassDifferent', 'DeltaRP1', 'DeltaRP2', 'DeltaRP3', 'DeltaRS1', 'DeltaRS2', 'DeltaRS3', 'DiffRP1', 'DiffRP2', 'DiffRP3', 'DiffRS1', 'DiffRS2', 'DiffRS3', 'DiffNorRP1', 'DiffNorRP2', 'DiffNorRP3', 'DiffNorRS1', 'DiffNorRS2', 'DiffNorRS3', 'NMC', 'IPSC', 'OPSC', 'UPSC', 'SPSC', 'MassWindow', 'PPC', 'OPSC_U', 'OPSC_Ma', 'OPSC_D_Mi', 'PSC_U', 'PSC_Ma', 'PSC_D_Mi']
-feature_selection_list = [0, 1, 2, 3, 4, 5]
-ptm_str = ['~', '!', '@', '>', '<', '%', '^', '&', '*', '(', ')', '/', '$']
-ptm_selection_list = [0]
-# ptm_selection_list = [0, 2, 3, 4]
-# ptm_selection_list = [0, 1, 2, 3, 4, 5, 6, 7, 8]
-for x in ptm_selection_list:
-    feature_name_list.append(ptm_str[x])
 
+## global variables
+## training prefix
+train_str = '' 
+## testing prefix
+test_str = '' 
+## reserved prefix
+reserve_str = ''
+## ratio of testing decoy vs forward
+Test_Fwd_Ratio = 1
+## maximum precurer mass windows
+mass_window_max_int = 0
+## feature list
+feature_selection_list = []
+## fwd psm value
 LabelFwd = 1
+## training psm value
 LabelTrain = 2
+## testing psm value
 LabelTest = 3
+## reserved psm value
 LabelReserve = 4
-
+## sip mode training psm value
 LabelSipTrainFwd = 1
+## forward psms
+num_forward_psms_before_filtering = 0
+## protein database size
+num_proteins = 0
 
-# # Class for PepOutFields object
+## Class for PepOutFields object
 class PsmFields4(namedtuple('PsmFields',
         ['FileName',  # 0
          'ScanNumber',  # 1
@@ -85,33 +80,17 @@ class PsmFields4(namedtuple('PsmFields',
          'Xcorr',  # 10
          'WDP',  # 11
          'ProteinNames',  # 12
-         'ScoreAgreement', # 13
-         'DeltaRP1', # 14
-         'DeltaRP2', 
-         'DeltaRP3',
-         'DeltaRS1',
-         'DeltaRS2',
-         'DeltaRS3',
-         'DiffRP1',
-         'DiffRP2',
-         'DiffRP3',
-         'DiffRS1',
-         'DiffRS2',
-         'DiffRS3',
-         'DiffNorRP1',
-         'DiffNorRP2',
-         'DiffNorRP3',
-         'DiffNorRS1',
-         'DiffNorRS2',
-         'DiffNorRS3',
+         'DiffMVH',
+         'DiffXcorr',
+         'DiffWDP',
          'RetentionTime',
-         'Rank',
          'DeltaP'])): # 33 ,
     def __init__(self):
         self.data = self
-        
-filename_list = []
 
+## save filename in this list, for saving memory
+filename_list = []
+## get the filename index
 def get_set_filename(filename):
     if filename in filename_list:
         return filename_list.index(filename)
@@ -119,17 +98,19 @@ def get_set_filename(filename):
         filename_list.append(filename)
         return filename_list.index(filename)
 
+## save scantype in this list, for saving memory
 scantype_list = []
-
+## get the scan type index
 def get_set_scantype(scantype):
     if scantype in scantype_list:
         return scantype_list.index(scantype)
     else:
         scantype_list.append(scantype)
         return scantype_list.index(scantype)
-    
-searchname_list = []
 
+## save search name in this list, for saving memory
+searchname_list = []
+## get the index for given search name
 def get_set_searchname(searchname):
     if searchname in searchname_list:
         return searchname_list.index(searchname)
@@ -137,10 +118,14 @@ def get_set_searchname(searchname):
         searchname_list.append(searchname)
         return searchname_list.index(searchname)    
 
+## class defining the psm
 class PSM:
-
+    
+    # number of scores
     iNumScores = 3
-    fNeutronMass = 1.00867108694132 # it is Neutron mass
+    # Neutron mass
+    fNeutronMass = 1.00867108694132
+    # pattern for getting original peptides
     pattern = re.compile('[^\w\[\]]')
 
     def __init__(self, psm_field):
@@ -157,7 +142,6 @@ class PSM:
         self.OriginalPeptide = psm_field.OriginalPeptide
         self.OriginalPeptide = PSM.pattern.sub('', self.IdentifiedPeptide)
         self.protein_list = []
-        # self.RealLabel = protein_type(self.ProteinNames, self.protein_list)
         self.RealLabel = get_protein_type(self.ProteinNames, self.protein_list)
         self.fPredictProbability = 0.0
         self.fMassDiff = 0.0
@@ -169,14 +153,12 @@ class PSM:
         self.score_differential_list = []
         self.iLocalRank = 0
         self.DeltaP = 'NA'
-        if type(psm_field).__name__ == 'PsmFields3':
-            self.score_differential_list.extend(float(i) for i in psm_field[14:-2])
-        elif type(psm_field).__name__ == 'PsmFields4':
-            self.score_differential_list.extend(float(i) for i in psm_field[23:26])
-            self.DeltaP = psm_field.DeltaP 
-            self.iLocalRank = int(psm_field.Rank)
+        if type(psm_field).__name__ == 'PsmFields4':
+            self.score_differential_list = [float(psm_field.DiffMVH), float(psm_field.DiffXcorr), float(psm_field.DiffWDP)]
+            self.DeltaP = psm_field.DeltaP
         else:
-            self.score_differential_list.extend(float(i) for i in psm_field[14:])
+            print('not support input format.')
+            sys.exit(1)
         
         self.NMC = 0
         self.IPSC = 0
@@ -190,7 +172,8 @@ class PSM:
         self.feature_list = []
         
         self.TrainingLabel = 0
-        
+    
+    # extract 10 features
     def get_feature_final_list(self):
         del self.feature_list[:]
         self.feature_list.extend(self.lfScores) # 2, 3, 4: 1, 2, 3
@@ -199,10 +182,9 @@ class PSM:
         self.feature_list.append(self.NMC) # 25: 24
         self.feature_list.append((self.OPSC)) # 27: 26
         self.feature_list.append((self.SPSC)) # 29: 28
-        
+    '''
     def get_feature_list(self):
         del self.feature_list[:]
-
         self.feature_list.append(self.ParentCharge) # 1: 0
         self.feature_list.extend(self.lfScores) # 2, 3, 4: 1, 2, 3
         self.feature_list.append(self.ScoreAgreement) # 5: 4
@@ -213,18 +195,18 @@ class PSM:
         self.feature_list.append((self.OPSC)) # 27: 26
         self.feature_list.append((self.UPSC)) # 28: 27
         self.feature_list.append((self.SPSC)) # 29: 28
- 
         self.feature_list.append(abs(self.iMassWindow)) # 30: 29
-        
         self.feature_list.append((self.PPC)) # 31: 30
         
         for c in ptm_selection_list:
             self.feature_list.append(self.IdentifiedPeptide.count(ptm_str[c])) # 32: 31
-        
+    '''
     
+    # put proteins inside {}
     def set_protein_names(self):
         self.ProteinNames = '{' + ','.join(self.protein_list) + '}'
-        
+    
+    # add protein to psm, in case some protein missing
     def add_protein(self, protein_l):
         add_bool = False
         for p in protein_l:
@@ -234,12 +216,8 @@ class PSM:
         
         if add_bool:
             self.set_protein_names()
-
-    def set_feature(self, feature_list):
-        del feature_list[:]
-        #feature_list.append(self.ParentCharge)
-        feature_list.extend(self.lfScores)
-        
+    
+    # get the mass difference, considering mass windows 
     def set_mass_diff(self, measured_mass, calculated_mass):
         fDiff = calculated_mass - measured_mass
         fTemp = fDiff
@@ -282,18 +260,8 @@ class PSM:
             else:
                 self.dM = fDiff
         self.fMassDiff = fDiff
-        
-        '''
-        MassDiffOriginal = measured_mass - calculated_mass
-        MassDiff = MassDiffOriginal
-        global mass_window_max_int
-        for i in range(-mass_window_max_int, mass_window_max_int):
-            if abs(MassDiffOriginal - i*PSM.fNeutronMass) < abs(MassDiff):
-                MassDiff = MassDiffOriginal - i*PSM.fNeutronMass
-                self.iMassWindow = i
-        self.fMassDiff = MassDiff
-        '''
-        
+    
+    # remove training proteins and reserved proteins
     def clean_protein_name(self):
         self.ProteinNames = ""
         l = []
@@ -315,9 +283,10 @@ class PSM:
                     l.append(sProtein)
         self.ProteinNames = '{'+','.join(l) + '}'
         self.protein_list = l
-        
+    
+    # sip mode
     def set_real_label(self):
-        self.RealLabel = protein_type(self.ProteinNames, self.protein_list)
+        self.RealLabel = get_protein_type(self.ProteinNames, self.protein_list)
 
 
 # # Version control
@@ -327,15 +296,15 @@ def get_version():
 # # Help message
 help_message = '''
 Usage:
-    python sipros_post_processing.py [options]
+    python sipros_ensemble_filtering.py [options]
 
 Inputs:
     -i PSM.tab
     -c Sipros Ensemble configuration file
 
 Options:
-    -h/--help
-    -v/--version
+    -h show help info
+    -v show version info
 
 Outputs:
     -o output directory
@@ -344,12 +313,7 @@ Outputs:
 # # Parse options
 def parse_options(argv):
 
-    opts, _args = getopt.getopt(argv[1:], "hvVi:c:o:x:",
-                                    ["help",
-                                     "version",
-                                     "input",
-                                     "config",
-                                     "output"])
+    opts, _args = getopt.getopt(argv[1:], "hvi:c:o:x:")
 
     # Default working dir and config file
     input_file = ""
@@ -359,22 +323,22 @@ def parse_options(argv):
 
     # Basic options
     for option, value in opts:
-        if option in ("-h", "--help"):
+        if option in ("-h"):
             print(help_message)
             sys.exit(0)
-        if option in ("-v", "-V", "--version"):
-            print("sipros_post_processing.py V%s" % (get_version()))
+        if option in ("-v"):
+            print("{} version {}".format(__file__, get_version()))
             sys.exit(0)
-        if option in ("-i", "--input"):
+        if option in ("-i"):
             input_file = value
-        if option in ("-o", "--output"):
+        if option in ("-o"):
             output_folder = value
-        if option in ("-c", "--config"):
+        if option in ("-c"):
             config_file = value
         if option in ("-x"):
             debug_code = value
             
-    if input_file == "" or output_folder == "":
+    if input_file == "" or output_folder == "" or config_file == '':
         print(help_message)
         sys.exit(0)
 
@@ -474,9 +438,6 @@ def get_protein_type(protein_sequence, lProtein=None):
     
     return LabelFwd
 
-## Get base_out filename
-get_base_out = sipros_post_module.get_base_out
-
 # # read the psm table
 def read_psm_table(input_file):
     
@@ -494,10 +455,18 @@ def read_psm_table(input_file):
     else:
         sip_files_list.append(input_file)
 
-
     # get the base name from sip file list
-    base_out = get_base_out(sip_files_list, "Sipros_Results", "")
-    base_out = base_out.split('/')[-1]
+    base_out = os.path.commonprefix(sip_files_list)
+    base_out_filename = os.path.split(base_out)[-1]
+    base_out_filename = base_out_filename.replace(".tab", "_")
+    
+    # If base_out file name is less than 5, then use default baseout
+    if len(base_out_filename) < 5:
+        base_out = os.path.join(working_dir, 'sipros_results')
+    else:
+        # If base common prefix ends with '_' or '.', then remove
+        base_out = base_out_filename[:-1] if (base_out_filename[-1] in ('_', '.')) else base_out_filename
+        base_out = os.path.join(working_dir, base_out)
     
     psm_list = []
     
@@ -536,14 +505,16 @@ def FDR_calculator(FP, TP):
 
     return (FDR_accept, float(FDR_value))
 
+## psm level filtering
 def show_Fdr(psm_list, fdr_float, charge_left_given = -1, charge_right_given = -1):
     
     # list_sorted = sorted(psm_list, key=lambda x: (x.fPredictProbability, 1 - x.fRankProduct) , reverse=True)
     list_sorted = sorted(psm_list, key=lambda x: (-x.fPredictProbability, -x.fMassDiff, -x.PTMscore, x.IdentifiedPeptide))
-    Fwd_num = 0
-    Rev_num = 0
-    Shu_num = 0
-    Best_list = [0, 0, 0]
+    num_forward = 0
+    num_training = 0
+    num_testing = 0
+    # forward, training, testing
+    best_nums = [0, 0, 0]
 
     
     psm_filtered_list = []
@@ -553,47 +524,38 @@ def show_Fdr(psm_list, fdr_float, charge_left_given = -1, charge_right_given = -
         if charge_left_given != -1 and (oPsm.ParentCharge < charge_left_given or oPsm.ParentCharge > charge_right_given):
             continue
         if oPsm.RealLabel == LabelFwd:
-            Fwd_num += 1
+            num_forward += 1
         elif oPsm.RealLabel == LabelTrain:
-            Rev_num += 1
+            num_training += 1
         elif oPsm.RealLabel == LabelTest:
-            Shu_num += 1
+            num_testing += 1
         else:
             sys.stderr.write('error 768.\n')
-        (FDR_accept, FDR_value) = FDR_calculator(Shu_num, Fwd_num)
+        (FDR_accept, FDR_value) = FDR_calculator(num_testing, num_forward)
         if (FDR_accept is True) and (FDR_value <= fdr_float):
-            if (Best_list[0] + Best_list[2]) < (Fwd_num + Shu_num):
-                Best_list = [Fwd_num, Rev_num, Shu_num]
+            if (best_nums[0] + best_nums[2]) < (num_forward + num_testing):
+                best_nums = [num_forward, num_training, num_testing]
                 cutoff_probability = oPsm.fPredictProbability
             
-
     for oPsm in list_sorted:
         if charge_left_given != -1 and (oPsm.ParentCharge < charge_left_given or oPsm.ParentCharge > charge_right_given):
             continue
         if oPsm.fPredictProbability >= cutoff_probability:
             psm_filtered_list.append(oPsm)
      
-    # sys.stdout.write('\t'+str(len(psm_filtered_list))+'\n')
-    # sys.stdout.write("{:,d}\n{:.2f}%\n{:.2f}%\n{:,d}\n{:.2f}%\n".format(Best_list[0], 100.0*float(Best_list[1])/float(Best_list[0]), 100.0*float(Best_list[2])/float(Best_list[0]), best_fwr_pep, 100.0*float(best_shu_pep)/float(best_fwr_pep)))
-    # sys.stdout.write("%d\t[%.2f%%]\t[%.2f%%]\t%d\t[%.2f%%]\n" % (Best_list[0], 100.0*float(Best_list[2])/float(Best_list[0]), 100.0*float(Best_list[1])/float(Best_list[0]), best_fwr_pep, 100.0*float(best_shu_pep)/float(best_fwr_pep)))
-    '''
-    print(str(charge_left_given))
-    print(str(cutoff_probability))
-    print(str(Best_list[2]))
-    print(str(Best_list[0]))
-    '''
     return psm_filtered_list
 
+## peptide level filtering
 def show_Fdr_Pep(psm_list, fdr_float, charge_left_given = -1, charge_right_given = -1):
     
     list_sorted = sorted(psm_list, key=lambda x: (-x.fPredictProbability, -x.fMassDiff, -x.PTMscore, x.IdentifiedPeptide))
     
     peptide_set = Set()
-    num_fwr_pep = 0
-    num_rev_pep = 0
-    num_shu_pep = 0
-    best_fwr_pep = 0
-    best_shu_pep = 0
+    num_forward_pep = 0
+    num_training_pep = 0
+    num_testing_pep = 0
+    best_forward_pep = 0
+    best_testing_pep = 0
     
     psm_filtered_list = []
     cutoff_probability = 1000.0
@@ -604,23 +566,23 @@ def show_Fdr_Pep(psm_list, fdr_float, charge_left_given = -1, charge_right_given
         pep_str = oPsm.IdentifiedPeptide + '_' + str(oPsm.ParentCharge)
         if pep_str not in peptide_set:
             if oPsm.RealLabel == LabelFwd:
-                num_fwr_pep += 1
+                num_forward_pep += 1
                 peptide_set.add(pep_str)
             elif oPsm.RealLabel == LabelTest:
-                num_shu_pep += 1
+                num_testing_pep += 1
                 peptide_set.add(pep_str)
             elif oPsm.RealLabel == LabelTrain:
-                num_rev_pep += 1
+                num_training_pep += 1
                 peptide_set.add(pep_str)
             else:
                 sys.stderr.write('Error 71341\n')
 
-        (FDR_accept, FDR_value) = FDR_calculator(num_shu_pep, num_fwr_pep)
+        (FDR_accept, FDR_value) = FDR_calculator(num_testing_pep, num_forward_pep)
         if (FDR_accept is True) and (FDR_value <= fdr_float):
-            if (num_shu_pep + num_fwr_pep) > (best_shu_pep + best_fwr_pep):
+            if (num_testing_pep + num_forward_pep) > (best_testing_pep + best_forward_pep):
                 cutoff_probability = oPsm.fPredictProbability
-                best_fwr_pep = num_fwr_pep
-                best_shu_pep = num_shu_pep
+                best_forward_pep = num_forward_pep
+                best_testing_pep = num_testing_pep
             
 
     for oPsm in list_sorted:
@@ -629,17 +591,9 @@ def show_Fdr_Pep(psm_list, fdr_float, charge_left_given = -1, charge_right_given
         if oPsm.fPredictProbability >= cutoff_probability:
             psm_filtered_list.append(oPsm)
      
-    # sys.stdout.write('\t'+str(len(psm_filtered_list))+'\n')
-    # sys.stdout.write("%d\t[%.2f%%]\t[%.2f%%]\t%d\t[%.2f%%]\n" % (Best_list[0], 100.0*float(Best_list[2])/float(Best_list[0]), 100.0*float(Best_list[1])/float(Best_list[0]), best_fwr_pep, 100.0*float(best_shu_pep)/float(best_fwr_pep)))
-    '''
-    print(str(charge_left_given))
-    print(str(cutoff_probability))
-    print(str(best_shu_pep))
-    print(str(best_fwr_pep))
-    '''
     return psm_filtered_list
 
-
+## remove redundant psm, only one unique spectrum kept
 def re_rank(psm_list, consider_charge_bool = False):
     psm_new_list = []
     psm_dict = {}
@@ -688,57 +642,10 @@ def re_rank(psm_list, consider_charge_bool = False):
 
     for _key, value in psm_dict.iteritems():
         psm_new_list.append(value)
-    '''
-    fw = open("/media/xgo/Seagate/Proteomics/Experiments/SIP/ScoreCompare/filtering/SE_50/tmp/psm_temp.txt", 'w')
     
-    for oPsm in psm_new_list:
-        if oPsm.RealLabel == LabelTrain:
-            continue 
-        oPsm.clean_protein_name()
-        fw.write(oPsm.FileName)
-        fw.write('\t')
-        fw.write(str(oPsm.ScanNumber))
-        fw.write('\t')
-        fw.write(str(oPsm.ParentCharge))
-        fw.write('\t')
-        fw.write('%.3f' % oPsm.MeasuredParentMass)
-        fw.write('\t')
-        fw.write('%.3f' % oPsm.CalculatedParentMass)
-        fw.write('\t')
-        fw.write('%.3f' % (oPsm.fMassDiff))
-        fw.write('\t')
-        fw.write('%.3f' % (1000000*(oPsm.fMassDiff)/oPsm.CalculatedParentMass))
-        fw.write('\t')
-        fw.write(oPsm.ScanType)
-        fw.write('\t')
-        fw.write(oPsm.SearchName)
-        fw.write('\t')
-        fw.write('SiprosEnsemble')
-        fw.write('\t')
-        fw.write(str(oPsm.fPredictProbability))
-        fw.write('\t')
-        fw.write('NA')
-        fw.write('\t')
-        fw.write(oPsm.DeltaP)
-        fw.write('\t')
-        fw.write(oPsm.IdentifiedPeptide)
-        fw.write('\t')
-        fw.write(oPsm.OriginalPeptide)
-        fw.write('\t')
-        fw.write(oPsm.ProteinNames)
-        fw.write('\t')
-        fw.write(str(len(oPsm.protein_list)))
-        fw.write('\t')
-        if oPsm.RealLabel == LabelFwd:
-            fw.write('T')
-        else:
-            fw.write('F')
-        fw.write('\n')
-    
-    fw.close()
-    '''
     return psm_new_list
 
+## sip mode, first round fitering using score cutoff
 def cutoff_filtering(psm_list, config_dict=None, fdr_given=None):
     if fdr_given == None:
         fdr_given = float(config_dict[pro_iden_str + FDR_Threshold_str])
@@ -760,6 +667,7 @@ def cutoff_filtering(psm_list, config_dict=None, fdr_given=None):
     
     return psm_return_list
 
+## sip mode, logistic regression for sip mode
 def logistic_regression_sip(psm_list, config_dict=None):
     fdr_given = float(config_dict[pro_iden_str + FDR_Threshold_str])*(Test_Fwd_Ratio)
     # machine learning
@@ -768,15 +676,11 @@ def logistic_regression_sip(psm_list, config_dict=None):
     train_label_list = []
     test_data_list = []
     psm_rank_list = []
-    num_feature_int = (31 + len(ptm_selection_list))
     positive_int = 1
     negative_int = 0
     num_pos = 0
     num_neg = 0
     for oPsm in psm_list:
-        if len(oPsm.feature_list) != num_feature_int:
-            print('error 17052201')
-            pass
         if oPsm.RealLabel == LabelReserve:
             continue
         test_data_list.append(oPsm.feature_list)
@@ -831,6 +735,7 @@ def logistic_regression_sip(psm_list, config_dict=None):
         psm_filtered_list_local = show_Fdr_Pep(psm_new_list, fdr_given)        
     return psm_filtered_list_local
 
+## regular search mode
 def logistic_regression_no_category(psm_list, config_dict=None):
     fdr_given = float(config_dict[pro_iden_str + FDR_Threshold_str])*(Test_Fwd_Ratio)
     # machine learning
@@ -840,21 +745,14 @@ def logistic_regression_no_category(psm_list, config_dict=None):
     train_label_list = []
     test_data_list = []
     psm_rank_list = []
-    num_feature_int = (31 + len(ptm_selection_list))
     positive_int = 1
     negative_int = 0
     bDisableLocalRank = False
     if len(psm_list) < 800000:
         bDisableLocalRank = True
     for oPsm in psm_list:
-        if len(oPsm.feature_list) != num_feature_int:
-            pass
-            # print('check')
         if oPsm.RealLabel == LabelReserve:
-            # train_data_list.append(oPsm.feature_list)
-            # train_label_list.append(negative_int)
             continue
-        # if oPsm.iLocalRank == 0 or oPsm.iLocalRank == 1:
         test_data_list.append(oPsm.feature_list)
         psm_rank_list.append(oPsm)
         if oPsm.RealLabel != LabelTrain and (oPsm.iLocalRank == 0 or bDisableLocalRank ):
@@ -863,8 +761,6 @@ def logistic_regression_no_category(psm_list, config_dict=None):
         elif oPsm.RealLabel == LabelTrain:
             train_data_list.append(oPsm.feature_list)
             train_label_list.append(negative_int)
-                
-    # sys.stdout.write(str(len(train_data_list)) + "\t")
         
     train_data_np = np.array(train_data_list)[:, feature_selection_list]
     train_label_np = np.array(train_label_list)
@@ -872,9 +768,12 @@ def logistic_regression_no_category(psm_list, config_dict=None):
      # only forward left
     unique_np = np.unique(train_label_np)
     if unique_np.shape[0] == 1:
+        print('no decoy in the training set')
+        sys.exit(1)
+        '''
         psm_filtered_list_local = show_Fdr(psm_list, fdr_given)
         return psm_filtered_list_local
-    
+        '''
     # # training
     # num_positive = float((train_label_np==LabelPositive).sum())
     # num_negative = float((train_label_np==LabelNegative).sum())
@@ -912,6 +811,7 @@ def logistic_regression_no_category(psm_list, config_dict=None):
         psm_filtered_list_local = show_Fdr_Pep(psm_new_list, fdr_given)        
     return psm_filtered_list_local
 
+## get the number of missed cleavage sites
 def get_num_missed_cleavage_sites(sIdentifiedSeq, sResiduesBeforeCleavage, sResiduesAfterCleavage):
     count_int = 0
     for i in range(len(sIdentifiedSeq) - 1):
@@ -919,7 +819,15 @@ def get_num_missed_cleavage_sites(sIdentifiedSeq, sResiduesBeforeCleavage, sResi
             count_int += 1
     return count_int
 
+## collect spectrum and protein level features
 def generate_Prophet_features_test(lPsm, config_dict):
+    # get some statistics
+    for one_psm in lPsm:
+        if one_psm.RealLabel == LabelFwd:
+            num_forward_psms_before_filtering += 1
+    simple_feature_bool = False
+    if float(num_forward_psms_before_filtering)/float(len(lPsm)) > 0.5 and num_proteins > 100000:
+        simple_feature_bool = True
     # peptide with PTM dictionary is for IPSC
     peptide_with_modification_dict = {}
     # peptide without PTM dictionary is for OPSC
@@ -930,13 +838,7 @@ def generate_Prophet_features_test(lPsm, config_dict):
         oPsm.NMC = get_num_missed_cleavage_sites(oPsm.OriginalPeptide, 
                                                  config_dict[pep_iden_str + cleave_after_residues_str],
                                                  config_dict[pep_iden_str + cleave_before_residues_str])
-        '''
-        unique_id_str = oPsm.FileName + '_' + str(oPsm.ScanNumber) + '_' + oPsm.IdentifiedPeptide
-        if unique_id_str in psm_set:
-            continue
-        else:
-            psm_set.add(unique_id_str)
-        '''            
+           
         if oPsm.IdentifiedPeptide in peptide_with_modification_dict:
             peptide_with_modification_dict[oPsm.IdentifiedPeptide] += 1
         else:
@@ -1002,7 +904,7 @@ def generate_Prophet_features_test(lPsm, config_dict):
             
         if changed_flag:
             oPsm.set_protein_names()
-            oPsm.RealLabel = protein_type(oPsm.ProteinNames)
+            oPsm.RealLabel = get_protein_type(oPsm.ProteinNames)
             # print(oPsm.OriginalPeptide)
             num_changed += 1
         '''
@@ -1167,7 +1069,10 @@ def generate_Prophet_features_test(lPsm, config_dict):
             oPsm.UPSC = 1
         else:
             oPsm.UPSC = 0
-        oPsm.SPSC = max_linked_unique_per_psm + max_linked_shared_per_psm
+        if simple_feature_bool:
+            oPsm.SPSC = max_linked_unique_per_psm
+        else:
+            oPsm.SPSC = max_linked_unique_per_psm + max_linked_shared_per_psm
         # debug
         # oPsm.SPSC = max_linked_unique_per_psm
         # debug
@@ -1177,13 +1082,13 @@ def generate_Prophet_features_test(lPsm, config_dict):
         # oPsm.UPSC = max_unique_per_psm
         # oPsm.SPSC = max_shared_per_psm
         
-# # Exit system with error message
+## Exit system with error message
 def die(msg=None):
     if msg is not None:
         print >> sys.stderr, msg
         sys.exit(1)
 
-# # Check file exist
+## Check file exist
 def check_file_exist(filename):
 
     try:
@@ -1192,14 +1097,7 @@ def check_file_exist(filename):
         print >> sys.stderr, '\nCannot open', filename
         die("Program exit!")
 
-# defaul value
-decoy_prefix = 'Rev_'
-train_decoy_prefix = 'Rev_1_'
-test_decoy_prefix = 'Rev_2_'
-min_peptide_per_protein = 2
-min_unique_peptide_per_protein = 1
-remove_decoy_identification = 'No'
-
+## parameters used to read configuration file
 pep_iden_str = '[Peptide_Identification]'
 search_type_str = 'Search_Type'
 fasta_database_str = 'FASTA_Database'
@@ -1207,18 +1105,12 @@ pro_iden_str = '[Protein_Identification]'
 FDR_Threshold_str = 'FDR_Threshold'
 training_decoy_prefix_str = 'Training_Decoy_Prefix'
 testing_decoy_prefix_str = 'Testing_Decoy_Prefix'
-sip_iden_str = '[Stable_Isotope_Probing]'
-decoy_prefix_str = 'Decoy_Prefix'
 reserved_decoy_prefix_str = 'Reserved_Decoy_Prefix'
 FDR_Filtering_str = 'FDR_Filtering'
-min_peptide_per_protein_str = 'Min_Peptide_Per_Protein'
-min_unique_peptide_per_protein_str = 'Min_Unique_Peptide_Per_Protein'
-remove_decoy_identification_str = 'Remove_Decoy_Identification'
 cleave_after_residues_str = 'Cleave_After_Residues'
 cleave_before_residues_str = 'Cleave_Before_Residues'
-Mass_Tolerance_Parent_Ion_str = 'Mass_Tolerance_Parent_Ion'
+Mass_Tolerance_Parent_Ion_str = 'Filter_Mass_Tolerance_Parent_Ion'
 Parent_Mass_Windows_str = 'Parent_Mass_Windows'
-Mass_Tolerance_Parent_Ion_str = 'Mass_Tolerance_Parent_Ion'
 
 ## Parse config file
 def parse_config(config_filename):
@@ -1264,6 +1156,7 @@ def parse_config(config_filename):
     # return config dictionary
     return all_config_dict
 
+## reset the configurations
 def config_reset(all_config_dict):
     global train_str, test_str, reserve_str
     
@@ -1274,6 +1167,7 @@ def config_reset(all_config_dict):
     else:
         reserve_str = ''
 
+## peptide class for generating pep.txt file
 class Peptide:
     
     def __init__(self):
@@ -1329,7 +1223,7 @@ class Peptide:
         
         return '\t'.join(l) 
 
-
+## generate psm.txt and pep.txt files
 def generate_psm_pep_txt(base_out, out_folder, psm_filtered_list, config_dict):
     
     # protein_identification message
@@ -1562,6 +1456,7 @@ def generate_psm_pep_txt(base_out, out_folder, psm_filtered_list, config_dict):
     
     return (psm_txt_file_str, pep_txt_file_str)
 
+## collect the score agreement, save in iLocalRank
 def remark_concensus(psm_list):
     psm_dict = {}
     for oPsm in psm_list:
@@ -1588,6 +1483,7 @@ def remark_concensus(psm_list):
             if oPsm.iLocalRank == 2:
                 oPsm.iLocalRank = 3 # Mi
 
+## mass filtering
 def mass_filter(psm_list, config_dict):
     mass_tolerance = float(config_dict[pro_iden_str + Mass_Tolerance_Parent_Ion_str])
     psm_new_list = []
@@ -1621,8 +1517,10 @@ def find_train_test_ratio(config_dict):
     
     global Test_Fwd_Ratio
     Test_Fwd_Ratio = float(num_test_int) / float(num_fwd_int)
+    num_proteins = num_fwd_int
     return Test_Fwd_Ratio
 
+## debug mode, generate pin format for percolator
 def generatePINPercolator(psm_list, output_str):
     with open(output_str, 'w') as fw:
         fw.write("SpecId\tLabel\tScanNr\tExpMass\tCalcMass\tPEP\tPRO\tMVH\tdeltMVH\tXcorr\tdeltXcorr\tWDP\tDdeltWDP\tPepLen\tdM\tabsdM\tCharge1\tCharge2\tCharge3\tCharge4\tCharge5\tenzInt\tPeptide\tProtein")
@@ -1670,16 +1568,16 @@ def generatePINPercolator(psm_list, output_str):
             fw.write("\n")
 
 def debug_mode(psm_list, output_folder):
-    
     generatePINPercolator(psm_list, output_folder[:-1])
 
+## script entrance
 def main(argv=None):
     if argv is None:
         argv = sys.argv
     
     # Display work start and time record
     start_time = datetime.now()
-    sys.stderr.write('[%s] Beginning Sipros Ensemble Filtering (%s)\n' % (curr_time(), get_version()))
+    sys.stderr.write('[{}] Beginning {} ({})\n'.format(curr_time(), os.path.basename(__file__), get_version()))
     sys.stderr.write('------------------------------------------------------------------------------\n')
     
     # parse options
@@ -1699,7 +1597,6 @@ def main(argv=None):
     find_train_test_ratio(config_dict)
     (psm_list, base_out) = read_psm_table(input_file)
     sys.stderr.write('Done!\n')
-    
     
     # get score agreement info
     sys.stderr.write('[Step 2] Feature extraction:                                Running -> ')
@@ -1734,40 +1631,15 @@ def main(argv=None):
     finish_time = datetime.now()
     duration = finish_time - start_time
     sys.stderr.write('------------------------------------------------------------------------------\n')
-    sys.stderr.write('[%s] Ending Sipros Ensemble filtering\n' % curr_time())
-    sys.stderr.write('Run complete [%s elapsed]\n' %  format_time(duration))
-    
-    # print(psm_txt_file_str + "____________" + pep_txt_file_str)
-    
-
-    
-def sip_filtering(input_file, config_dict, output_folder, start_time):
-    # read the big psm table
-    sys.stderr.write('[Step 1] Parse options and read PSM file:                   Running -> ')
-    # find out the train and testing ratio
-    (psm_list, base_out) = read_psm_table(input_file)
-    # mass filtering
-    psm_list = mass_filter(psm_list, config_dict)
-    sys.stderr.write('Done!\n')
-    
-    # find score-cutoff
-    sys.stderr.write('[Step 2] Re-rank PSMs and find score cutoff:                Running -> ')
-    psm_filtered_list = cutoff_filtering(psm_list, config_dict)
-    sys.stderr.write('Done!\n')
-
-
-    # write output
-    sys.stderr.write('[Step 3] Report output:                                     Running -> ')
-    (psm_txt_file_str, pep_txt_file_str) = generate_psm_pep_txt(base_out, output_folder, psm_filtered_list, config_dict)
-    sys.stderr.write('Done!\n')
-    
-    # Time record, calculate elapsed time, and display work end
-    finish_time = datetime.now()
-    duration = finish_time - start_time
-    sys.stderr.write('------------------------------------------------------------------------------\n')
-    sys.stderr.write('[%s] Ending Sipros Ensemble filtering\n' % curr_time())
+    sys.stderr.write('[{}] Ending {} \n'.format(curr_time(), os.path.basename(__file__)))
     sys.stderr.write('Run complete [%s elapsed]\n' %  format_time(duration))
 
+'''
+if sip mode
+use WDP to find the positive training data
+train the logistic model with 3 scores
+re-rank PSM based on the predicted probabilities
+'''
 def sip_filtering_LR(input_file, config_dict, output_folder, start_time):
     # read the big psm table
     sys.stderr.write('[Step 1] Parse options and read PSM file:                   Running -> ')
@@ -1789,7 +1661,7 @@ def sip_filtering_LR(input_file, config_dict, output_folder, start_time):
     # generate_Prophet_features_group(psm_list, config_dict)
     # set feature all PSMs
     for oPsm in psm_list:
-        oPsm.get_feature_list()
+        oPsm.get_feature_final_list()
     # reset the config
     config_reset(config_dict)
     # find out the train and testing ratio
@@ -1819,7 +1691,7 @@ def sip_filtering_LR(input_file, config_dict, output_folder, start_time):
     finish_time = datetime.now()
     duration = finish_time - start_time
     sys.stderr.write('------------------------------------------------------------------------------\n')
-    sys.stderr.write('[%s] Ending Sipros Ensemble filtering\n' % curr_time())
+    sys.stderr.write('[{}] Ending {}\n'.format(curr_time(), os.path.basename(__file__)))
     sys.stderr.write('Run complete [%s elapsed]\n' %  format_time(duration))
 
     

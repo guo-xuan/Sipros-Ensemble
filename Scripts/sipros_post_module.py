@@ -22,20 +22,6 @@ try:
 except ImportError:
     pass
 
-rev_str = 'Rev_' # 'Rev_'
-shu_str = 'TestRev_' # 'Shu_'
-
-
-# rev_str = 'Sh1_' # 'Rev_'
-# shu_str = 'Sh2_' # 'Shu_'
-
-# rev_str = 'Rev_'
-# shu_str = 'Dec_'
-
-LabelFwd = 1
-LabelRev = 2
-LabelShu = 3
-
 SIP_WDP_score_idx = 0
 
 # # Class Usage
@@ -147,12 +133,12 @@ def get_base_out(file_list, base_out_default, working_dir):
     # If base common prefix ends with '.pep.txt', then remove '.pep.txt'
     base_out = base_out.replace(".pep.txt", "_")
     
-    # If base common prefix ends with '.tab', then remove '.pep.txt'
+    # If base common prefix ends with '.tab', then remove '.tab'
     base_out = base_out.replace(".tab", "_")
 
     # If base_out file name is less than 5, then use default baseout
     if len(base_out_filename) < 5:
-        base_out = working_dir + base_out_default
+        base_out = os.path.join(working_dir, base_out_default)
 
     # If base common prefix ends with '_' or '.', then remove
     base_out = base_out[:-1] if (base_out[-1] in ('_', '.')) else base_out
@@ -539,6 +525,7 @@ def RankProductInvert(liRank):
     return 1 / fProduct
 
 # # Pep info in the Spe2Pep file
+# # non SIP mode
 class PepScores:
 
     def __init__(self, _fMeasuredParentMass, _iCharge, _sSearchName, sPeptideLine, isSIP=False):
@@ -612,11 +599,9 @@ class PepSpectrumMatch:
         self.fMeasuredParentMass = float(asWords[4])
         self.sScanType = asWords[5]
         self.sSearchName = asWords[6]
-        self.fTotalIntensity = float(asWords[7])
-        self.fMaxIntensity = float(asWords[8])
-        self.sRTime = '-1.000'
-        if len(asWords) >= 10:
-            self.sRTime = asWords[9]
+        # self.fTotalIntensity = float(asWords[7])
+        # self.fMaxIntensity = float(asWords[8])
+        self.sRTime = asWords[7]
         self.lPepScores = []
         self.oBestPep = None
         self.oSecondBestPep = None
@@ -687,10 +672,6 @@ class PepSpectrumMatch:
         self.lPepScores = liRanksNew
 
     def ranking(self):
-        '''
-        if self.iScanNumber == 7468:
-            print 'check.'
-        '''
         del self.lTopPep[:]
         for j in self.lPepScores:
             del j.liRanks[:]
@@ -706,80 +687,12 @@ class PepSpectrumMatch:
                 iRank += 1
             # score rank -> score differential
             for j in range(0, len(lPep) - 1):
-                # lPep[j].lfDeltaRankScore.append(1 - zero_divide(lPep[j + 1].lfScores[i], lPep[0].lfScores[i]))
-                
-                if j == 0:
-                    lPep[j].lfDeltaRankScore.append(1.0 - zero_divide(lPep[1].lfScores[i], lPep[0].lfScores[i]))
-                else:
-                    lPep[j].lfDeltaRankScore.append(zero_divide(lPep[j].lfScores[i], lPep[0].lfScores[i]) - 1.0)
-                
                 lPep[j].lfDiffRankScore.append(lPep[j].lfScores[i] - lPep[j + 1].lfScores[i])
-                lPep[j].lfDiffNorRankScore.append(zero_divide(lPep[j].lfScores[i] - lPep[j + 1].lfScores[i], lPep[j].lfScores[i]))
-            # lPep[len(lPep) - 1].lfDeltaRankScore.append(0)
-            lPep[len(lPep) - 1].lfDeltaRankScore.append(zero_divide(lPep[len(lPep) - 1].lfScores[i], lPep[0].lfScores[i]) - 1.0)
+
             lPep[len(lPep) - 1].lfDiffRankScore.append(0)
-            lPep[len(lPep) - 1].lfDiffNorRankScore.append(0)
             
             self.lTopPep.append(lPep[0])
-            if len(lPep) >= 2:
-                for j in lPep:
-                    j.lfScoreDiff.append(j.lfScores[i] - lPep[1].lfScores[i])
-            else:
-                j.lfScoreDiff.append(0.0)
-
-        # rank product -> score differential
-        for i in self.lPepScores:
-            i.fRankProduct = RankProductInvert(i.liRanks)
-        # lPep: ranked by rank product
-        lPep = sorted(self.lPepScores, key=lambda pep: (pep.fRankProduct, MassDiff(pep), PtmScore(pep), pep.sIdentifiedPeptide, -pep.fPct), reverse=True)
-        for j in range(0, len(lPep) - 1):
-            lPep[j].iRank = j
-            for i in range(iNumScores):
-                lPep[j].lfDeltaRankProduct.append(1 - zero_divide(lPep[j + 1].lfScores[i], lPep[0].lfScores[i]))
-                lPep[j].lfDiffRankProduct.append(lPep[j].lfScores[i] - lPep[j + 1].lfScores[i])
-                lPep[j].lfDiffNorRankProduct.append(zero_divide(lPep[j].lfScores[i] - lPep[j + 1].lfScores[i], lPep[j].lfScores[i]))
-        lPep[-1].iRank = len(lPep) - 1
         
-        for i in range(iNumScores):
-            lPep[len(lPep) - 1].lfDeltaRankProduct.append(0)
-            lPep[len(lPep) - 1].lfDiffRankProduct.append(0)
-            lPep[len(lPep) - 1].lfDiffNorRankProduct.append(0)
-        
-        for i in self.lTopPep:
-            # if numberTopRanks(i.liRanks) >= 2:
-            if get_number_Top_Ranks(i, self.lTopPep) >= 2:
-                self.oBestPep = i
-                self.iParentCharge = self.oBestPep.iCharge
-                self.sSearchName = self.oBestPep.sSearchName
-                if len(lPep) > 1:
-                    if self.oBestPep == lPep[0]:
-                        self.oSecondBestPep = lPep[1]
-                    else:
-                        self.oSecondBestPep = lPep[0]
-                    # PTM in the best pep
-                    # # deltaP
-                    if len(i.sIdentifiedPeptide) != len(i.sOriginalPeptide):
-                        #pep_sorted_str = ''.join(sorted(i.sIdentifiedPeptide))
-                        for pep in lPep:
-                            #pep_sorted_compared_str = ''.join(sorted(pep.sIdentifiedPeptide))
-                            #if pep_sorted_str == pep_sorted_compared_str and \
-                            #pep.sIdentifiedPeptide != i.sIdentifiedPeptide :
-                            
-                            if pep.sIdentifiedPeptide != i.sIdentifiedPeptide and \
-                            abs(pep.fCalculatedParentMass - i.fCalculatedParentMass) < 0.00005 and \
-                            abs(math.fabs(pep.fMeasuredParentMass - pep.fCalculatedParentMass) - math.fabs(i.fMeasuredParentMass - i.fCalculatedParentMass)) < 0.00005 and \
-                            pep.sOriginalPeptide == i.sOriginalPeptide and \
-                            len(pep.sIdentifiedPeptide) == len(i.sIdentifiedPeptide):
-                            
-                                avg_deltaP = 0.0
-                                for s in range(iNumScores):
-                                    # if self.lTopPep[s].lfScores[s] != 0 and i.liRanks[s] == 1:
-                                    if self.lTopPep[s].lfScores[s] != 0:
-                                        avg_deltaP += (i.lfScores[s] - pep.lfScores[s])/self.lTopPep[s].lfScores[s]
-                                avg_deltaP /= float(iNumScores)
-                                self.oBestPep.DeltaP = avg_deltaP
-                                return
-                return
         # if SA == 1, calculate DeltaP individually
         for s in range(iNumScores):
             for lPep_local in self.pep_rank_list:
@@ -805,98 +718,6 @@ class PepSpectrumMatch:
                             avg_deltaP /= float(iNumScores)
                             lPep_local[0].DeltaP = avg_deltaP
                             break
-        self.oBestPep = lPep[0]
-        self.iParentCharge = self.oBestPep.iCharge
-        self.sSearchName = self.oBestPep.sSearchName
-        if len(lPep) > 1:
-            if self.oBestPep == lPep[0]:
-                self.oSecondBestPep = lPep[1]
-            else:
-                self.oSecondBestPep = lPep[0]
-        # debug
-        # if protein_type(self.oBestPep.sProteinNames) == -1:
-            # pass
-
-    def __repr__(self):
-        # Filename    ScanNumber    ParentCharge    MeasuredParentMass    ScanType    SearchName
-        # IdentifiedPeptide    OriginalPeptide    CalculatedParentMass     MVH    WDP    Xcorr    ProteinNames
-        return "%s\t%d\t%d\t%f\t%s\t%s\t%s\t%s\t%f\t%f\t%f\t%f\t{%s}" % (self.sFileName,
-                                                                       self.iScanNumber,
-                                                                       self.iParentCharge,
-                                                                       self.fMeasuredParentMass,
-                                                                       self.sScanType,
-                                                                       self.sSearchName,
-                                                                       self.oBestPep.sIdentifiedPeptide,
-                                                                       self.oBestPep.sOriginalPeptide,
-                                                                       self.oBestPep.fCalculatedParentMass,
-                                                                       self.oBestPep.lfScores[0],
-                                                                       self.oBestPep.lfScores[1],
-                                                                       self.oBestPep.lfScores[2],
-                                                                       self.oBestPep.sProteinNames)
-
-    def get_other_features(self):
-        # score differential
-        # comet way
-        # difference
-        # difference normalization
-        if len(self.oBestPep.lfDeltaRankProduct) == 0:
-            return '0.000\t0.000\t0.000\t0.000\t0.000\t0.000\t0.000\t0.000\t0.000\t0.000\t0.000\t0.000\t0.000\t0.000\t0.000\t0.000\t0.000\t0.000'
-        
-        return "%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f" % (self.oBestPep.lfDeltaRankProduct[0],
-                                                                                self.oBestPep.lfDeltaRankProduct[1],
-                                                                                self.oBestPep.lfDeltaRankProduct[2],
-                                                                                self.oBestPep.lfDeltaRankScore[0],
-                                                                                self.oBestPep.lfDeltaRankScore[1],
-                                                                                self.oBestPep.lfDeltaRankScore[2],
-                                                                                self.oBestPep.lfDiffRankProduct[0],
-                                                                                self.oBestPep.lfDiffRankProduct[1],
-                                                                                self.oBestPep.lfDiffRankProduct[2],
-                                                                                self.oBestPep.lfDiffRankScore[0],
-                                                                                self.oBestPep.lfDiffRankScore[1],
-                                                                                self.oBestPep.lfDiffRankScore[2],
-                                                                                self.oBestPep.lfDiffNorRankProduct[0],
-                                                                                self.oBestPep.lfDiffNorRankProduct[1],
-                                                                                self.oBestPep.lfDiffNorRankProduct[2],
-                                                                                self.oBestPep.lfDiffNorRankScore[0],
-                                                                                self.oBestPep.lfDiffNorRankScore[1],
-                                                                                self.oBestPep.lfDiffNorRankScore[2])
-        
-    def get_second_pep(self):
-        return "%s\t%d\t%d\t%f\t%s\t%s\t%s\t%s\t%f\t%f\t%f\t%f\t{%s}" % (self.sFileName,
-                                                                       self.iScanNumber,
-                                                                       self.oSecondBestPep.iCharge,
-                                                                       self.fMeasuredParentMass,
-                                                                       self.sScanType,
-                                                                       self.oSecondBestPep.sSearchName,
-                                                                       self.oSecondBestPep.sIdentifiedPeptide,
-                                                                       self.oSecondBestPep.sOriginalPeptide,
-                                                                       self.oSecondBestPep.fCalculatedParentMass,
-                                                                       self.oSecondBestPep.lfScores[0],
-                                                                       self.oSecondBestPep.lfScores[1],
-                                                                       self.oSecondBestPep.lfScores[2],
-                                                                       self.oSecondBestPep.sProteinNames)
-    
-    def get_other_features_second_pep(self):
-        if len(self.oSecondBestPep.lfDeltaRankProduct) == 0:
-            return '0.000\t0.000\t0.000\t0.000\t0.000\t0.000\t0.000\t0.000\t0.000\t0.000\t0.000\t0.000\t0.000\t0.000\t0.000\t0.000\t0.000\t0.000'
-        return "%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f" % (self.oBestPep.lfDeltaRankProduct[0],
-                                                                                self.oSecondBestPep.lfDeltaRankProduct[1],
-                                                                                self.oSecondBestPep.lfDeltaRankProduct[2],
-                                                                                self.oSecondBestPep.lfDeltaRankScore[0],
-                                                                                self.oSecondBestPep.lfDeltaRankScore[1],
-                                                                                self.oSecondBestPep.lfDeltaRankScore[2],
-                                                                                self.oSecondBestPep.lfDiffRankProduct[0],
-                                                                                self.oSecondBestPep.lfDiffRankProduct[1],
-                                                                                self.oSecondBestPep.lfDiffRankProduct[2],
-                                                                                self.oSecondBestPep.lfDiffRankScore[0],
-                                                                                self.oSecondBestPep.lfDiffRankScore[1],
-                                                                                self.oSecondBestPep.lfDiffRankScore[2],
-                                                                                self.oSecondBestPep.lfDiffNorRankProduct[0],
-                                                                                self.oSecondBestPep.lfDiffNorRankProduct[1],
-                                                                                self.oSecondBestPep.lfDiffNorRankProduct[2],
-                                                                                self.oSecondBestPep.lfDiffNorRankScore[0],
-                                                                                self.oSecondBestPep.lfDiffNorRankScore[1],
-                                                                                self.oSecondBestPep.lfDiffNorRankScore[2])
     
     def all_top_ranked_psm(self):
         str_list = []
@@ -904,7 +725,7 @@ class PepSpectrumMatch:
             feature_list = []
             feature_list.append(self.sFileName)
             feature_list.append(str(self.iScanNumber))
-            feature_list.append(str(self.iParentCharge))
+            feature_list.append(str(pep.iCharge))
             feature_list.append(str(self.fMeasuredParentMass))
             feature_list.append(self.sScanType)
             feature_list.append(pep.sSearchName)
@@ -913,15 +734,15 @@ class PepSpectrumMatch:
             feature_list.append(str(pep.fCalculatedParentMass))
             feature_list.extend((str(x) for x in pep.lfScores))
             feature_list.append('{'+pep.sProteinNames+'}')
-            feature_list.append(str(num_agreement(pep.liRanks)))
-            feature_list.extend((str(x) for x in pep.lfDeltaRankProduct))
-            feature_list.extend((str(x) for x in pep.lfDeltaRankScore))
-            feature_list.extend((str(x) for x in pep.lfDiffRankProduct))
+            # feature_list.append(str(num_agreement(pep.liRanks)))
+            # feature_list.extend((str(x) for x in pep.lfDeltaRankProduct))
+            # feature_list.extend((str(x) for x in pep.lfDeltaRankScore))
+            # feature_list.extend((str(x) for x in pep.lfDiffRankProduct))
             feature_list.extend((str(x) for x in pep.lfDiffRankScore))
-            feature_list.extend((str(x) for x in pep.lfDiffNorRankProduct))
-            feature_list.extend((str(x) for x in pep.lfDiffNorRankScore))
+            # feature_list.extend((str(x) for x in pep.lfDiffNorRankProduct))
+            # feature_list.extend((str(x) for x in pep.lfDiffNorRankScore))
             feature_list.append(self.sRTime)
-            feature_list.append((str(pep.iRank)))
+            # feature_list.append((str(pep.iRank)))
             feature_list.append((str(pep.DeltaP)))
             str_list.append('\t'.join(feature_list))
         return '\n'.join(str_list)
@@ -949,72 +770,18 @@ class PepSpectrumMatch:
             feature_list.append(str(pep.fCalculatedParentMass))
             feature_list.extend((str(x) for x in pep.lfScores))
             feature_list.append('{'+pep.sProteinNames+'}')
-            feature_list.append(str(num_agreement(pep.liRanks)))
-            feature_list.extend((str(x) for x in pep.lfDeltaRankProduct))
-            feature_list.extend((str(x) for x in pep.lfDeltaRankScore))
-            feature_list.extend((str(x) for x in pep.lfDiffRankProduct))
+            # feature_list.append(str(num_agreement(pep.liRanks)))
+            # feature_list.extend((str(x) for x in pep.lfDeltaRankProduct))
+            # feature_list.extend((str(x) for x in pep.lfDeltaRankScore))
+            # feature_list.extend((str(x) for x in pep.lfDiffRankProduct))
             feature_list.extend((str(x) for x in pep.lfDiffRankScore))
-            feature_list.extend((str(x) for x in pep.lfDiffNorRankProduct))
-            feature_list.extend((str(x) for x in pep.lfDiffNorRankScore))
+            # feature_list.extend((str(x) for x in pep.lfDiffNorRankProduct))
+            # feature_list.extend((str(x) for x in pep.lfDiffNorRankScore))
             feature_list.append(self.sRTime)
-            feature_list.append((str(pep.iRank)))
+            # feature_list.append((str(pep.iRank)))
             feature_list.append((str(pep.DeltaP)))
             str_list.append('\t'.join(feature_list))
         return '\n'.join(str_list)
-    
-    def pin(self):
-        lPin = []
-        '''
-        id    label    ScanNr  
-        ScoreAgreement  
-        deltCn    Xcorr    Mass    
-        PepLen    Charge1    Charge2    
-        Charge3    Charge4    Charge5    
-        Charge6    enzInt    dM    absdM    
-        peptide    proteinId1
-        '''
-        lPin.append((self.sFileName
-                     + '_'
-                     + str(self.iScanNumber)
-                     + '_'
-                     + str(self.iParentCharge)))
-        lProteins = []
-        iType = protein_type(self.oBestPep.sProteinNames, lProteins)
-        if iType == 2:
-            lPin.append('-1')
-        else:
-            lPin.append('1')
-            lProteins = self.removeReverse(lProteins)
-        lPin.append(str(self.iScanNumber))
-        lPin.append(str(num_agreement(self.oBestPep.liRanks)))
-        lPin.append(str(self.oBestPep.lfScoreDiff[0]))
-        lPin.append(str(self.oBestPep.lfScores[0]))
-        lPin.append(str(math.log(self.oBestPep.liRanks[0])))
-        lPin.append(str(self.oBestPep.lfScoreDiff[1]))
-        lPin.append(str(self.oBestPep.lfScores[1]))
-        lPin.append(str(math.log(self.oBestPep.liRanks[1])))
-        lPin.append(str(self.oBestPep.lfScoreDiff[2]))
-        lPin.append(str(self.oBestPep.lfScores[2]))
-        lPin.append(str(math.log(self.oBestPep.liRanks[2])))
-        lPin.append(str(self.fMeasuredParentMass))
-        lPin.append(str(len(self.oBestPep.sOriginalPeptide) - 2))
-        for i in range(1, 6, 1):
-            if self.iParentCharge == i:
-                lPin.append('1')
-            else:
-                lPin.append('0')
-        if self.iParentCharge >= 6:
-            lPin.append('1')
-        else:
-            lPin.append('0')
-        lPin.append(str(self.enzInt()))
-        fTemp = self.fMeasuredParentMass - self.oBestPep.fCalculatedParentMass
-        lPin.append(str(fTemp))
-        lPin.append(str(abs(fTemp)))
-        lPin.append(self.percolatorPeptide())
-        # lPin.extend(lProteins)
-        lPin.append(lProteins[0])
-        return ('\t'.join(lPin), len(lProteins))
 
     def removeReverse(self, lProteins):
         newlist = []
@@ -1023,16 +790,10 @@ class PepSpectrumMatch:
                 newlist.append(sProtein)
         return newlist
 
-    def percolatorPeptide(self):
-        return 'K.' + self.oBestPep.sIdentifiedPeptide[1:-1] + '.A'
-
-    def enzInt(self):
-        iNumIntEnz = -1
-        iNumIntEnz += self.oBestPep.sIdentifiedPeptide.count('K')
-        iNumIntEnz += self.oBestPep.sIdentifiedPeptide.count('R')
-        return iNumIntEnz
-
-# # lOnePsm: + spectrum * peptide * peptide + spectrum
+# # lOnePsm: 
+# # + spectrum 
+# # * peptide
+# # * peptide 
 def SelectTopRankedPsm(lOnePsm, isSIP=False):
     psm_dict = {}
     psm = PepSpectrumMatch(lOnePsm[0][0], isSIP)
@@ -1253,23 +1014,6 @@ class RankPsm(Process):
         self.qPsmUnprocessed.put(None)
         return
 
-
-# # Decoy Reverse Forward protein
-def protein_type(protein_sequence, lProtein=None):
-    sProteins = protein_sequence.replace('{', '')
-    sProteins = sProteins.replace('}', '')
-    asProteins = sProteins.split(',')
-    if lProtein != None:
-        del lProtein[:]
-        lProtein.extend(asProteins[:])
-    for sProtein in asProteins:
-        if not (sProtein.startswith(rev_str) or sProtein.startswith(shu_str)):
-            return LabelFwd
-    for sProtein in asProteins:
-        if sProtein.startswith(shu_str):
-            return LabelShu
-    return LabelRev
-
 # # score agreement recode
 def agreement(liRank):
     iIndex = 0
@@ -1288,65 +1032,7 @@ def num_agreement(liRanks):
             iNum += 1
     return iNum
 
-# # write the PSM table
-def writePin(sOutputFile, qPsmProcessed, iNumRankers):
-    iNumTarget = 0
-    iNumReverse = 0
-    iNumShuffle = 0
-    iNumProcessedScans = 0
-    liAgreeRecord = []
-    liTarget = []
-    liReverse = []
-    liShuffle = []
-    for _i in range(8):
-        liAgreeRecord.append(0)
-        liTarget.append(0)
-        liReverse.append(0)
-        liShuffle.append(0)
-    iMaxNumProtein = 0
-    with open(sOutputFile, 'w') as f:
-        # PSM
-        while True:
-            psm = qPsmProcessed.get(True)
-            if psm is None:
-                iNumRankers -= 1
-                if iNumRankers == 0:
-                    break
-                else:
-                    continue
-            (sLine, iNumProteins) = psm.pin()
-            if iNumProteins > iMaxNumProtein:
-                iMaxNumProtein = iNumProteins
-            f.write(sLine)
-            f.write('\n')
-            iTemp2 = agreement(psm.oBestPep.liRanks)
-            liAgreeRecord[iTemp2] += 1
-            iTemp = protein_type(psm.oBestPep.sProteinNames)
-            if iTemp == 1:
-                iNumTarget += 1
-                liTarget[iTemp2] += 1
-            elif iTemp == 2:
-                iNumReverse += 1
-                liReverse[iTemp2] += 1
-            else:
-                iNumShuffle += 1
-                liShuffle[iTemp2] += 1
-            del psm
-            iNumProcessedScans += 1
-            if iNumProcessedScans % 100 == 0:
-                pass
-                # print " Processed & Saved %i Scans\r" % iNumProcessedScans
-    '''
-    print "\nTarget #: %d\tReverse #: %d\tShuffle #: %d" % (iNumTarget, iNumReverse, iNumShuffle)
-    print liAgreeRecord
-    print liTarget
-    print liReverse
-    print liShuffle
-    print 'Max number of proteins: %i' % iMaxNumProtein
-    '''
-
 bAdditionalFeatures = True
-header_message_additional_feature = '\tDeltaRP1\tDeltaRP2\tDeltaRP3\tDeltaRS1\tDeltaRS2\tDeltaRS3\tDiffRP1\tDiffRP2\tDiffRP3\tDiffRS1\tDiffRS2\tDiffRS3\tDiffNorRP1\tDiffNorRP2\tDiffNorRP3\tDiffNorRS1\tDiffNorRS2\tDiffNorRS3'
 bExtraNegativePsm = False
 bRTime = True
 bAdditionPepScoreAgreementNotThree = True
@@ -1357,18 +1043,6 @@ def writePsm(sOutputFile, qPsmProcessed, iNumRankers, pepxml_bool = False):
     iNumReverse = 0
     iNumShuffle = 0
     iNumProcessedScans = 0
-    liAgreeRecord = []
-    liTarget = []
-    liReverse = []
-    liShuffle = []
-    for _i in range(8):
-        liAgreeRecord.append(0)
-        liTarget.append(0)
-        liReverse.append(0)
-        liShuffle.append(0)
-    if bExtraNegativePsm:
-        sOutputFileExtraNegativePsm = sOutputFile[:-4] + '_nagative.tab'
-        fExtra = open(sOutputFileExtraNegativePsm, 'w')
     
     with open(sOutputFile, 'w') as f:
         # header
@@ -1385,33 +1059,9 @@ def writePsm(sOutputFile, qPsmProcessed, iNumRankers, pepxml_bool = False):
         f.write('Xcorr\t')
         f.write('WDP\t')
         f.write('ProteinNames\t')
-        f.write('ScoreAgreement')
-        if bAdditionalFeatures:
-            f.write(header_message_additional_feature)
-        if bRTime:
-            f.write('\tRetentionTime')
-            f.write('\tLocalRank')
-            f.write('\tDeltaP')
-        f.write('\n')
-        
-        if bExtraNegativePsm:
-            fExtra.write('FileName\t')
-            fExtra.write('ScanNumber\t')
-            fExtra.write('ParentCharge\t')
-            fExtra.write('MeasuredParentMass\t')
-            fExtra.write('ScanType\t')
-            fExtra.write('SearchName\t')
-            fExtra.write('IdentifiedPeptide\t')
-            fExtra.write('OriginalPeptide\t')
-            fExtra.write('CalculatedParentMass\t')
-            fExtra.write('MVH\t')
-            fExtra.write('Xcorr\t')
-            fExtra.write('WDP\t')
-            fExtra.write('ProteinNames\t')
-            fExtra.write('ScoreAgreement')
-            if bAdditionalFeatures:
-                fExtra.write(header_message_additional_feature)
-            fExtra.write('\n')
+        f.write('Diff_MVH\tDiff_Xcorr\tDiff_WDP\t')
+        f.write('RetentionTime\t')
+        f.write('DeltaP\n')
         
         # PSM
         while True:
@@ -1426,67 +1076,14 @@ def writePsm(sOutputFile, qPsmProcessed, iNumRankers, pepxml_bool = False):
                 f.write(psm.all_top_5_ranked_psm())
             else:
                 f.write(psm.all_top_ranked_psm())
-            '''
-            if bAdditionPepScoreAgreementNotThree and num_agreement(psm.oBestPep.liRanks) < 2:
-                f.write(psm.all_top_ranked_psm())
-            else:
-                f.write(repr(psm))
-                f.write('\t')
-            #f.write(str(agreement(psm.oBestPep.liRanks)))
-                if bAdditionalFeatures:
-                    f.write(str(num_agreement(psm.oBestPep.liRanks)))
-                    f.write('\t')
-                    f.write(psm.get_other_features())
-                else:
-                    f.write(str(num_agreement(psm.oBestPep.liRanks)))
-                if bRTime:
-                    f.write('\t')
-                    f.write(psm.sRTime)
-                f.write('\t')
-                f.write(str(psm.oBestPep.iRank))
-                f.write('\t')
-                f.write(str(psm.oBestPep.DeltaP))
-            '''
+
             f.write('\n')
-            iTemp2 = agreement(psm.oBestPep.liRanks)
-            liAgreeRecord[iTemp2] += 1
-            iTemp = protein_type(psm.oBestPep.sProteinNames)
-            if iTemp == LabelFwd:
-                iNumTarget += 1
-                liTarget[iTemp2] += 1
-            elif iTemp == LabelRev:
-                iNumReverse += 1
-                liReverse[iTemp2] += 1
-            else:
-                iNumShuffle += 1
-                liShuffle[iTemp2] += 1
-                
-            if bExtraNegativePsm and psm.oSecondBestPep != None:
-                fExtra.write(psm.get_second_pep())
-                fExtra.write('\t')
-                if bAdditionalFeatures:
-                    fExtra.write(str(num_agreement(psm.oSecondBestPep.liRanks)))
-                    fExtra.write('\t')
-                    fExtra.write(psm.get_other_features())
-                else:
-                    fExtra.write(str(num_agreement(psm.oSecondBestPep.liRanks)))
-                fExtra.write('\n')
                 
             del psm
             iNumProcessedScans += 1
             if iNumProcessedScans % 100 == 0:
                 pass
                 # print " Processed & Saved %i Scans\r" % iNumProcessedScans
-    
-    if bExtraNegativePsm:
-        fExtra.close()
-    '''
-    print "\nTarget #: %d\tReverse #: %d\tShuffle #: %d" % (iNumTarget, iNumReverse, iNumShuffle)
-    print liAgreeRecord
-    print liTarget
-    print liReverse
-    print liShuffle
-    '''
 
 
 pep_iden_str = '[Peptide_Identification]'
@@ -1494,204 +1091,3 @@ search_name_str = 'Search_Name'
 FASTA_Database_str = 'FASTA_Database'
 Maximum_Missed_Cleavages_str = 'Maximum_Missed_Cleavages'
 Cleave_After_Residues_str = 'Cleave_After_Residues'
-
-def get_num_missed_cleavages(peptide_str, cleave_residues_str):
-    num = 0
-    for c in cleave_residues_str:
-        num += peptide_str.count(c)
-
-    return str(num - 1)
-
-def get_modification_info(peptide_str, modification_label_dict):
-    modification_dict = {}
-    for key, value in modification_label_dict.iteritems():
-        beg = -1
-        beg = peptide_str.find(key, beg + 1)
-        while beg != -1:
-            modification_dict[str(beg - len(modification_dict))] = value
-            beg = peptide_str.find(key, beg + 1)
-    return modification_dict
-
-def write_PepXML(output_folder, qPsmProcessed, iNumRankers, config_dict):
-
-    ElementTree = import_module('ElementTree', 'lxml.etree')
-    Element = import_module('Element', 'lxml.etree')
-    SubElement = import_module('SubElement', 'lxml.etree')
-    
-    input_filename = ''
-    root = Element('msms_pipeline_analysis')
-    iIndexUnique = 1
-    iScoreId = 1  # 0: MVH, 1: Xcorr, 2: WDP
-    score_list_str = ['mvh', 'xcorr', 'mvh']
-    search_engine_str = ['MyriMatch', 'Comet', 'MyriMatch']
-    iNumProcessedScans = 0
-    cleave_residues_str = config_dict[Cleave_After_Residues_str]
-
-    modification_label_dict = {'~':'15.994915', '!': '0.984016'}
-
-    while True:
-        psm = qPsmProcessed.get(True)
-        if psm is None:
-            iNumRankers -= 1
-            if iNumRankers == 0:
-                break
-            else:
-                continue
-        if input_filename != psm.sFileName.split('.')[0]:
-            if input_filename != '':
-                document = ElementTree(root)
-                document.write((output_folder + input_filename + '.pep.xml'),
-                               encoding='ISO-8859-1',
-                               xml_declaration=True,
-                               pretty_print=True)
-                iIndexUnique = 1
-            input_filename = psm.sFileName.split('.')[0]
-            xmlns = "http://regis-web.systemsbiology.net/pepXML"
-            xsi = "http://www.w3.org/2001/XMLSchema-instance"
-            schemaLocation = "http://sashimi.sourceforge.net/schema_revision/pepXML/pepXML_v117.xsd"
-            root = Element("{" + xmlns + "}msms_pipeline_analysis",
-                           nsmap={'xsi':xsi, None:xmlns},
-                           attrib={"{" + xsi + "}schemaLocation"  : schemaLocation})
-            root.set('date', datetime.now().isoformat())
-            root.set('summary_xml', (input_filename + '.pepXML'))
-            # root.set('xmlns', "http://regis-web.systemsbiology.net/pepXML")
-            # root.set('xmlns:xsi', "http://www.w3.org/2001/XMLSchema-instance")
-            # root.set('xsi:schemaLocation', "http://sashimi.sourceforge.net/schema_revision/pepXML/pepXML_v117.xsd")
-
-            if iScoreId != 1:  # Xcorr does not need analysis summary
-                analysis_summary = SubElement(root, 'analysis_summary')
-                analysis_summary.set('analysis', "Sipros")
-                analysis_summary.set('version', "10")
-                analysis_summary.set('time', (datetime.now().isoformat()))
-
-            msms_run_summary = SubElement(root, 'msms_run_summary')
-            msms_run_summary.set('base_name', input_filename)
-            msms_run_summary.set('raw_data_type', "raw")
-            msms_run_summary.set('raw_data', "ms2")
-
-            sample_enzyme = SubElement(msms_run_summary, 'sample_enzyme')
-            sample_enzyme.set('name', "Trypsin/P")
-            sample_enzyme.set('independent', "false")
-            sample_enzyme.set('fidelity', "specific")
-
-            specificity = SubElement(sample_enzyme, 'specificity')
-            specificity.set('sense', "C")
-            specificity.set('cut', "KR")
-            specificity.set('no_cut', "")
-            specificity.set('min_spacing', "1")
-
-            search_summary = SubElement(msms_run_summary, "search_summary")
-            search_summary.set('base_name', input_filename)
-            search_summary.set('search_engine', search_engine_str[iScoreId])
-            search_summary.set('precursor_mass_type', 'monoisotopic')
-            search_summary.set('fragment_mass_type', 'monoisotopic')
-            search_summary.set('out_data_type', '')
-            search_summary.set('out_data', '')
-
-            search_database = SubElement(search_summary, 'search_database')
-            search_database.set('local_path', config_dict[FASTA_Database_str])
-            search_database.set('database_name', 'SDB')
-            search_database.set('type', 'AA')
-
-            enzymatic_search_constraint = SubElement(search_summary, 'enzymatic_search_constraint')
-            enzymatic_search_constraint.set('enzyme', 'Trypsin/P')
-            enzymatic_search_constraint.set('max_num_internal_cleavages', config_dict[Maximum_Missed_Cleavages_str])
-            enzymatic_search_constraint.set('min_number_termini', '2')
-
-            aminoacid_modification = SubElement(search_summary, 'aminoacid_modification')
-            aminoacid_modification.set('aminoacid', 'M')
-            aminoacid_modification.set('massdiff', '15.994915')
-            aminoacid_modification.set('mass', '147.0353846062')
-            aminoacid_modification.set('variable', 'Y')
-            # aminoacid_modification.set('symbol', '~')
-
-            aminoacid_modification = SubElement(search_summary, 'aminoacid_modification')
-            aminoacid_modification.set('aminoacid', 'C')
-            aminoacid_modification.set('massdiff', '57.021464')
-            aminoacid_modification.set('mass', '160.030649')
-            aminoacid_modification.set('variable', 'N')
-
-            # aminoacid_modification = SubElement(search_summary, 'aminoacid_modification')
-            # aminoacid_modification.set('aminoacid', 'N')
-            # aminoacid_modification.set('massdiff', '0.984016')
-            # aminoacid_modification.set('variable', 'Y')
-            # aminoacid_modification.set('symbol', '!')
-
-            # aminoacid_modification = SubElement(search_summary, 'aminoacid_modification')
-            # aminoacid_modification.set('aminoacid', 'Q')
-            # aminoacid_modification.set('massdiff', '0.984016')
-            # aminoacid_modification.set('variable', 'Y')
-            # aminoacid_modification.set('symbol', '!')
-
-        # query results
-        spectrum_query = SubElement(msms_run_summary, 'spectrum_query')
-        ScanNumber_str = str(psm.iScanNumber)
-        ParentCharge_str = str(psm.iParentCharge)
-        spectrum_query.set('spectrum', input_filename + '.' + ScanNumber_str + '.' + ScanNumber_str + '.' + ParentCharge_str)
-        spectrum_query.set('start_scan', ScanNumber_str)
-        spectrum_query.set('end_scan', ScanNumber_str)
-        spectrum_query.set('precursor_neutral_mass', str(psm.fMeasuredParentMass))
-        spectrum_query.set('assumed_charge', ParentCharge_str)
-        spectrum_query.set('index', str(iIndexUnique))
-
-        search_result = SubElement(spectrum_query, 'search_result')
-        for oPepScores in psm.lPepScores:
-            if oPepScores.liRanks[iScoreId] > 5:
-                continue
-            search_hit = SubElement(search_result, 'search_hit')
-            search_hit.set('hit_rank', str(oPepScores.liRanks[iScoreId]))
-            search_hit.set('peptide', oPepScores.sOriginalPeptide[1:-1])
-            lProteins = oPepScores.sProteinNames.split(',')
-            search_hit.set('protein', lProteins[0])
-            search_hit.set('num_tot_proteins', str(len(lProteins)))
-            search_hit.set('calc_neutral_pep_mass', str(oPepScores.fCalculatedParentMass))
-            search_hit.set('massdiff', str(psm.fMeasuredParentMass - oPepScores.fCalculatedParentMass))
-            search_hit.set('num_tol_term', '2')
-            search_hit.set('num_missed_cleavages', get_num_missed_cleavages(oPepScores.sIdentifiedPeptide, cleave_residues_str))
-            # alternative_protein
-            if len(lProteins) > 1:
-                for iProteins in range(1, len(lProteins)):
-                    alternative_protein = SubElement(search_hit, 'alternative_protein')
-                    alternative_protein.set('protein', lProteins[iProteins])
-            # modification_info
-            modification_dict = get_modification_info(oPepScores.sIdentifiedPeptide[1:-1], modification_label_dict)
-            if modification_dict:
-                modification_info = SubElement(search_hit, "modification_info")
-                for key, value in modification_dict.iteritems():
-                    mod_aminoacid_mass = SubElement(modification_info, 'mod_aminoacid_mass')
-                    mod_aminoacid_mass.set('position', key)
-                    mod_aminoacid_mass.set('mass', value)
-            # search_score
-            search_score = SubElement(search_hit, 'search_score')
-            search_score.set('name', score_list_str[iScoreId])
-            search_score.set('value', str(oPepScores.lfScores[iScoreId]))
-
-            if iScoreId == 1:
-                search_score = SubElement(search_hit, 'search_score')
-                search_score.set('name', 'deltacn')
-                search_score.set('value', '0.000')
-                search_score = SubElement(search_hit, 'search_score')
-                search_score.set('name', 'deltacnstar')
-                search_score.set('value', '0.000')
-                search_score = SubElement(search_hit, 'search_score')
-                search_score.set('name', 'spscore')
-                search_score.set('value', '0.000')
-                search_score = SubElement(search_hit, 'search_score')
-                search_score.set('name', 'sprank')
-                search_score.set('value', str(oPepScores.liRanks[iScoreId]))
-                search_score = SubElement(search_hit, 'search_score')
-                search_score.set('name', 'expect')
-                search_score.set('value', '0.000')
-
-        iNumProcessedScans += 1
-        if iNumProcessedScans % 100 == 0:
-            print(" Processed & Saved %i Scans\r" % iNumProcessedScans)
-
-    if input_filename != '':
-        document = ElementTree(root)
-        document.write((output_folder + input_filename + '.pep.xml'),
-                       encoding='ISO-8859-1',
-                       xml_declaration=True,
-                       pretty_print=True)
-
-    print("Done.")

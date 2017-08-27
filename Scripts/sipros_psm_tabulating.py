@@ -4,12 +4,6 @@ Created on Jun 28, 2016
 @author: Xuan Guo
 '''
 
-'''
-To-do
-remove non-necessary columns
-
-'''
-
 import sys, os
 import getopt
 import csv
@@ -20,7 +14,7 @@ import re
 # # Import Sipros package modules
 import sipros_post_module
 import parseconfig
-import sipros_post_processing
+import sipros_ensemble_filtering
 from multiprocessing import Queue, cpu_count
 
 ## Returns the current time in a nice format
@@ -38,22 +32,20 @@ Usage:
     python sipros_psm_tabulating.py [options]
 
 Inputs:
-    -i spe2psm directory
+    -i Spe2Pep.txt directory
     -c sipros configuration file
     -o output directory
 
 Options:
-    -h/--help
-    -v/--version
-    -i/--input-folder ./path    
-    -c/--configuration
-    -o/--output-folder ./path
+    -h show help message
+    -v show script version
+    -x generate pep_xml results
 
 Outputs:
     output PSM table
 '''
 
-spe2psm_file_ext = 'Spe2Pep.txt'
+
 # # Get file(s) list in working dir with specific file extension
 get_file_list_with_ext = sipros_post_module.get_file_list_with_ext
 # # Class for sipros fields object
@@ -64,15 +56,6 @@ PsmFields = sipros_post_module.PsmFields
 CommentedFile = sipros_post_module.CommentedFile
 # # check_file_exist
 check_file_exist = sipros_post_module.check_file_exist
-
-# # Decoy Reverse Forward protein
-def protein_type(protein_sequence):
-    sProteins = protein_sequence
-    asProteins = sProteins.split(',')
-    for sProtein in asProteins:
-        if not (sProtein.startswith('Rev_') or sProtein.startswith('Dec_')):
-            return 1
-    return -1
 
 pep_iden_str = '[Peptide_Identification]'
 search_name_str = 'Search_Name'
@@ -117,13 +100,7 @@ def parse_config(config_filename):
 # # Parse options
 def parse_options(argv):
 
-    opts, _args = getopt.getopt(argv[1:], "hvVi:c:o:x",
-                                    ["help",
-                                     "version",
-                                     "input-folder",
-                                     "configuration",
-                                     "output-folder",
-                                     "pepxml"])
+    opts, _args = getopt.getopt(argv[1:], "hvVi:c:o:x")
 
     # Default working dir and config file
     input_folder = ""
@@ -133,19 +110,19 @@ def parse_options(argv):
 
     # Basic options
     for option, value in opts:
-        if option in ("-h", "--help"):
+        if option in ("-h"):
             print(help_message)
             sys.exit(0)
-        if option in ("-v", "-V", "--version"):
+        if option in ("-v", "-V"):
             print("sipros_psm_tabulating.py V%s" % (get_version()))
             sys.exit(0)
-        if option in ("-i", "--input-folder"):
+        if option in ("-i"):
             input_folder = value
-        if option in ("-c", "--configuration"):
+        if option in ("-c"):
             sConfig = value
-        if option in ("-o", "--output-folder"):
+        if option in ("-o"):
             output_folder = value
-        if option in ("-x", "--pepxml"):
+        if option in ("-x"):
             pepxml_output = True
 
     if input_folder == "" or sConfig == "" or output_folder == "":
@@ -286,161 +263,7 @@ class Scores:
                     f.write(str(self.lDecoyScores[i]))
                 f.write('\n')
 
-def report_output(sipros_psm_data):
-    iNumMvh = 0
-    iTargeMvh = 0
-    iDecoyMvh = 0
-    iNumWdp = 0
-    iTargeWdp = 0
-    iDecoyWdp = 0
-    iNumXcorr = 0
-    iTargeXcorr = 0
-    iDecoyXcorr = 0
-    iNumMvhWdp = 0
-    iTargeMvhWdp = 0
-    iDecoyMvhWdp = 0
-    iNumMvhXcorr = 0
-    iTargeMvhXcorr = 0
-    iDecoyMvhXcorr = 0
-    iNumWdpXcorr = 0
-    iTargeWdpXcorr = 0
-    iDecoyWdpXcorr = 0
-    iNumMvhWdpXcorr = 0
-    iTargeMvhWdpXcorr = 0
-    iDecoyMvhWdpXcorr = 0
-    lMvhScores = []
-    lWdpScores = []
-    lXcorrScores = []
-    iIndexMvhWdpXcorr = 3
-    iIndexMvhWdp = 2
-    iIndexMvhXcorr = 1
-    iIndexWdpMvh = 2
-    iIndexWdpXcorr = 1
-    iIndexXcorrMvh = 2
-    iIndexXcorrWdp = 1
-    for _i in range(4):
-        lMvhScores.append(Scores())
-        lWdpScores.append(Scores())
-        lXcorrScores.append(Scores())
-    lastPsm = 0
-    for _psm_ID, psm_data_list in sipros_psm_data.iteritems():
-        if lastPsm < int(psm_data_list[1]):
-            lastPsm = int(psm_data_list[1])
-        # MVH == WDP == Xcorr
-        if psm_data_list[4][1] == psm_data_list[5][1] and psm_data_list[4][1] == psm_data_list[6][1]:
-            iNumMvhWdpXcorr += 1
-            psm_data_list[7] = 4
-            if protein_type(psm_data_list[4][6]) == 1:
-                iTargeMvhWdpXcorr += 1
-                lMvhScores[iIndexMvhWdpXcorr].addTargetScores(psm_data_list[4][3])
-                lWdpScores[iIndexMvhWdpXcorr].addTargetScores(psm_data_list[5][4])
-                lXcorrScores[iIndexMvhWdpXcorr].addTargetScores(psm_data_list[6][5])
-            else:
-                iDecoyMvhWdpXcorr += 1
-                lMvhScores[iIndexMvhWdpXcorr].addDecoyScores(psm_data_list[4][3])
-                lWdpScores[iIndexMvhWdpXcorr].addDecoyScores(psm_data_list[5][4])
-                lXcorrScores[iIndexMvhWdpXcorr].addDecoyScores(psm_data_list[6][5])
-        # MVH == WDP != Xcorr
-        elif psm_data_list[4][1] == psm_data_list[5][1]:
-            iNumMvhWdp += 1
-            iNumXcorr += 1
-            psm_data_list[7] = 4
-            if protein_type(psm_data_list[4][6]) == 1:
-                iTargeMvhWdp += 1
-                lMvhScores[iIndexMvhWdp].addTargetScores(psm_data_list[4][3])
-                lWdpScores[iIndexWdpMvh].addTargetScores(psm_data_list[5][4])
-            else:
-                iDecoyMvhWdp += 1
-                lMvhScores[iIndexMvhWdp].addDecoyScores(psm_data_list[4][3])
-                lWdpScores[iIndexWdpMvh].addDecoyScores(psm_data_list[5][4])
-            if protein_type(psm_data_list[6][6]) == 1:
-                iTargeXcorr += 1
-                lXcorrScores[0].addTargetScores(psm_data_list[6][5])
-            else:
-                iDecoyXcorr += 1
-                lXcorrScores[0].addDecoyScores(psm_data_list[6][5])
-        # MVH == Xcorr != WDP
-        elif psm_data_list[4][1] == psm_data_list[6][1]:
-            iNumMvhXcorr += 1
-            iNumWdp += 1
-            psm_data_list[7] = 4
-            if protein_type(psm_data_list[4][6]) == 1:
-                iTargeMvhXcorr += 1
-                lMvhScores[iIndexMvhXcorr].addTargetScores(psm_data_list[4][3])
-                lXcorrScores[iIndexXcorrMvh].addTargetScores(psm_data_list[6][5])
-            else:
-                iDecoyMvhXcorr += 1
-                lMvhScores[iIndexMvhXcorr].addDecoyScores(psm_data_list[4][3])
-                lXcorrScores[iIndexXcorrMvh].addDecoyScores(psm_data_list[6][5])
-            if protein_type(psm_data_list[5][6]) == 1:
-                iTargeWdp += 1
-                lWdpScores[0].addTargetScores(psm_data_list[5][4])
-            else:
-                iDecoyWdp += 1
-                lWdpScores[0].addDecoyScores(psm_data_list[5][4])
-        # MVH != WDP == Xcorr
-        elif psm_data_list[5][1] == psm_data_list[6][1]:
-            iNumWdpXcorr += 1
-            iNumMvh += 1
-            psm_data_list[7] = 5
-            if protein_type(psm_data_list[4][6]) == 1:
-                iTargeMvh += 1
-                lWdpScores[iIndexWdpXcorr].addTargetScores(psm_data_list[5][4])
-                lXcorrScores[iIndexXcorrWdp].addTargetScores(psm_data_list[6][5])
-            else:
-                iDecoyMvh += 1
-                lWdpScores[iIndexWdpXcorr].addDecoyScores(psm_data_list[5][4])
-                lXcorrScores[iIndexXcorrWdp].addDecoyScores(psm_data_list[6][5])
-            if protein_type(psm_data_list[5][6]) == 1:
-                iTargeWdpXcorr += 1
-                lMvhScores[0].addTargetScores(psm_data_list[4][3])
-            else:
-                iDecoyWdpXcorr += 1
-                lMvhScores[0].addDecoyScores(psm_data_list[4][3])
-        else:
-            iNumMvh += 1
-            iNumWdp += 1
-            iNumXcorr += 1
-            if protein_type(psm_data_list[4][6]) == 1:
-                iTargeMvh += 1
-                lMvhScores[0].addTargetScores(psm_data_list[4][3])
-            else:
-                iDecoyMvh += 1
-                lMvhScores[0].addDecoyScores(psm_data_list[4][3])
-            if protein_type(psm_data_list[5][6]) == 1:
-                iTargeWdp += 1
-                lWdpScores[0].addTargetScores(psm_data_list[5][4])
-            else:
-                iDecoyWdp += 1
-                lWdpScores[0].addDecoyScores(psm_data_list[5][4])
-            if protein_type(psm_data_list[6][6]) == 1:
-                iTargeXcorr += 1
-                lXcorrScores[0].addTargetScores(psm_data_list[6][5])
-            else:
-                iDecoyXcorr += 1
-                lXcorrScores[0].addDecoyScores(psm_data_list[6][5])
-    print("Mvh:\t" + str(iNumMvh) + "\tTarget/Decoy\t" + str(iTargeMvh) + "\t" + str(iDecoyMvh))
-    print("Xcorr:\t" + str(iNumXcorr) + "\tTarget/Decoy\t" + str(iTargeXcorr) + "\t" + str(iDecoyXcorr))
-    print("Wdp:\t" + str(iNumWdp) + "\tTarget/Decoy\t" + str(iTargeWdp) + "\t" + str(iDecoyWdp))
-    print("Mvh+Xcorr:\t" + str(iNumMvhXcorr) + "\tTarget/Decoy\t" + str(iTargeMvhXcorr) + "\t" + str(iDecoyMvhXcorr))
-    print("Mvh+Wdp:\t" + str(iNumMvhWdp) + "\tTarget/Decoy\t" + str(iTargeMvhWdp) + "\t" + str(iDecoyMvhWdp))
-    print("Wdp+Xcorr:\t" + str(iNumWdpXcorr) + "\tTarget/Decoy\t" + str(iTargeWdpXcorr) + "\t" + str(iDecoyWdpXcorr))
-    print("Mvh+Wdp+Xcorr:\t" + str(iNumMvhWdpXcorr) + "\tTarget/Decoy\t" + str(iTargeMvhWdpXcorr) + "\t" + str(iDecoyMvhWdpXcorr))
-    lMvhScores[0].writeIntoFile('MvhOnly')
-    lMvhScores[iIndexMvhWdp].writeIntoFile('MvhWdp')
-    lMvhScores[iIndexMvhXcorr].writeIntoFile('MvhXcorr')
-    lMvhScores[iIndexMvhWdpXcorr].writeIntoFile('MvhWdpXcorr')
-    lWdpScores[0].writeIntoFile('WdpOnly')
-    lWdpScores[iIndexWdpMvh].writeIntoFile('WdpMvh')
-    lWdpScores[iIndexWdpXcorr].writeIntoFile('WdpXcorr')
-    lWdpScores[iIndexMvhWdpXcorr].writeIntoFile('WdpMvhXcorr')
-    lXcorrScores[0].writeIntoFile('MvhOnly')
-    lXcorrScores[iIndexXcorrWdp].writeIntoFile('XcorrWdp')
-    lXcorrScores[iIndexXcorrMvh].writeIntoFile('XcorrMvh')
-    lXcorrScores[iIndexMvhWdpXcorr].writeIntoFile('XcorrMvhWdp')
-    
-    print('\nid:\t%s' % lastPsm)
-    return sipros_psm_data
+
 
 def refine_proteins(file_str):
     pep_pro_dict = {}
@@ -476,35 +299,13 @@ def refine_proteins(file_str):
             else:
                 print('error')
 
-# # simple count the agreements
-def main2(argv=None):
-
-    if argv is None:
-        argv = sys.argv
-    # parse options
-    (input_folder, _sConfig, _output_folder) = parse_options(argv)
-    # Get sipros output file(s) in working directory
-    spe2psm_file_list = get_file_list_with_ext(input_folder, spe2psm_file_ext)
-    # Read sipros output files and get data
-    sys.stderr.write('[Step 2] Load sipros output file(s):        Running -> ')
-    sipros_psm_data = read_sipros_files(spe2psm_file_list)
-    sys.stderr.write('Done!\n')
-    sys.stderr.write("Number Equal Scores:\t" + str(iNumScoreEqual) + "\n")
-    # Report output
-    sys.stderr.write('[Step 4] Report .psm.txt and .pep.txt:      Running -> \n')
-    # Report output files
-    report_output(sipros_psm_data)
-    sys.stderr.write('Done!\n')
-
 Spe2PepReader = sipros_post_module.Spe2PepReader
 RankPsm = sipros_post_module.RankPsm
 writePsm = sipros_post_module.writePsm
 #writePin = sipros_post_module.writePin
 #write_PepXML = sipros_post_module.write_PepXML
 
-## Get base_out filename
-get_base_out = sipros_post_module.get_base_out
-PsmFields4 = sipros_post_processing.PsmFields4
+PsmFields4 = sipros_ensemble_filtering.PsmFields4
 
 class scan_xml:
     def __init__(self, line_str):
@@ -539,7 +340,10 @@ class scan_xml:
                 continue
             for idx2, pep in enumerate(l1):
                 if idx2 == 0:
-                    diff = (pep.scorelist[idx1]/l1[idx2+1].scorelist[idx1]) - 1
+                    if l1[idx2+1].scorelist[idx1] == 0:
+                        diff = 1
+                    else:
+                        diff = (pep.scorelist[idx1]/l1[idx2+1].scorelist[idx1]) - 1
                 else:
                     diff = (pep.scorelist[idx1]/l1[0].scorelist[idx1]) - 1
                 pep.scorediff[idx1] = diff
@@ -586,7 +390,7 @@ def get_modification_info(peptide_str, modification_label_dict):
             beg = peptide_str.find(key, beg + 1)
     return modification_dict
 
-def writePepxml(filename_str, config_dict, modification_dict, element_modification_list_dict):
+def writePepxml(filename_str, config_dict, modification_dict, element_modification_list_dict, output_dir):
 
     # start reading files
     filename_tab_str = ""
@@ -611,15 +415,21 @@ def writePepxml(filename_str, config_dict, modification_dict, element_modificati
     if psm_obj is not None:
         psm_obj.score_process()
         psm_list.append(psm_obj)
-        
-    writePepxmlSingle(filename_str, config_dict, modification_dict, element_modification_list_dict, psm_list, 0)
-    writePepxmlSingle(filename_str, config_dict, modification_dict, element_modification_list_dict, psm_list, 1)
-    writePepxmlSingle(filename_str, config_dict, modification_dict, element_modification_list_dict, psm_list, 2)
+    
+    if not os.path.exists(os.path.join(output_dir, 'mvh')):
+        os.makedirs(os.path.join(output_dir, 'mvh'))
+    writePepxmlSingle(filename_str, config_dict, modification_dict, element_modification_list_dict, psm_list, 0, os.path.join(output_dir, 'mvh'))
+    if not os.path.exists(os.path.join(output_dir, 'xcorr')):
+        os.makedirs(os.path.join(output_dir, 'xcorr'))
+    writePepxmlSingle(filename_str, config_dict, modification_dict, element_modification_list_dict, psm_list, 1, os.path.join(output_dir, 'xcorr'))
+    if not os.path.exists(os.path.join(output_dir, 'wdp')):
+        os.makedirs(os.path.join(output_dir, 'wdp'))
+    writePepxmlSingle(filename_str, config_dict, modification_dict, element_modification_list_dict, psm_list, 2, os.path.join(output_dir, 'wdp'))
     
     
-def writePepxmlSingle(filename_str, config_dict, modification_dict, element_modification_list_dict, psm_list, op):
+def writePepxmlSingle(filename_str, config_dict, modification_dict, element_modification_list_dict, psm_list, op, output_dir):
     score_list_str = ['mvh', 'xcorr', 'wdp']
-    deltascore_str = 'scoreDifferential'
+    deltascore_str = 'scoreDiff'
     cleave_residues_str = config_dict[Cleave_After_Residues_str]
     
     _temp = __import__('lxml.etree', globals(), locals(), ['ElementTree'], -1)
@@ -648,8 +458,8 @@ def writePepxmlSingle(filename_str, config_dict, modification_dict, element_modi
     
     msms_run_summary = SubElement(root, 'msms_run_summary')
     msms_run_summary.set('base_name', filename)
-    msms_run_summary.set('raw_data_type', "raw")
-    msms_run_summary.set('raw_data', "ms2")
+    msms_run_summary.set('raw_data_type', ".mzML")
+    msms_run_summary.set('raw_data', ".mzML")
 
     sample_enzyme = SubElement(msms_run_summary, 'sample_enzyme')
     sample_enzyme.set('name', "Trypsin/P")
@@ -694,6 +504,7 @@ def writePepxmlSingle(filename_str, config_dict, modification_dict, element_modi
         # query results
         spectrum_query = SubElement(msms_run_summary, 'spectrum_query')
         filename_tab_str = psm_obj.filename
+        filename_tab_str, file_extension = os.path.splitext(filename_tab_str)
         ScanNumber_str = psm_obj.scannumber
         ParentCharge_str = psm_obj.charge
         spectrum_query.set('spectrum', filename_tab_str + '.' + ScanNumber_str + '.' + ScanNumber_str + '.' + ParentCharge_str)
@@ -744,11 +555,31 @@ def writePepxmlSingle(filename_str, config_dict, modification_dict, element_modi
 
     # write into file
     document = ElementTree(root)
-    document.write((filename +'_' +score_list_str[op]+ '.pep.xml'),
+    filename  = os.path.split(filename)[-1]
+    document.write((os.path.join(output_dir, filename + '.pep.xml')),
                    encoding='ISO-8859-1',
                    xml_declaration=True,
                    pretty_print=True)
+
+# # Get base output filename with input file list and base_out_default
+def get_base_out(file_list, base_out_default, working_dir):
+
+    # Get base output with common prefix
+    base_out = os.path.commonprefix(file_list)
+    base_out_filename = os.path.split(base_out)[-1]
     
+    # If base common prefix ends with '.tab', then remove '.tab'
+    base_out_filename = base_out_filename.replace(".Spe2Pep.txt", "_")
+
+    # If base_out file name is less than 5, then use default baseout
+    if len(base_out_filename) < 5:
+        base_out = os.path.join(working_dir, base_out_default)
+    else:
+        # If base common prefix ends with '_' or '.', then remove
+        base_out = base_out_filename[:-1] if (base_out_filename[-1] in ('_', '.')) else base_out_filename
+        base_out = os.path.join(working_dir, base_out)
+
+    return base_out
 
 def main(argv=None):
     
@@ -767,8 +598,7 @@ def main(argv=None):
     # iNumThreads = 3
     if iNumThreads < 3:
         sys.stderr.write('This script needs at least three cores per CPU.')
-    else:
-        sys.stderr.write('%d threads will be used. \n' % iNumThreads)
+        sys.exit(0)
     # Parse options and get config file
     sys.stderr.write('[Step 1] Parse options and get config file: Running -> ')
     # Call parse_config to open and read config file
@@ -776,14 +606,6 @@ def main(argv=None):
     SIP = False
     if all_config_dict["[Peptide_Identification]Search_Type"] == "SIP":
         SIP = True
-    '''
-    writePepxml('/media/xgo/Seagate/Proteomics/Experiments/Pepxml/OSU_D10_FASP_Elite_03202014_05.SE_Spe2Pep.txt.tab', config_dict, modification_dict, element_modification_list_dict)
-    return
-    '''
-    # Get base_out for output
-    base_out_default = 'Sipros_searches'
-    sipros_file_list = get_file_list_with_ext(input_folder, 'Spe2Pep.txt')
-    base_out = get_base_out(sipros_file_list, base_out_default, output_folder)
     
     iQueueSize = 10000
     qPsmUnprocessed = Queue(iQueueSize)
@@ -806,23 +628,22 @@ def main(argv=None):
         PsmProcessor.daemon = True
         PsmProcessor.start()
     
-    base_out_filename = base_out.split('/')[-1]
-    base_out = output_folder + base_out_filename
+    # Get base_out for output
+    base_out_default = 'Sipros_searches'
+    sipros_file_list = get_file_list_with_ext(input_folder, 'Spe2Pep.txt')
+    base_out = get_base_out(sipros_file_list, base_out_default, output_folder)
     writePsm(base_out + '.tab', qPsmProcessed, iNumThreads - 2, pepxml_bool = pepxml_output)
     sys.stderr.write('Done!\n')
     
-    
-    # base_out_filename = base_out.split('/')[-1]
-    # base_out = output_folder + base_out_filename
     sys.stderr.write('[Step 3] Merge Protein list:                Running -> ')
-    refine_proteins(base_out+'.tab')
+    refine_proteins(base_out + '.tab')
     sys.stderr.write('Done!\n')
-    #writePin(base_out + '.tab', qPsmProcessed, iNumThreads - 2)
-    #write_PepXML(output_folder, qPsmProcessed, iNumThreads - 2, config_dict)
 
     # Generate pep xml files
     if pepxml_output:
         sys.stderr.write('[Step 4] Generate Pepxml:                   Running -> ')
+        
+        writePepxml(base_out + '.tab', config_dict, modification_dict, element_modification_list_dict, output_folder)
         
         sys.stderr.write('Done!\n')
     
