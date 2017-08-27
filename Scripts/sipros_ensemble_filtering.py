@@ -462,11 +462,10 @@ def read_psm_table(input_file):
     
     # If base_out file name is less than 5, then use default baseout
     if len(base_out_filename) < 5:
-        base_out = os.path.join(working_dir, 'sipros_results')
+        base_out = 'sipros_results'
     else:
         # If base common prefix ends with '_' or '.', then remove
         base_out = base_out_filename[:-1] if (base_out_filename[-1] in ('_', '.')) else base_out_filename
-        base_out = os.path.join(working_dir, base_out)
     
     psm_list = []
     
@@ -792,8 +791,8 @@ def logistic_regression_no_category(psm_list, config_dict=None):
                                              max_iter=100, 
                                              multi_class='ovr', 
                                              verbose=0, 
-                                             warm_start=False, 
-                                             n_jobs=-1)
+                                             warm_start=False)
+                                             # n_jobs=-1)
     logreg.fit(train_data_np, train_label_np)
 
     # # test
@@ -822,6 +821,8 @@ def get_num_missed_cleavage_sites(sIdentifiedSeq, sResiduesBeforeCleavage, sResi
 ## collect spectrum and protein level features
 def generate_Prophet_features_test(lPsm, config_dict):
     # get some statistics
+    global num_forward_psms_before_filtering
+    num_forward_psms_before_filtering = 0
     for one_psm in lPsm:
         if one_psm.RealLabel == LabelFwd:
             num_forward_psms_before_filtering += 1
@@ -1110,6 +1111,7 @@ FDR_Filtering_str = 'FDR_Filtering'
 cleave_after_residues_str = 'Cleave_After_Residues'
 cleave_before_residues_str = 'Cleave_Before_Residues'
 Mass_Tolerance_Parent_Ion_str = 'Filter_Mass_Tolerance_Parent_Ion'
+search_Mass_Tolerance_Parent_Ion_str = 'Search_Mass_Tolerance_Parent_Ion'
 Parent_Mass_Windows_str = 'Parent_Mass_Windows'
 
 ## Parse config file
@@ -1133,7 +1135,7 @@ def parse_config(config_filename):
         v = abs(int(e.strip()))
         if v > mass_window_max_int:
             mass_window_max_int = v
-    line_str = all_config_dict[pep_iden_str + Mass_Tolerance_Parent_Ion_str]
+    line_str = all_config_dict[pep_iden_str + search_Mass_Tolerance_Parent_Ion_str]
     if float(line_str.strip()) > 0.05:
         mass_window_max_int += 1
     
@@ -1319,7 +1321,7 @@ def generate_psm_pep_txt(base_out, out_folder, psm_filtered_list, config_dict):
             psm_decoy_int += 1
     
     # write out into files
-    base_out = out_folder + '/' + base_out
+    base_out = os.path.join(out_folder, base_out)
     psm_txt_file_str = base_out + ".psm.txt"
     with open(psm_txt_file_str, 'w') as fw:
         fw.write(pro_iden_msg)
@@ -1517,6 +1519,7 @@ def find_train_test_ratio(config_dict):
     
     global Test_Fwd_Ratio
     Test_Fwd_Ratio = float(num_test_int) / float(num_fwd_int)
+    global num_proteins
     num_proteins = num_fwd_int
     return Test_Fwd_Ratio
 
@@ -1681,7 +1684,7 @@ def sip_filtering_LR(input_file, config_dict, output_folder, start_time):
     feature_selection_list.extend([1, 2, 15, 24, 26, 28])
     psm_filtered_list = logistic_regression_sip(psm_list, config_dict)
     sys.stderr.write('Done!\n')
-    
+    post_processing
     # write output
     sys.stderr.write('[Step 5] Report output:                                     Running -> ')
     (psm_txt_file_str, pep_txt_file_str) = generate_psm_pep_txt(base_out, output_folder, psm_filtered_list, config_dict)

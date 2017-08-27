@@ -71,7 +71,7 @@ fi
 
 # PSM Filtering
 # echo ${TabFile}
-python2 ${exePath}/sipros_post_processing.py -i ${TabFile} -c ${ConfigureFile} -o ${OutputFolder}/
+python2 ${exePath}/sipros_ensemble_filtering.py -i ${TabFile} -c ${ConfigureFile} -o ${OutputFolder}/
 
 # Protein Assembly
 python2 ${exePath}/sipros_peptides_assembling.py -w ${OutputFolder}/ -c ${ConfigureFile}
