@@ -13,7 +13,7 @@ Sipros_MPI -w input_folder -c SiprosConfig.cfg -o destination_folder
 The detailed user manual of the database-searching and how to use it to achieve best results is provided here: [http://siprosensemble.omicsbio.org/user-manual](http://siprosensemble.omicsbio.org/user-manual). This is a quick start guide generally for developers and testers. Users with limited experience with MS-based database-searching are advised to use the user manual.
 
 ### Current Version
-* v1.0
+* v1.1
 
 ### Setup and Installation
 
