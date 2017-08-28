@@ -827,7 +827,7 @@ def generate_Prophet_features_test(lPsm, config_dict):
         if one_psm.RealLabel == LabelFwd:
             num_forward_psms_before_filtering += 1
     simple_feature_bool = False
-    if float(num_forward_psms_before_filtering)/float(len(lPsm)) > 0.6 and num_proteins > 100000:
+    if float(num_forward_psms_before_filtering)/float(len(lPsm)) > 0.7 and len(lPsm) > 1500000:
         simple_feature_bool = True
     # peptide with PTM dictionary is for IPSC
     peptide_with_modification_dict = {}
