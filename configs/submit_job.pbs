@@ -1,0 +1,32 @@
+#!/bin/bash
+
+#PBS -A account_id
+#PBS -l walltime=1:00:00
+#PBS -l select=23:ncpus=36:mpiprocs=1
+#PBS -N SE
+#PBS -j oe
+#PBS -q standard
+#PBS -m abe
+#PBS -M email_address
+
+# path to sipros ensemble MPI version program
+PGM=Sipros_MPI
+
+# path to the folder saving ms data
+MS2=mass_spectrometry_data
+
+# path to the configuration file 
+CFG=sipros_config.cfg
+
+# path to the output folder for saving database search results
+OUT=output_dir
+
+# create output directory if not exist
+mkdir -p ${OUT}
+
+# number of threads used per MPI process
+export OMP_NUM_THREADS=36
+
+# submit mpi program
+mpiexec_mpt -np 23 omplace ${PGM} -w ${MS2} -c ${CFG} -o ${OUT} -s
+

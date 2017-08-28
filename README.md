@@ -51,7 +51,7 @@ Neutral loss can be specified by `PTM{1to2}`, e.g., `PTM{>to|} = ST`. If symbol2
 
 #### Generate Reverse Sequences
 ```
-python reverseseq.py -i original_database_file -o output_database_file
+python sipros_prepare_protein_database.py -i original_database_file -o output_database_file -c config_file
 ```
 The step will generate a new database file with reverse sequences. Update the path of `FASTA_Database` in the configuration file.
 
@@ -59,33 +59,29 @@ The step will generate a new database file with reverse sequences. Update the pa
 
 There are two basic versions of the database-searching: one for running on a single machine and another for running with MPI on a cluster.  
 
-* __Single Machine Version:__ This version of the assembler should be used if you are going to run the database-searching on a single machine with one or more cores. The searching is invoked through a run script `./runSipros.sh`. The quick start command as shown below will be used in a batch job submission script or directly typed on the command line terminal.   
+* __Single Machine Version:__ This version of the assembler should be used if you are going to run the database-searching on a single machine with one or more cores. The searching is invoked through a run `Sipros_OpemMP` in `bin` directory. The quick start command as shown below will be used in a batch job submission script or directly typed on the command line terminal.   
 
 ```
 #!/bin/bash
 
 # Single MS2 file
-runSipros.sh -o ${output_dir} -f ${data_ms2} -c SiprosConfig.cfg
+Sipros_OpemMP -o output_dir -f ms_data -c SiprosConfig.cfg
 
 # Multiple MS2 files in a working directory
-runSipros.sh -o ${output_dir} -w ${workingdirectory} -c SiprosConfig.cfg
+Sipros_OpemMP -o output_dir -w workingdirectory -c SiprosConfig.cfg
 
 ```
-Results (`.Spe2Pep` files) will be saved on the output directory. if you have many configure files, specify `-g`, like `runSipros.sh -o ${output_dir} -w ${workingdirectory} -g ${configurefiledirectory}`. Use `./runSipros.sh -h` for help information. 
+Results (`.Spe2Pep` files) will be saved on the output directory. if you have many configure files, specify `-g`, like `Sipros_OpemMP -o output_dir -w workingdirectory -g configurefiledirectory`. Use `./Sipros_OpemMP -h` for help information. 
 
-* __MPI Version:__ This version of the database-searching should be used if you are going to run on a cluster with MPI support. The run script to invoke Sipros depends on the cluster management and job scheduling system.
- 
-	1. If you have ALPS i.e. __aprun__ is available, invoke Sipros using the run script `runSipros_ALPS.sh`.
+* __MPI Version:__ This version of the database-searching should be used if you are going to run on a cluster with MPI support. The run script to invoke `Sipros_MPI` depends on the cluster management and job scheduling system. An example bash script `submit_job.pbs` is provide in `configs`
  
 The quick start commands are:
 ```
-#!/bin/bash
-
 ### MPI Verion 
-runSipros_ALPS.sh -o ${output_dir} -w ${workingdirectory} -c $SiprosConfig.cfg -n ${number_MPI_processes}
+Sipros_MPI -o output_dir -w workingdirectory -c SiprosConfig.cfg
 
 ```
-Results (`.Spe2Pep` files) will be saved on the output directory. if you have many configure files, specify `-g`, like `runSipros.sh -o ${output_dir} -w ${workingdirectory} -g ${configurefiledirectory}`. Use `runSipros_ALPS.sh -h` for help information.
+Results (`.Spe2Pep` files) will be saved on the output directory. if you have many configure files, specify `-g`, like `Sipros_MPI -o output_dir -w workingdirectory -g configurefiledirectory`.
 
 ### Guide to Regular Search
 
@@ -105,7 +101,7 @@ The current version of scripts has been tested using Python 2.7.2, so if you are
 #!/bin/bash
 
 cd Scripts
-runSiprosPostprocessing.sh -in ${Spe2Pep_dir} -o ${workingdirectory} -c SiprosConfig.cfg
+runSiprosFiltering.sh -in Spe2Pep_dir -o workingdirectory -c SiprosConfig.cfg
 
 ```
 
