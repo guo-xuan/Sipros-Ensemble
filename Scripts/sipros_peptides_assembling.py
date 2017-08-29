@@ -350,14 +350,14 @@ def read_fasta_necessary_file(working_dir, config_dict, pro_greedy_list):
     test_str = config_dict[testing_decoy_prefix_str]
     reserved_str = ''
     if reserved_decoy_prefix_str in config_dict:
-        reserve_str = config_dict[reserved_decoy_prefix_str]
+        reserved_str = config_dict[reserved_decoy_prefix_str]
     num_train_int = 0
     num_test_int = 0
     num_reserved_int = 0
     num_fwd_int = 0
     less_train_str = '>' + train_str
     less_test_str = '>' + test_str
-    less_reserve_str = '>' + reserve_str
+    less_reserved_str = '>' + reserved_str
     
     # read lines
     for line in fasta_file:
@@ -368,7 +368,7 @@ def read_fasta_necessary_file(working_dir, config_dict, pro_greedy_list):
                 num_train_int += 1
             elif line.startswith(less_test_str):
                 num_test_int += 1
-            elif reserve_str != '' and line.startswith(less_reserve_str):
+            elif reserved_str != '' and line.startswith(less_reserved_str):
                 num_reserved_int += 1
             else:
                 num_fwd_int += 1

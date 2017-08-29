@@ -597,8 +597,9 @@ def main(argv=None):
     iNumThreads = cpu_count()
     # iNumThreads = 3
     if iNumThreads < 3:
-        sys.stderr.write('This script needs at least three cores per CPU.')
-        sys.exit(0)
+        iNumThreads = 3
+        # sys.stderr.write('This script needs at least three cores per CPU.')
+        # sys.exit(0)
     # Parse options and get config file
     sys.stderr.write('[Step 1] Parse options and get config file: Running -> ')
     # Call parse_config to open and read config file

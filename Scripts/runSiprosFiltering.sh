@@ -77,4 +77,4 @@ python2 ${exePath}/sipros_ensemble_filtering.py -i ${TabFile} -c ${ConfigureFile
 python2 ${exePath}/sipros_peptides_assembling.py -w ${OutputFolder}/ -c ${ConfigureFile}
 
 # Protein SIP mode clustering
-python2 ${exePath}/ClusterSip.py -w ${OutputFolder}/ -c ${ConfigureFile}
+# python2 ${exePath}/ClusterSip.py -w ${OutputFolder}/ -c ${ConfigureFile}

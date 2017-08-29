@@ -418,6 +418,8 @@ def get_protein_type(protein_sequence, lProtein=None):
                 reserve_type = False
         if reserve_type:
             return LabelReserve
+    else:
+        protein_list_tmp_1.extend(asProteins)
     
     training_type = True
     if train_str != '':
@@ -427,6 +429,8 @@ def get_protein_type(protein_sequence, lProtein=None):
                 training_type = False
         if training_type:
             return LabelTrain
+    else:
+        protein_list_tmp_2.extend(protein_list_tmp_1)
     
     testing_type = True
     if test_str != '':
