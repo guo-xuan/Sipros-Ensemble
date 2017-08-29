@@ -642,9 +642,10 @@ def main(argv=None):
     # Generate pep xml files
     if pepxml_output:
         sys.stderr.write('[Step 4] Generate Pepxml:                   Running -> ')
-        
+        # read in the tab data and genereate xml files in three folders
         writePepxml(base_out + '.tab', config_dict, modification_dict, element_modification_list_dict, output_folder)
-        
+        # remove the tab file
+        os.remove(base_out + '.tab')
         sys.stderr.write('Done!\n')
     
     # Time record, calculate elapsed time, and display work end

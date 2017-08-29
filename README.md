@@ -33,6 +33,8 @@ If compiled successfully, the required executables will be in `bin` directory an
 
 #### <a name="config"></a>Configure File Setting
 
+A sample configuration file, `SiprosConfig.cfg`, is available in `configs` directory. The configuration settings used for benchmarking is in `SiprosConfigBenchmark.cfg`.
+
 `#` is for comments.
 
 `[]` is used for section name, e.g., `[Section Name]`.
@@ -73,7 +75,7 @@ Sipros_OpemMP -o output_dir -w workingdirectory -c SiprosConfig.cfg
 ```
 Results (`.Spe2Pep` files) will be saved on the output directory. if you have many configure files, specify `-g`, like `Sipros_OpemMP -o output_dir -w workingdirectory -g configurefiledirectory`. Use `./Sipros_OpemMP -h` for help information. 
 
-* __MPI Version:__ This version of the database-searching should be used if you are going to run on a cluster with MPI support. The run script to invoke `Sipros_MPI` depends on the cluster management and job scheduling system. An example bash script `submit_job.pbs` is provide in `configs`
+* __MPI Version:__ This version of the database-searching should be used if you are going to run on a cluster with MPI support. The run script to invoke `Sipros_MPI` depends on the cluster management and job scheduling system. An example bash script `submit_job.pbs` is provide in `configs` directory.
  
 The quick start commands are:
 ```
