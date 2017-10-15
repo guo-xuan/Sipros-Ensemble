@@ -708,7 +708,7 @@ void MS2ScanVector::searchDatabaseWdpSip() {
 			// create a new peptide for the next iteration
 			currentPeptide = new Peptide;
 			// when the vpPeptideArray is full
-			if (vpPeptideArray.size() >= PEPTIDE_ARRAY_SIZE) {
+			if (vpPeptideArray.size() >= PEPTIDE_ARRAY_SIP_SIZE) {
 				processPeptideArrayWdpSip(vpPeptideArray);
 			}
 		}
