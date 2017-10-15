@@ -69,6 +69,10 @@ public:
 	// compute the atomic composition for an amino acid sequence
 	bool computeAtomicComposition(string sSequence, vector<int> & myAtomicComposition);
 
+	// debug begin
+	void check_error(string msg);
+	// debug end
+
 private:
 	// emass functions for IsotopeDistribution's arithmetic
 	IsotopeDistribution sum(const IsotopeDistribution & distribution0, const IsotopeDistribution & distribution1);

@@ -832,17 +832,23 @@ void MS2ScanVector::startProcessingMvhTask() {
 
 void MS2ScanVector::startProcessingWdpSip() {
 
+	ProNovoConfig::configIsotopologue.check_error("b_p");
+
 	// Preprocessing all MS2 scans by multi-threading
 	preProcessAllMs2WdpSip();
+
+	ProNovoConfig::configIsotopologue.check_error("b_s");
 
 	// Search all MS2 scans against the database by mult-threading
 	searchDatabaseWdpSip();
 
+	ProNovoConfig::configIsotopologue.check_error("a_s");
+
 	// Postprocessing all MS2 scans' results by mult-threading
-	postProcessAllMs2MvhXcorr();
+	// postProcessAllMs2MvhXcorr();
 
 	// write results to a SIP file
-	writeOutputEnsemble();
+	// writeOutputEnsemble();
 
 }
 

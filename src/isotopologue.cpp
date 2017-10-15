@@ -310,6 +310,17 @@ bool Isotopologue::getSingleResidueMostAbundantMasses(vector<string> & vsResidue
 	return true;
 }
 
+void Isotopologue::check_error(string msg){
+
+	map<string, IsotopeDistribution>::iterator ResidueIter = vResidueIsotopicDistribution.find("Nterm");
+	if (ResidueIter == vResidueIsotopicDistribution.end()) {
+		cout << ProNovoConfig::iRank << endl;
+		cout << ": " << msg << endl;
+		exit(1);
+	}
+
+}
+
 bool Isotopologue::computeIsotopicDistribution(string sSequence, IsotopeDistribution & myIsotopeDistribution) {
 	IsotopeDistribution sumDistribution;
 	IsotopeDistribution currentDistribution;
@@ -320,7 +331,8 @@ bool Isotopologue::computeIsotopicDistribution(string sSequence, IsotopeDistribu
 		currentDistribution = ResidueIter->second;
 		sumDistribution = currentDistribution;
 	} else {
-		cerr << "ERROR: can't find the N-terminus" << endl;
+		cerr << "ERROR: no N-terminus 2." << endl;
+		exit(1);
 		return false;
 	}
 
@@ -421,7 +433,9 @@ bool Isotopologue::computeProductIon(string sSequence, vector<vector<double> > &
 
 		vResidueDistribution.push_back(currentDistribution);
 	} else {
-		cerr << "ERROR: can't find the N-terminus" << endl;
+		cerr << "ERROR: no N-terminus 1." << endl;
+		cout << "rank: " << ProNovoConfig::iRank << endl;
+		exit(1);
 		return false;
 	}
 
@@ -438,6 +452,8 @@ bool Isotopologue::computeProductIon(string sSequence, vector<vector<double> > &
 		ResidueIter = vResidueIsotopicDistribution.find(currentResidue);
 		if (ResidueIter == vResidueIsotopicDistribution.end()) {
 			cerr << "ERROR: cannot find this residue in the config file. " << currentResidue << endl;
+			cout << "rank: " << ProNovoConfig::iRank << endl;
+			exit(1);
 			return false;
 		}
 		currentDistribution = ResidueIter->second;
