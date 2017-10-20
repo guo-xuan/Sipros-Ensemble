@@ -719,8 +719,8 @@ def logistic_regression_sip(psm_list, config_dict=None):
                                              max_iter=100, 
                                              multi_class='ovr', 
                                              verbose=0, 
-                                             warm_start=False, 
-                                             n_jobs=-1)
+                                             warm_start=False)
+                                             # n_jobs=-1)
     logreg.fit(train_data_np, train_label_np)
 
     # # test
@@ -1145,6 +1145,7 @@ def parse_config(config_filename):
     
     global train_str, test_str, reserve_str
     
+    # do not care training or testing
     if all_config_dict[pep_iden_str + search_type_str] == 'SIP':
         test_str = os.path.commonprefix([all_config_dict[pro_iden_str + training_decoy_prefix_str], all_config_dict[pro_iden_str + testing_decoy_prefix_str]])
         train_str = ''
@@ -1685,10 +1686,11 @@ def sip_filtering_LR(input_file, config_dict, output_folder, start_time):
     sys.stderr.write('[Step 4] Train ML and re-rank PSMs:                         Running -> ')
     del feature_selection_list[:]
     # feature_selection_list.extend([1, 2, 3, 5, 15, 16, 17, 24, 26, 28])
-    feature_selection_list.extend([1, 2, 15, 24, 26, 28])
+    # feature_selection_list.extend([1, 2, 15, 24, 26, 28])
+    feature_selection_list.extend([0, 3, 4, 7, 8, 9])
     psm_filtered_list = logistic_regression_sip(psm_list, config_dict)
     sys.stderr.write('Done!\n')
-    post_processing
+    
     # write output
     sys.stderr.write('[Step 5] Report output:                                     Running -> ')
     (psm_txt_file_str, pep_txt_file_str) = generate_psm_pep_txt(base_out, output_folder, psm_filtered_list, config_dict)
