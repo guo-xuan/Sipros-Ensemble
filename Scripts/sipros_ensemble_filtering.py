@@ -118,6 +118,17 @@ def get_set_searchname(searchname):
         searchname_list.append(searchname)
         return searchname_list.index(searchname)    
 
+## get the percentage
+def get_percentage_back(psm_list):
+    l = []
+    for e in searchname_list:
+        begin_i = e.index('_')
+        end_i = e.index('Pct')
+        pct_s = e[begin_i+1:end_i]
+        l.append(pct_s)
+    for psm_o in psm_list:
+        psm_o.pct_s = l[psm_o.SearchName]
+
 ## class defining the psm
 class PSM:
     
@@ -172,6 +183,8 @@ class PSM:
         self.feature_list = []
         
         self.TrainingLabel = 0
+        
+        self.pct_s = ''
     
     # extract 10 features
     def get_feature_final_list(self):
@@ -822,6 +835,246 @@ def get_num_missed_cleavage_sites(sIdentifiedSeq, sResiduesBeforeCleavage, sResi
             count_int += 1
     return count_int
 
+## sip mode, if the percentage difference larger than 10, do not use it for the count
+def generate_Prophet_features_sip_diff(lPsm, config_dict):
+    # get some statistics
+    global num_forward_psms_before_filtering
+    num_forward_psms_before_filtering = 0
+    for one_psm in lPsm:
+        if one_psm.RealLabel == LabelFwd:
+            num_forward_psms_before_filtering += 1
+    simple_feature_bool = False
+    if float(num_forward_psms_before_filtering)/float(len(lPsm)) > 0.7 and len(lPsm) > 1500000:
+        simple_feature_bool = True
+    # peptide with PTM dictionary is for IPSC, identified peptide
+    peptide_with_modification_dict = {}
+    # peptide without PTM dictionary is for OPSC, original peptide
+    peptide_dict = {}
+    peptide_protein_dict = {}
+    # psm_set = Set()
+    for oPsm in lPsm:
+        oPsm.NMC = get_num_missed_cleavage_sites(oPsm.OriginalPeptide, 
+                                                 config_dict[pep_iden_str + cleave_after_residues_str],
+                                                 config_dict[pep_iden_str + cleave_before_residues_str])
+           
+        if oPsm.IdentifiedPeptide in peptide_with_modification_dict:
+            peptide_with_modification_dict[oPsm.IdentifiedPeptide].append(oPsm.pct_s)
+        else:
+            peptide_with_modification_dict[oPsm.IdentifiedPeptide] = [oPsm.pct_s]
+        if oPsm.OriginalPeptide in peptide_protein_dict:
+            pro_list = peptide_protein_dict[oPsm.OriginalPeptide]
+            for protein in oPsm.protein_list:
+                if protein not in pro_list:
+                    pro_list.append(protein)
+        else:
+            pro_list = []
+            for pro in oPsm.protein_list:
+                if pro not in pro_list:
+                    pro_list.append(pro)
+            peptide_protein_dict[oPsm.OriginalPeptide] = pro_list
+            
+
+    pattern = re.compile('[^\w\[\]]')
+    for key, _value in peptide_with_modification_dict.iteritems():
+        peptide_str = pattern.sub('', key)
+        if peptide_str in peptide_dict:
+            # peptide_dict[peptide_str] += 1
+            peptide_dict[peptide_str] += _value
+        else:
+            # peptide_dict[peptide_str] = 1
+            peptide_dict[peptide_str] = _value
+    
+    # # sibling peptides
+    pro_unique_dict = {} # number of unique peptide of a protain
+    pro_shared_dict = {} # number of shared peptide of a protain
+    # debug
+    pro_balanced_shared_dict = {}
+    # debug
+    num_changed = 0
+    changed_flag = False
+    # psm_set.clear()
+    pro_pep_dict = {}
+    pro_unique_pep_dict = {}
+    pro_shared_pep_dict = {}
+    for oPsm in lPsm:
+        pro_list = peptide_protein_dict[oPsm.OriginalPeptide]
+        changed_flag = False
+        print_flag = True
+        for protein in pro_list:
+            if not protein in oPsm.protein_list:
+                changed_flag = True
+                if not print_flag:
+                    print(pro_list)
+                    print(oPsm.protein_list)
+                    print_flag = True
+                oPsm.protein_list.append(protein)
+        if len(oPsm.protein_list) != len(pro_list):
+            print('check 4')
+            print(oPsm.protein_list)
+            print(pro_list)
+            exit(1)
+            
+        if changed_flag:
+            oPsm.set_protein_names()
+            oPsm.RealLabel = get_protein_type(oPsm.ProteinNames)
+            # print(oPsm.OriginalPeptide)
+            num_changed += 1
+            
+        if len(pro_list) > 1:
+            num_pro_float = float(len(pro_list))
+            for protein in pro_list:
+                if protein in pro_shared_dict: 
+                    pro_shared_dict[protein] += 1
+                else:
+                    pro_shared_dict[protein] = 1
+                # debug
+                if protein in pro_balanced_shared_dict:
+                    pro_balanced_shared_dict[protein] += 1.0/num_pro_float
+                else:
+                    pro_balanced_shared_dict[protein] = 1.0/num_pro_float
+                # debug
+        else:
+            if pro_list[0] in pro_unique_dict:
+                pro_unique_dict[pro_list[0]] += 1
+            else:
+                pro_unique_dict[pro_list[0]] = 1
+        
+        for pro in pro_list:
+            if pro in pro_pep_dict:
+                l = pro_pep_dict[pro]
+                if oPsm.OriginalPeptide not in l:
+                    l.append(oPsm.OriginalPeptide)
+            else:
+                l = []
+                l.append(oPsm.OriginalPeptide)
+                pro_pep_dict[pro] = l
+        if len(pro_list) == 1:
+            if pro_list[0] in pro_unique_pep_dict:
+                l = pro_unique_pep_dict[pro_list[0]]
+                if oPsm.OriginalPeptide not in l:
+                    l.append(oPsm.OriginalPeptide)
+            else:
+                l = []
+                l.append(oPsm.OriginalPeptide)
+                pro_unique_pep_dict[pro_list[0]] = l
+        else:
+            for pro in pro_list:
+                if pro in pro_shared_pep_dict:
+                    l = pro_shared_pep_dict[pro]
+                    if oPsm.OriginalPeptide not in l:
+                        l.append(oPsm.OriginalPeptide)
+                else:
+                    l = []
+                    l.append(oPsm.OriginalPeptide)
+                    pro_shared_pep_dict[pro] = l
+    if num_changed != 0:
+        if not print_flag:
+            print("num changed %d" % num_changed)
+    
+    # collect features
+    num_unique_per_pro = 0
+    num_shared_per_pro = 0
+    num_balanced_shared_per_pro = 0
+    
+    max_unique_per_psm = 0
+    max_shared_per_psm = 0
+    max_balanced_shared_per_psm = 0
+    
+    num_unique_per_psm = 0
+    num_shared_per_psm = 0
+    num_balanced_shared_per_psm = 0
+    
+    max_per_psm = 0 # linked to protein
+    max_balanced_per_psm = 0 # linked to a protein
+    
+    max_linked_unique_per_psm = 0
+    max_linked_shared_per_psm = 0
+    max_linked_balanced_unique_per_psm = 0
+    max_linked_balanced_shared_per_psm = 0
+    
+    for oPsm in lPsm:
+        oPsm.IPSC = peptide_with_modification_dict[oPsm.IdentifiedPeptide]
+        oPsm.OPSC = peptide_dict[oPsm.OriginalPeptide]
+        
+        max_unique_per_psm = 0
+        max_shared_per_psm = 0
+        max_balanced_shared_per_psm = 0
+    
+        num_unique_per_psm = 0
+        num_shared_per_psm = 0
+        num_balanced_shared_per_psm = 0
+        
+        max_per_psm = 0 # linked to protein
+        max_balanced_per_psm = 0 # linked to a protein
+    
+        max_linked_unique_per_psm = 0
+        max_linked_shared_per_psm = 0
+        max_linked_balanced_unique_per_psm = 0
+        max_linked_balanced_shared_per_psm = 0
+        
+        pro_list = peptide_protein_dict[oPsm.OriginalPeptide]
+        
+        for protein in pro_list:
+            if len(pro_pep_dict[protein]) > oPsm.PPC:
+                oPsm.PPC = len(pro_pep_dict[protein])
+            if len(pro_list) == 1 and len(pro_unique_pep_dict[protein]) > oPsm.UPPC:
+                oPsm.UPPC = len(pro_unique_pep_dict[protein])
+            if len(pro_list) > 1 and len(pro_shared_pep_dict[protein]) > oPsm.SPPC:
+                oPsm.SPPC = len(pro_shared_pep_dict[protein])
+            num_unique_per_pro = 0
+            num_shared_per_pro = 0
+            num_balanced_shared_per_pro = 0
+            
+            if protein in pro_unique_dict:
+                num_unique_per_pro = pro_unique_dict[protein]
+                if len(pro_list) == 1:
+                    # pass
+                    num_unique_per_pro -= 1
+                
+            if protein in pro_shared_dict:
+                num_shared_per_pro = pro_shared_dict[protein]
+                if len(pro_list) > 1:
+                    # pass
+                    num_shared_per_pro -= 1
+            
+            if protein in pro_balanced_shared_dict:
+                num_balanced_shared_per_pro = pro_balanced_shared_dict[protein]
+                if len(pro_list) > 1:
+                    num_balanced_shared_per_pro -= 1.0/ float(len(pro_list))
+            
+            if num_unique_per_pro > max_unique_per_psm:
+                max_unique_per_psm = num_unique_per_pro
+            if num_shared_per_pro > max_shared_per_psm:
+                max_shared_per_psm = num_shared_per_pro
+            if num_unique_per_pro + num_shared_per_pro > max_per_psm:
+                max_per_psm = num_unique_per_pro + num_shared_per_pro
+                max_linked_unique_per_psm = num_unique_per_pro
+                max_linked_shared_per_psm = num_shared_per_pro
+            num_unique_per_psm += num_unique_per_pro
+            num_shared_per_psm += num_shared_per_pro
+            
+            if num_balanced_shared_per_pro > max_balanced_shared_per_psm:
+                max_balanced_shared_per_psm = num_balanced_shared_per_pro
+            if num_unique_per_pro + num_balanced_shared_per_pro > max_balanced_per_psm:
+                max_balanced_per_psm = num_unique_per_pro + num_balanced_shared_per_pro
+                max_linked_balanced_unique_per_psm = num_unique_per_pro
+                max_linked_balanced_shared_per_psm = num_balanced_shared_per_pro
+            num_balanced_shared_per_psm += num_balanced_shared_per_pro
+        
+        oPsm.UPSC = num_unique_per_psm
+        oPsm.SPSC = num_shared_per_psm
+        oPsm.SPSC = num_unique_per_psm + num_shared_per_psm
+        oPsm.UPSC = max_unique_per_psm
+        oPsm.SPSC = max_shared_per_psm
+        if len(oPsm.protein_list) == 1:
+            oPsm.UPSC = 1
+        else:
+            oPsm.UPSC = 0
+        if simple_feature_bool:
+            oPsm.SPSC = max_linked_unique_per_psm
+        else:
+            oPsm.SPSC = max_linked_unique_per_psm + max_linked_shared_per_psm
+        
 ## collect spectrum and protein level features
 def generate_Prophet_features_test(lPsm, config_dict):
     # get some statistics
@@ -1643,6 +1896,82 @@ def main(argv=None):
     sys.stderr.write('Run complete [%s elapsed]\n' %  format_time(duration))
 
 '''
+split psm table to 2 parts
+1. below 3%
+2. above 3%
+'''
+def sip_filtering_LR_try_2(input_file, config_dict, output_folder, start_time):
+    # read the big psm table
+    sys.stderr.write('[Step 1] Parse options and read PSM file:                   Running -> ')
+    # reading data from PSM table
+    (psm_list, base_out) = read_psm_table(input_file)
+    # mass filtering
+    psm_list = mass_filter(psm_list, config_dict)
+    sys.stderr.write('Done!\n')
+    
+    # find score-cutoff
+    sys.stderr.write('[Step 2] Re-rank PSMs and find score cutoff:                Running -> ')
+    psm_filtered_list = cutoff_filtering(psm_list, config_dict)
+    sys.stderr.write('Done!\n')
+    
+    # train a machine learning model: logistic regression
+    sys.stderr.write('[Step 3] Feature extraction:                                Running -> ')
+    # generate features
+    get_percentage_back(psm_list)
+    
+    psm_list_below_3pct = []
+    psm_list_above_3pct = []
+    
+    for psm_obj in psm_list:
+        if int(psm_obj.pct_s) <= 3:
+            psm_list_below_3pct.append(psm_obj)
+        else:
+            psm_list_above_3pct.append(psm_obj)
+    
+    generate_Prophet_features_test(psm_list_below_3pct, config_dict)
+    generate_Prophet_features_test(psm_list_above_3pct, config_dict)
+    # generate_Prophet_features_group(psm_list, config_dict)
+    # set feature all PSMs
+    for oPsm in psm_list:
+        oPsm.get_feature_final_list()
+    # reset the config
+    config_reset(config_dict)
+    # find out the train and testing ratio
+    find_train_test_ratio(config_dict)
+    # mark the positive train data
+    for oPsm in psm_list:
+        oPsm.set_real_label()
+    for oPsm in psm_filtered_list:
+        if oPsm.RealLabel == LabelFwd:
+            oPsm.TrainingLabel = LabelSipTrainFwd
+    sys.stderr.write('Done!\n')
+    
+    # machine learning
+    sys.stderr.write('[Step 4] Train ML and re-rank PSMs:                         Running -> ')
+    del feature_selection_list[:]
+    # feature_selection_list.extend([1, 2, 3, 5, 15, 16, 17, 24, 26, 28])
+    # feature_selection_list.extend([1, 2, 15, 24, 26, 28])
+    feature_selection_list.extend([0, 3, 4, 7, 8, 9])
+    psm_filtered_below_3pct_list = logistic_regression_sip(psm_list_below_3pct, config_dict)
+    psm_filtered_above_3pct_list = logistic_regression_sip(psm_list_above_3pct, config_dict)
+    psm_filtered_list = []
+    psm_filtered_list.append(psm_filtered_below_3pct_list)
+    psm_filtered_list.append(psm_filtered_above_3pct_list)
+    sys.stderr.write('Done!\n')
+    
+    # write output
+    sys.stderr.write('[Step 5] Report output:                                     Running -> ')
+    (psm_txt_file_str, pep_txt_file_str) = generate_psm_pep_txt(base_out, output_folder, psm_filtered_list, config_dict)
+    sys.stderr.write('Done!\n')
+    
+    # Time record, calculate elapsed time, and display work end
+    finish_time = datetime.now()
+    duration = finish_time - start_time
+    sys.stderr.write('------------------------------------------------------------------------------\n')
+    sys.stderr.write('[{}] Ending {}\n'.format(curr_time(), os.path.basename(__file__)))
+    sys.stderr.write('Run complete [%s elapsed]\n' %  format_time(duration))
+
+'''
 if sip mode
 use WDP to find the positive training data
 train the logistic model with 3 scores
@@ -1665,6 +1994,7 @@ def sip_filtering_LR(input_file, config_dict, output_folder, start_time):
     # train a machine learning model: logistic regression
     sys.stderr.write('[Step 3] Feature extraction:                                Running -> ')
     # generate features
+    get_percentage_back(psm_list)
     generate_Prophet_features_test(psm_list, config_dict)
     # generate_Prophet_features_group(psm_list, config_dict)
     # set feature all PSMs

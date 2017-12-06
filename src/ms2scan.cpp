@@ -31,6 +31,7 @@ MS2Scan::MS2Scan() {
 	iMaxMZ = 0;
 	bin_res = 0;
 	iMinMZ = 0;
+	sScanType = "null";
 }
 
 MS2Scan::~MS2Scan() {
