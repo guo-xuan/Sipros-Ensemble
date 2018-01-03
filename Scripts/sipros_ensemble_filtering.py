@@ -1086,6 +1086,8 @@ def generate_Prophet_features_test(lPsm, config_dict):
     simple_feature_bool = False
     if float(num_forward_psms_before_filtering)/float(len(lPsm)) > 0.7 and len(lPsm) > 1500000:
         simple_feature_bool = True
+    if config_dict[pep_iden_str + search_type_str] == 'SIP':
+        simple_feature_bool = False
     # peptide with PTM dictionary is for IPSC
     peptide_with_modification_dict = {}
     # peptide without PTM dictionary is for OPSC
