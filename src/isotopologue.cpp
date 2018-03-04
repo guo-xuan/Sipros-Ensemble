@@ -618,7 +618,7 @@ bool Isotopologue::computeAtomicComposition(string sSequence, vector<int> & myAt
 /**
  * Emass way to calculate sum
  */
-IsotopeDistribution Isotopologue::sum_backup(const IsotopeDistribution & distribution0, const IsotopeDistribution & distribution1) {
+IsotopeDistribution Isotopologue::sum(const IsotopeDistribution & distribution0, const IsotopeDistribution & distribution1) {
 	//debug begin
 	/*
 	for (int k = 0; k < ((int) distribution0.vMass.size()) - 1; k++) {
@@ -724,7 +724,7 @@ IsotopeDistribution Isotopologue::sum_backup(const IsotopeDistribution & distrib
 /**
  * Sipros 3 way
  */
-IsotopeDistribution Isotopologue::sum(const IsotopeDistribution & distribution0, const IsotopeDistribution & distribution1) {
+IsotopeDistribution Isotopologue::sum_backup(const IsotopeDistribution & distribution0, const IsotopeDistribution & distribution1) {
 
 	IsotopeDistribution sumDistribution;
 	double currentMass;

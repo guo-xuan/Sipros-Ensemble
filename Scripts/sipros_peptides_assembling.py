@@ -135,6 +135,7 @@ reserved_decoy_prefix_str = 'Reserved_Decoy_Prefix'
 min_peptide_per_protein_str = 'Min_Peptide_Per_Protein'
 min_unique_peptide_per_protein_str = 'Min_Unique_Peptide_Per_Protein'
 remove_decoy_identification_str = 'Remove_Decoy_Identification'
+search_type_str = 'Search_Type'
 
 sipros4_psmout_column_length = 20
 sipros4_input = None
@@ -224,6 +225,8 @@ def parse_config(config_filename):
             config_dict[min_unique_peptide_per_protein_str] = value
         elif key == (pro_iden_str + remove_decoy_identification_str):
             config_dict[remove_decoy_identification_str] = value
+        elif key == (pep_iden_str + search_type_str):
+            config_dict[search_type_str] = value
         else:
             continue
 
@@ -351,6 +354,10 @@ def read_fasta_necessary_file(working_dir, config_dict, pro_greedy_list):
     reserved_str = ''
     if reserved_decoy_prefix_str in config_dict:
         reserved_str = config_dict[reserved_decoy_prefix_str]
+    
+    if config_dict[search_type_str] == 'SIP':
+        train_str = test_str + '_fake'
+    
     num_train_int = 0
     num_test_int = 0
     num_reserved_int = 0

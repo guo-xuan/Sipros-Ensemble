@@ -633,27 +633,15 @@ class PepSpectrumMatch:
         if len(self.lPepScores) > self.iPurgeTrigger:
             if self.SIPmode:
                 self.purgeSIP()
-                if len(self.lPepScores) > self.iPurgeTrigger:
-                    self.purge()
             else:
                 self.purge()
             
     def purgeSIP(self):
-        # put pep with different search name into the same list
-        pep_dict = {}
-        for pep in self.lPepScores:
-            if pep.sIdentifiedPeptide not in pep_dict:
-                pep_dict[pep.sIdentifiedPeptide] = [pep]
-            else:
-                pep_dict[pep.sIdentifiedPeptide].append(pep)
-        # use WDP to select the right percentage
-        self.lPepScores = []
-        for _k, v in pep_dict.items():
-            if len(v) == 0:
-                self.lPepScores.append(v[0])
-            else:
-                lPep = sorted(v, key=lambda pep: (-pep.lfScores[SIP_WDP_score_idx], pep.fPct))
-                self.lPepScores.append(lPep[0])
+        # sort pep accoring to SIP_WDP_score
+        lPep = sorted(self.lPepScores, key=lambda pep: (-pep.lfScores[SIP_WDP_score_idx], pep.fPct))
+        pep_new_list = []
+        # keep all the pep with the highest score
+        pep_new_list.extend(lPep[0:self.iPurgeTrigger/2])
 
     def purge(self):
         iNumScores = len(self.lPepScores[0].lfScores)
@@ -670,7 +658,31 @@ class PepSpectrumMatch:
             if any(i <= self.iRankSave for i in j.liRanks):
                 liRanksNew.append(j)
         self.lPepScores = liRanksNew
+     
+    def ranking_sip(self):
+        # only kep the top score psm, or the least mass difference psm, or lowest ptm score psm, or the psm with the smallest percent
+        lPep = sorted(self.lPepScores, \
+                      key=lambda pep: (-pep.lfScores[SIP_WDP_score_idx], \
+                                       -MassDiff(pep), -PtmScore(pep), \
+                                       pep.fPct, pep.sIdentifiedPeptide))
+        self.pep_rank_list.append(lPep)
+        iRank = 1
+        for j in lPep:
+            j.liRanks.append(iRank)
+            iRank += 1
+        # score rank -> score differential
+        for j in range(0, len(lPep) - 1):
+            lPep[j].lfDiffRankScore.append(lPep[j].lfScores[SIP_WDP_score_idx] - \
+                                           lPep[j + 1].lfScores[SIP_WDP_score_idx])
+            lPep[j].lfDiffRankScore.append(0) # for the format sake, SIP does not use the other two score
+            lPep[j].lfDiffRankScore.append(0) # for the format sake, SIP does not use the other two score
 
+        lPep[len(lPep) - 1].lfDiffRankScore.append(0)
+        lPep[len(lPep) - 1].lfDiffRankScore.append(0)
+        lPep[len(lPep) - 1].lfDiffRankScore.append(0)
+        del self.lTopPep[:]
+        self.lTopPep.append(lPep[0])
+        
     def ranking(self):
         del self.lTopPep[:]
         for j in self.lPepScores:
@@ -820,7 +832,12 @@ def SelectTopRankedPsm(lOnePsm, isSIP=False):
     # sorting and then ranking
     psm_list = []
     for k,v in psm_dict.items():
-        v.ranking()
+        if isSIP:
+            v.ranking_sip()
+            if v.lTopPep[0].lfScores[SIP_WDP_score_idx] <= 0:
+                continue
+        else:
+            v.ranking()
         psm_list.append(v)
     return psm_list
 

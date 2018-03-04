@@ -1402,9 +1402,9 @@ def parse_config(config_filename):
     
     # do not care training or testing
     if all_config_dict[pep_iden_str + search_type_str] == 'SIP':
-        test_str = os.path.commonprefix([all_config_dict[pro_iden_str + training_decoy_prefix_str], all_config_dict[pro_iden_str + testing_decoy_prefix_str]])
-        train_str = ''
-        # test_str = all_config_dict[pro_iden_str + testing_decoy_prefix_str]
+        # test_str = os.path.commonprefix([all_config_dict[pro_iden_str + training_decoy_prefix_str], all_config_dict[pro_iden_str + testing_decoy_prefix_str]])
+        test_str = all_config_dict[pro_iden_str + testing_decoy_prefix_str]
+        train_str = test_str + '_fake'
         reserve_str = ''
         return all_config_dict
     
@@ -1993,38 +1993,8 @@ def sip_filtering_LR(input_file, config_dict, output_folder, start_time):
     psm_filtered_list = cutoff_filtering(psm_list, config_dict)
     sys.stderr.write('Done!\n')
     
-    # train a machine learning model: logistic regression
-    sys.stderr.write('[Step 3] Feature extraction:                                Running -> ')
-    # generate features
-    get_percentage_back(psm_list)
-    generate_Prophet_features_test(psm_list, config_dict)
-    # generate_Prophet_features_group(psm_list, config_dict)
-    # set feature all PSMs
-    for oPsm in psm_list:
-        oPsm.get_feature_final_list()
-    # reset the config
-    config_reset(config_dict)
-    # find out the train and testing ratio
-    find_train_test_ratio(config_dict)
-    # mark the positive train data
-    for oPsm in psm_list:
-        oPsm.set_real_label()
-    for oPsm in psm_filtered_list:
-        if oPsm.RealLabel == LabelFwd:
-            oPsm.TrainingLabel = LabelSipTrainFwd
-    sys.stderr.write('Done!\n')
-    
-    # machine learning
-    sys.stderr.write('[Step 4] Train ML and re-rank PSMs:                         Running -> ')
-    del feature_selection_list[:]
-    # feature_selection_list.extend([1, 2, 3, 5, 15, 16, 17, 24, 26, 28])
-    # feature_selection_list.extend([1, 2, 15, 24, 26, 28])
-    feature_selection_list.extend([0, 3, 4, 7, 8, 9])
-    psm_filtered_list = logistic_regression_sip(psm_list, config_dict)
-    sys.stderr.write('Done!\n')
-    
     # write output
-    sys.stderr.write('[Step 5] Report output:                                     Running -> ')
+    sys.stderr.write('[Step 3] Report output:                                     Running -> ')
     (psm_txt_file_str, pep_txt_file_str) = generate_psm_pep_txt(base_out, output_folder, psm_filtered_list, config_dict)
     sys.stderr.write('Done!\n')
     
