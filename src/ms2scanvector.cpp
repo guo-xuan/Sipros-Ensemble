@@ -183,7 +183,9 @@ bool MS2ScanVector::ReadMzmlFile() {
 			pMS2Scan->iParentChargeState = _vSpectra->at(i).atZ(0).z;
 		}
 
-		pMS2Scan->setRTime(std::to_string((long double) _vSpectra->at(i).getRTime()));
+		ostringstream ostr;
+		ostr << _vSpectra->at(i).getRTime();
+		pMS2Scan->setRTime(ostr.str());
 
 		peaknumber = _vSpectra->at(i).getPeaks()->size();
 		for (int j = 0; j < peaknumber; ++j) {
