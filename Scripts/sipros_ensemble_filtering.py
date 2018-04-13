@@ -325,8 +325,13 @@ Outputs:
 
 # # Parse options
 def parse_options(argv):
-
-    opts, _args = getopt.getopt(argv[1:], "hvi:c:o:x:")
+    
+    try:
+        opts, _args = getopt.getopt(argv[1:], "hvi:c:o:x:")
+    except getopt.GetoptError:
+        print("illigal option(s)")
+        print(help_message)
+        sys.exit(0)
 
     # Default working dir and config file
     input_file = ""
@@ -336,19 +341,19 @@ def parse_options(argv):
 
     # Basic options
     for option, value in opts:
-        if option in ("-h"):
+        if option in ("-h", "--help"):
             print(help_message)
             sys.exit(0)
-        if option in ("-v"):
+        elif option in ("-v", "-V", "--version"):
             print("{} version {}".format(__file__, get_version()))
             sys.exit(0)
-        if option in ("-i"):
+        elif option in ("-i"):
             input_file = value
-        if option in ("-o"):
+        elif option in ("-o"):
             output_folder = value
-        if option in ("-c"):
+        elif option in ("-c"):
             config_file = value
-        if option in ("-x"):
+        elif option in ("-x"):
             debug_code = value
             
     if input_file == "" or output_folder == "" or config_file == '':
