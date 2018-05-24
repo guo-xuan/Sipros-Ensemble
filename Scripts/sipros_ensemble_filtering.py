@@ -1377,6 +1377,7 @@ cleave_before_residues_str = 'Cleave_Before_Residues'
 Mass_Tolerance_Parent_Ion_str = 'Filter_Mass_Tolerance_Parent_Ion'
 search_Mass_Tolerance_Parent_Ion_str = 'Search_Mass_Tolerance_Parent_Ion'
 Parent_Mass_Windows_str = 'Parent_Mass_Windows'
+Filter_Mass_Tolerance_Parent_Ion_Unit = 'Filter_Mass_Tolerance_Parent_Ion_Unit'
 
 ## Parse config file
 def parse_config(config_filename):
@@ -1400,7 +1401,7 @@ def parse_config(config_filename):
         if v > mass_window_max_int:
             mass_window_max_int = v
     line_str = all_config_dict[pep_iden_str + search_Mass_Tolerance_Parent_Ion_str]
-    if float(line_str.strip()) > 0.05:
+    if float(line_str.strip()) > 0.5:
         mass_window_max_int += 1
     
     global train_str, test_str, reserve_str
@@ -1753,11 +1754,22 @@ def remark_concensus(psm_list):
 ## mass filtering
 def mass_filter(psm_list, config_dict):
     mass_tolerance = float(config_dict[pro_iden_str + Mass_Tolerance_Parent_Ion_str])
+    da_filter = True
+    if pro_iden_str + Filter_Mass_Tolerance_Parent_Ion_Unit in config_dict:
+        if config_dict[pro_iden_str + Filter_Mass_Tolerance_Parent_Ion_Unit] == "PPM":
+            da_filter = False
     psm_new_list = []
-    for oPsm in psm_list:
-        if abs(oPsm.fMassDiff) > mass_tolerance:
-            continue
-        psm_new_list.append(oPsm)
+    if da_filter:
+        for oPsm in psm_list:
+            if abs(oPsm.fMassDiff) > mass_tolerance:
+                continue
+            psm_new_list.append(oPsm)
+    else:
+        for oPsm in psm_list:
+            ppm = abs(1000000*(oPsm.MeasuredParentMass - oPsm.CalculatedParentMass)/oPsm.CalculatedParentMass)
+            if ppm > mass_tolerance:
+                continue
+            psm_new_list.append(oPsm)
     return psm_new_list
 
 # find the testing decoy verse forward 
