@@ -159,8 +159,9 @@ def parse_options(argv):
                                      "psm-pep-files"])
 
     # Error handling of options
-    except(getopt.error, msg):
-        raise Usage(msg)
+    except getopt.GetoptError as err:
+        print(err)
+        sys.exit(0)
 
     # Default working dir and config file
     working_dir = "./"
@@ -171,7 +172,8 @@ def parse_options(argv):
     # Basic options
     for option, value in opts:
         if option in ("-h", "--help"):
-            raise Usage(help_message)
+            print(help_message)
+            sys.exit(0)
         if option in ("-v", "-V", "--version"):
             print("sipros_peptides_assembling.py V%s" % (get_version()))
             sys.exit(0)
