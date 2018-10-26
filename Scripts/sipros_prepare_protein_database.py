@@ -81,7 +81,7 @@ def reverse_protein_database(input_file_str, output_file_str, all_config_dict) :
     else:
         probability_2 = 1
     
-    if all_config_dict['[Protein_Identification]Reserved_Decoy_Prefix'] == 'SIP':
+    if reserved_prefix_str == 'SIP': # no training is needed for SIP search, so only test decoy is generated
         probability_1 = -1
         
     if '[Protein_Identification]Training_Decoy_Prefix' in all_config_dict:
